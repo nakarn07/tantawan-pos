@@ -73,7 +73,16 @@ const AVAILABLE_EXTRAS = [
 ];
 
 // Default Data Setup
-const DEFAULT_CATEGORIES = ['กาแฟ', 'ชา', 'เครื่องดื่มอื่นๆ', 'รายการอื่นๆ'];
+const DEFAULT_CATEGORIES = [
+  'Specialty Coffee',
+  'กาแฟเย็น',
+  'กาแฟร้อน',
+  'เครื่องดื่มอื่นๆ',
+  'Italian Soda',
+  'ของกินอื่นๆ',
+  'Ice Cream - ETE',
+  'รายการอื่นๆ'
+];
 
 const DEFAULT_OPTION_GROUPS = [
   {
@@ -143,7 +152,7 @@ const DEFAULT_PRODUCTS = [
   {
     id: 'prod-1',
     name: 'เอสเพรสโซ่ (Espresso)',
-    category: 'กาแฟ',
+    category: 'กาแฟร้อน',
     basePrice: 35,
     image: 'assets/coffee/hot_espresso.jpg',
     optionGroupIds: ['optgrp-beans', 'optgrp-temp', 'optgrp-sweet', 'optgrp-toppings'],
@@ -156,7 +165,7 @@ const DEFAULT_PRODUCTS = [
   {
     id: 'prod-2',
     name: 'อเมริกาโน่ (Americano)',
-    category: 'กาแฟ',
+    category: 'กาแฟเย็น',
     basePrice: 40,
     image: 'assets/coffee/iced_americano.jpg',
     optionGroupIds: ['optgrp-beans', 'optgrp-temp', 'optgrp-sweet', 'optgrp-toppings'],
@@ -169,7 +178,7 @@ const DEFAULT_PRODUCTS = [
   {
     id: 'prod-3',
     name: 'คาปูชิโน่ (Cappuccino)',
-    category: 'กาแฟ',
+    category: 'กาแฟเย็น',
     basePrice: 45,
     image: 'assets/coffee/iced_cappuccino.jpg',
     optionGroupIds: ['optgrp-beans', 'optgrp-temp', 'optgrp-sweet', 'optgrp-toppings'],
@@ -182,7 +191,7 @@ const DEFAULT_PRODUCTS = [
   {
     id: 'prod-4',
     name: 'ลาเต้ (Latte)',
-    category: 'กาแฟ',
+    category: 'กาแฟเย็น',
     basePrice: 45,
     image: 'assets/coffee/iced_latte.jpg',
     optionGroupIds: ['optgrp-beans', 'optgrp-temp', 'optgrp-sweet', 'optgrp-toppings'],
@@ -195,7 +204,7 @@ const DEFAULT_PRODUCTS = [
   {
     id: 'prod-12',
     name: 'มอคค่า (Mocha)',
-    category: 'กาแฟ',
+    category: 'กาแฟเย็น',
     basePrice: 45,
     image: 'assets/coffee/iced_mocha.jpg',
     optionGroupIds: ['optgrp-beans', 'optgrp-temp', 'optgrp-sweet', 'optgrp-toppings'],
@@ -208,7 +217,7 @@ const DEFAULT_PRODUCTS = [
   {
     id: 'prod-affogato',
     name: 'อัฟโฟกาโต (Affogato)',
-    category: 'กาแฟ',
+    category: 'กาแฟเย็น',
     basePrice: 65,
     image: 'assets/coffee/iced_affogato.jpg',
     optionGroupIds: ['optgrp-beans', 'optgrp-toppings'],
@@ -220,7 +229,7 @@ const DEFAULT_PRODUCTS = [
   {
     id: 'prod-dirty',
     name: 'เดอร์ตี้ (Dirty)',
-    category: 'กาแฟ',
+    category: 'กาแฟเย็น',
     basePrice: 60,
     image: 'assets/coffee/iced_dirty.jpg',
     optionGroupIds: ['optgrp-beans', 'optgrp-sweet', 'optgrp-toppings'],
@@ -232,7 +241,7 @@ const DEFAULT_PRODUCTS = [
   {
     id: 'prod-5',
     name: 'ชาเขียวมัทฉะ (Matcha Latte)',
-    category: 'ชา',
+    category: 'เครื่องดื่มอื่นๆ',
     basePrice: 70,
     image: 'assets/coffee/iced_matcha.jpg',
     optionGroupIds: ['optgrp-temp', 'optgrp-sweet', 'optgrp-toppings'],
@@ -245,7 +254,7 @@ const DEFAULT_PRODUCTS = [
   {
     id: 'prod-6',
     name: 'ชาไทยพรีเมียม (Thai Tea)',
-    category: 'ชา',
+    category: 'เครื่องดื่มอื่นๆ',
     basePrice: 40,
     image: 'assets/coffee/thai_tea.png',
     optionGroupIds: ['optgrp-temp', 'optgrp-sweet', 'optgrp-toppings'],
@@ -270,7 +279,7 @@ const DEFAULT_PRODUCTS = [
   {
     id: 'prod-11',
     name: 'ชากุหลาบนม (Rose Milk Tea)',
-    category: 'ชา',
+    category: 'เครื่องดื่มอื่นๆ',
     basePrice: 50,
     optionGroupIds: ['optgrp-temp', 'optgrp-sweet', 'optgrp-toppings'],
     hasTemp: true,
@@ -518,24 +527,50 @@ function loadFromLocalStorage() {
   try {
     categories = JSON.parse(localStorage.getItem('coffeeshop_categories')) || DEFAULT_CATEGORIES;
     if (Array.isArray(categories)) {
-      categories = categories.filter(c => c !== 'เบเกอรี่');
+      const catsBefore = categories.length;
+      categories = categories.filter(c => c !== 'กาแฟ' && c !== 'ชา' && c !== 'เบเกอรี่');
       if (!categories.includes('รายการอื่นๆ')) {
         categories.push('รายการอื่นๆ');
       }
-      saveToStorage('coffeeshop_categories', categories);
+      if (categories.length !== catsBefore) {
+        saveToStorage('coffeeshop_categories', categories);
+        if (typeof syncCategoriesToCloud === 'function') syncCategoriesToCloud(categories);
+      }
     }
     optionGroups = JSON.parse(localStorage.getItem('coffeeshop_option_groups')) || DEFAULT_OPTION_GROUPS;
     promotions = JSON.parse(localStorage.getItem('coffeeshop_promotions')) || DEFAULT_PROMOTIONS;
     products = JSON.parse(localStorage.getItem('coffeeshop_products')) || DEFAULT_PRODUCTS;
     if (Array.isArray(products)) {
+      let prodsChanged = false;
       const lenBefore = products.length;
+      
+      // Filter out unwanted mock bakery items
       products = products.filter(p => p.id !== 'prod-7' && p.id !== 'prod-8' && p.category !== 'เบเกอรี่' && !(p.name || '').includes('บลูเบอร์รี่') && !(p.name || '').includes('ครัวซองต์'));
       if (products.length !== lenBefore) {
-        saveToStorage('coffeeshop_products', products);
+        prodsChanged = true;
         if (typeof deleteProductFromCloud === 'function') {
           deleteProductFromCloud('prod-7');
           deleteProductFromCloud('prod-8');
         }
+      }
+
+      // Reassign legacy categories 'กาแฟ' -> 'กาแฟเย็น' and 'ชา' -> 'เครื่องดื่มอื่นๆ'
+      products.forEach(p => {
+        if (p.category === 'กาแฟ') {
+          p.category = (p.name && (p.name.includes('ร้อน') || p.name.includes('Hot') || p.id === 'prod-1')) ? 'กาแฟร้อน' : 'กาแฟเย็น';
+          prodsChanged = true;
+        } else if (p.category === 'ชา') {
+          p.category = 'เครื่องดื่มอื่นๆ';
+          prodsChanged = true;
+        } else if (p.category === 'เบเกอรี่') {
+          p.category = 'ของกินอื่นๆ';
+          prodsChanged = true;
+        }
+      });
+
+      if (prodsChanged) {
+        saveToStorage('coffeeshop_products', products);
+        if (typeof syncProductsToCloud === 'function') syncProductsToCloud(products);
       }
     }
     // Auto-migrate products to Tantawan official menu prices if still on legacy mock prices
@@ -659,7 +694,17 @@ function loadFromLocalStorage() {
     if (typeof fetchProductsFromCloud === 'function') {
       fetchProductsFromCloud().then(cloudProds => {
         if (cloudProds && cloudProds.length > 0) {
-          products = cloudProds;
+          // Filter out legacy mock bakery items and sanitize
+          products = cloudProds.filter(p => p.id !== 'prod-7' && p.id !== 'prod-8' && p.category !== 'เบเกอรี่' && !(p.name || '').includes('บลูเบอร์รี่') && !(p.name || '').includes('ครัวซองต์'));
+          products.forEach(p => {
+            if (p.category === 'กาแฟ') {
+              p.category = (p.name && (p.name.includes('ร้อน') || p.name.includes('Hot') || p.id === 'prod-1')) ? 'กาแฟร้อน' : 'กาแฟเย็น';
+            } else if (p.category === 'ชา') {
+              p.category = 'เครื่องดื่มอื่นๆ';
+            } else if (p.category === 'เบเกอรี่') {
+              p.category = 'ของกินอื่นๆ';
+            }
+          });
           window.products = products;
           saveToStorage('coffeeshop_products', products);
           if (typeof renderProductsGrid === 'function') renderProductsGrid();
@@ -672,7 +717,7 @@ function loadFromLocalStorage() {
     if (typeof fetchCategoriesFromCloud === 'function') {
       fetchCategoriesFromCloud().then(cloudCats => {
         if (cloudCats && cloudCats.length > 0) {
-          categories = cloudCats;
+          categories = cloudCats.filter(c => c !== 'กาแฟ' && c !== 'ชา' && c !== 'เบเกอรี่');
           window.categories = categories;
           saveToStorage('coffeeshop_categories', categories);
           if (typeof renderCategoryFilters === 'function') renderCategoryFilters();
@@ -703,29 +748,7 @@ function loadFromLocalStorage() {
       productsMigrated = true;
     }
 
-    // 2. Remove unwanted category 'กาแฟ' if it has no products or was only used by Pistachio Latte
-    if (categories && categories.includes('กาแฟ')) {
-      const hasCoffeeProducts = products.some(p => p.category === 'กาแฟ');
-      if (!hasCoffeeProducts) {
-        categories = categories.filter(c => c !== 'กาแฟ');
-        saveToStorage('coffeeshop_categories', categories);
-        if (typeof selectedCategory !== 'undefined' && selectedCategory === 'กาแฟ') {
-          selectedCategory = 'all';
-        }
-        if (typeof menuConfigSelectedCategory !== 'undefined' && menuConfigSelectedCategory === 'กาแฟ') {
-          menuConfigSelectedCategory = 'all';
-        }
-      }
-    }
 
-    // 3. If user doesn't have category 'ชา', do not auto-inject prod-11 into their custom menu
-    if (categories && !categories.includes('ชา')) {
-      const p11Index = products.findIndex(p => p.id === 'prod-11' && p.category === 'ชา');
-      if (p11Index > -1) {
-        products.splice(p11Index, 1);
-        productsMigrated = true;
-      }
-    }
 
 
 
@@ -5221,11 +5244,25 @@ function renderMenuConfigTable() {
   const searchInput = document.getElementById('menuConfigSearchInput');
   const searchVal = searchInput ? searchInput.value.toLowerCase().trim() : '';
 
-  // 1. Gather all categories that exist in system + any used by products
+  // 1. Ensure categories and products are sanitized of unwanted mock categories
+  categories = (categories || []).filter(c => c !== 'กาแฟ' && c !== 'ชา' && c !== 'เบเกอรี่');
+  products.forEach(p => {
+    if (p.category === 'กาแฟ') {
+      p.category = (p.name && (p.name.includes('ร้อน') || p.name.includes('Hot') || p.id === 'prod-1')) ? 'กาแฟร้อน' : 'กาแฟเย็น';
+    } else if (p.category === 'ชา') {
+      p.category = 'เครื่องดื่มอื่นๆ';
+    } else if (p.category === 'เบเกอรี่') {
+      p.category = 'ของกินอื่นๆ';
+    }
+  });
+
+  // Gather all valid categories that exist in system + any custom ones (never forbidden mock ones)
   const allCats = [...categories];
   products.forEach(p => {
-    const c = p.category || 'อื่นๆ';
-    if (!allCats.includes(c)) allCats.push(c);
+    const c = p.category || 'รายการอื่นๆ';
+    if (c !== 'กาแฟ' && c !== 'ชา' && c !== 'เบเกอรี่' && !allCats.includes(c)) {
+      allCats.push(c);
+    }
   });
 
   // 2. Render Category Filter Tabs Bar

@@ -36,6 +36,12 @@ function initSupabase() {
       
       // Auto sync pending orders after init
       setTimeout(syncAllPendingOrders, 1500);
+
+      // Proactively purge unwanted mock categories & products from Cloud DB
+      try {
+        dbClient.from('products').delete().in('id', ['prod-7', 'prod-8']).then(() => {}).catch(() => {});
+        dbClient.from('categories').delete().in('name', ['กาแฟ', 'ชา', 'เบเกอรี่']).then(() => {}).catch(() => {});
+      } catch (e) {}
     } catch (err) {
       console.warn('⚠️ Supabase Init Warning:', err);
       isCloudConnected = false;
@@ -359,20 +365,32 @@ async function fetchProductsFromCloud() {
     }
 
     if (Array.isArray(data) && data.length > 0) {
-      const formatted = data.map(row => ({
-        id: row.id,
-        name: row.name,
-        category: row.category,
-        basePrice: Number(row.base_price || 0),
-        image: row.image,
-        optionGroupIds: row.option_group_ids || [],
-        hasTemp: !!row.has_temp,
-        tempPrices: row.temp_prices || { hot: 0, cold: 5, frappe: 10 },
-        hasSweetness: !!row.has_sweetness,
-        hasExtras: !!row.has_extras,
-        extras: row.extras || [],
-        active: row.active !== false
-      }));
+      const formatted = data
+        .filter(row => row.id !== 'prod-7' && row.id !== 'prod-8' && row.category !== 'เบเกอรี่' && !(row.name || '').includes('บลูเบอร์รี่') && !(row.name || '').includes('ครัวซองต์'))
+        .map(row => {
+          let cat = row.category;
+          if (cat === 'กาแฟ') {
+            cat = (row.name && (row.name.includes('ร้อน') || row.name.includes('Hot') || row.id === 'prod-1')) ? 'กาแฟร้อน' : 'กาแฟเย็น';
+          } else if (cat === 'ชา') {
+            cat = 'เครื่องดื่มอื่นๆ';
+          } else if (cat === 'เบเกอรี่') {
+            cat = 'ของกินอื่นๆ';
+          }
+          return {
+            id: row.id,
+            name: row.name,
+            category: cat,
+            basePrice: Number(row.base_price || 0),
+            image: row.image,
+            optionGroupIds: row.option_group_ids || [],
+            hasTemp: !!row.has_temp,
+            tempPrices: row.temp_prices || { hot: 0, cold: 5, frappe: 10 },
+            hasSweetness: !!row.has_sweetness,
+            hasExtras: !!row.has_extras,
+            extras: row.extras || [],
+            active: row.active !== false
+          };
+        });
       localStorage.setItem('coffeeshop_products', JSON.stringify(formatted));
       console.log('☁️ Loaded ' + formatted.length + ' products from Supabase Cloud');
       return formatted;
@@ -398,7 +416,13 @@ async function deleteProductFromCloud(productId) {
 async function syncCategoriesToCloud(cats) {
   if (!dbClient || !isCloudConnected || !Array.isArray(cats)) return;
   try {
-    const rows = cats.map((catName, idx) => ({
+    // Purge unwanted categories from DB
+    await dbClient.from('categories').delete().in('name', ['กาแฟ', 'ชา', 'เบเกอรี่']);
+
+    // Filter out forbidden legacy categories
+    const cleanCats = cats.filter(c => c !== 'กาแฟ' && c !== 'ชา' && c !== 'เบเกอรี่');
+
+    const rows = cleanCats.map((catName, idx) => ({
       id: 'cat-' + idx,
       name: catName,
       display_order: idx
@@ -424,7 +448,9 @@ async function fetchCategoriesFromCloud() {
     }
 
     if (Array.isArray(data) && data.length > 0) {
-      const catNames = data.map(r => r.name);
+      const catNames = data
+        .map(r => r.name)
+        .filter(c => c && c !== 'กาแฟ' && c !== 'ชา' && c !== 'เบเกอรี่');
       localStorage.setItem('coffeeshop_categories', JSON.stringify(catNames));
       return catNames;
     }
