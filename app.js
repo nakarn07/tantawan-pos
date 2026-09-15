@@ -390,12 +390,109 @@ function onThemeSettingChange(val) {
   applyTheme(val);
 }
 
+// ==========================================================================
+// MASTER STORE ACCESS GATE (USERNAME & PASSWORD AUTHENTICATION)
+// ==========================================================================
+const STORE_MASTER_USERNAME = 'TANTAWANCOFFEE';
+const STORE_MASTER_PASSWORD = '07101120';
+const STORE_AUTH_STORAGE_KEY = 'tantawan_store_access_v1';
+
+function checkMasterStoreAuth() {
+  const overlay = document.getElementById('masterStoreGateOverlay');
+  if (!overlay) return;
+
+  const authData = localStorage.getItem(STORE_AUTH_STORAGE_KEY) || sessionStorage.getItem(STORE_AUTH_STORAGE_KEY);
+  if (authData) {
+    try {
+      const parsed = JSON.parse(authData);
+      if (parsed && parsed.authenticated === true) {
+        overlay.classList.add('hidden');
+        return;
+      }
+    } catch (e) {
+      console.error('Failed to parse store auth data:', e);
+    }
+  }
+
+  // Not authenticated: ensure overlay is visible and focus username
+  overlay.classList.remove('hidden');
+  setTimeout(() => {
+    const userIn = document.getElementById('masterInputUsername');
+    if (userIn) userIn.focus();
+  }, 150);
+}
+
+function handleMasterStoreLogin(e) {
+  if (e) e.preventDefault();
+  const userIn = document.getElementById('masterInputUsername');
+  const passIn = document.getElementById('masterInputPassword');
+  const rememberIn = document.getElementById('masterRememberMe');
+  const errBox = document.getElementById('masterLoginError');
+
+  const username = (userIn?.value || '').trim().toUpperCase();
+  const password = (passIn?.value || '').trim();
+  const remember = rememberIn ? rememberIn.checked : true;
+
+  if (username === STORE_MASTER_USERNAME && password === STORE_MASTER_PASSWORD) {
+    const payload = JSON.stringify({
+      authenticated: true,
+      user: username,
+      loginAt: Date.now()
+    });
+
+    if (remember) {
+      localStorage.setItem(STORE_AUTH_STORAGE_KEY, payload);
+    } else {
+      sessionStorage.setItem(STORE_AUTH_STORAGE_KEY, payload);
+    }
+
+    const overlay = document.getElementById('masterStoreGateOverlay');
+    if (overlay) overlay.classList.add('hidden');
+    if (errBox) errBox.classList.add('hidden');
+
+    showToast('🌻 ยินดีต้อนรับสู่ระบบร้านทานตะวัน (TANTAWAN COFFEE)', 'success');
+  } else {
+    if (errBox) {
+      errBox.innerText = '❌ ชื่อผู้ใช้งานหรือรหัสผ่านร้านค้าไม่ถูกต้อง กรุณาลองใหม่อีกครั้ง';
+      errBox.classList.remove('hidden');
+    }
+    if (passIn) {
+      passIn.value = '';
+      passIn.focus();
+    }
+  }
+}
+
+function masterStoreLogout() {
+  if (confirm('🔒 คุณต้องการออกจากระบบร้านค้า (Lock Store) ใช่หรือไม่?\n\nเมื่อออกแล้ว ระบบจะต้องกรอก Username และ Password ร้านอีกครั้งเพื่อเข้าสู่ระบบ POS')) {
+    localStorage.removeItem(STORE_AUTH_STORAGE_KEY);
+    sessionStorage.removeItem(STORE_AUTH_STORAGE_KEY);
+    location.reload();
+  }
+}
+
+function toggleMasterPasswordVisibility() {
+  const passIn = document.getElementById('masterInputPassword');
+  const icon = document.getElementById('masterEyeIcon');
+  if (!passIn) return;
+  if (passIn.type === 'password') {
+    passIn.type = 'text';
+    if (icon) icon.innerText = '🙈';
+  } else {
+    passIn.type = 'password';
+    if (icon) icon.innerText = '👁️';
+  }
+}
+
 // Initialize Application
 document.addEventListener('DOMContentLoaded', () => {
   init();
 });
 
 function init() {
+  // 1. Check Master Store Access Gate First!
+  checkMasterStoreAuth();
+
   // Initialize theme first (Default Dark Theme)
   initTheme();
 
