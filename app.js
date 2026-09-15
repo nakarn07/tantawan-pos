@@ -73,7 +73,7 @@ const AVAILABLE_EXTRAS = [
 ];
 
 // Default Data Setup
-const DEFAULT_CATEGORIES = ['กาแฟ', 'ชา', 'เบเกอรี่', 'เครื่องดื่มอื่นๆ', 'รายการอื่นๆ'];
+const DEFAULT_CATEGORIES = ['กาแฟ', 'ชา', 'เครื่องดื่มอื่นๆ', 'รายการอื่นๆ'];
 
 const DEFAULT_OPTION_GROUPS = [
   {
@@ -254,26 +254,6 @@ const DEFAULT_PRODUCTS = [
     hasSweetness: true,
     hasExtras: true,
     extras: ['วิปครีม (Whipped Cream)', 'ไข่มุก (Boba)']
-  },
-  {
-    id: 'prod-7',
-    name: 'บลูเบอร์รี่ชีสพาย (Blueberry Cheesepie)',
-    category: 'เบเกอรี่',
-    basePrice: 85,
-    optionGroupIds: [],
-    hasTemp: false,
-    hasSweetness: false,
-    hasExtras: false
-  },
-  {
-    id: 'prod-8',
-    name: 'ครัวซองต์เนยสด (Butter Croissant)',
-    category: 'เบเกอรี่',
-    basePrice: 65,
-    optionGroupIds: [],
-    hasTemp: false,
-    hasSweetness: false,
-    hasExtras: false
   },
   {
     id: 'prod-9',
@@ -537,12 +517,27 @@ function init() {
 function loadFromLocalStorage() {
   try {
     categories = JSON.parse(localStorage.getItem('coffeeshop_categories')) || DEFAULT_CATEGORIES;
-    if (Array.isArray(categories) && !categories.includes('รายการอื่นๆ')) {
-      categories.push('รายการอื่นๆ');
+    if (Array.isArray(categories)) {
+      categories = categories.filter(c => c !== 'เบเกอรี่');
+      if (!categories.includes('รายการอื่นๆ')) {
+        categories.push('รายการอื่นๆ');
+      }
+      saveToStorage('coffeeshop_categories', categories);
     }
     optionGroups = JSON.parse(localStorage.getItem('coffeeshop_option_groups')) || DEFAULT_OPTION_GROUPS;
     promotions = JSON.parse(localStorage.getItem('coffeeshop_promotions')) || DEFAULT_PROMOTIONS;
     products = JSON.parse(localStorage.getItem('coffeeshop_products')) || DEFAULT_PRODUCTS;
+    if (Array.isArray(products)) {
+      const lenBefore = products.length;
+      products = products.filter(p => p.id !== 'prod-7' && p.id !== 'prod-8' && p.category !== 'เบเกอรี่' && !(p.name || '').includes('บลูเบอร์รี่') && !(p.name || '').includes('ครัวซองต์'));
+      if (products.length !== lenBefore) {
+        saveToStorage('coffeeshop_products', products);
+        if (typeof deleteProductFromCloud === 'function') {
+          deleteProductFromCloud('prod-7');
+          deleteProductFromCloud('prod-8');
+        }
+      }
+    }
     // Auto-migrate products to Tantawan official menu prices if still on legacy mock prices
     if (Array.isArray(products)) {
       let prodsUpdated = false;
@@ -732,36 +727,7 @@ function loadFromLocalStorage() {
       }
     }
 
-    // 4. Set fallback photos ONLY if product has no image
-    products.forEach(p => {
-      const n = (p.name || '').toLowerCase();
-      const cat = (p.category || '').toLowerCase();
-      if (!p.image || p.image.includes('placeholder')) {
-        if (n.includes('มัทฉะ') || n.includes('matcha')) {
-          p.image = 'assets/coffee/iced_matcha.jpg';
-          productsMigrated = true;
-        } else if (n.includes('เอสเพรสโซ') || n.includes('espresso')) {
-          p.image = 'assets/coffee/hot_espresso.jpg';
-          productsMigrated = true;
-        } else if (n.includes('อเมริกาโน') || n.includes('americano')) {
-          p.image = 'assets/coffee/iced_americano.jpg';
-          productsMigrated = true;
-        } else if (n.includes('คาปู') || n.includes('cappuccino')) {
-          p.image = 'assets/coffee/iced_cappuccino.jpg';
-          productsMigrated = true;
-        } else if ((n.includes('ลาเต้') || n.includes('latte')) && cat !== 'ชา' && !n.includes('ชา')) {
-          p.image = 'assets/coffee/iced_latte.jpg';
-          productsMigrated = true;
-        } else if (n.includes('มอคค่า') || n.includes('mocha')) {
-          p.image = 'assets/coffee/iced_mocha.jpg';
-          productsMigrated = true;
-        }
-      }
-    });
 
-    if (productsMigrated) {
-      saveToStorage('coffeeshop_products', products);
-    }
 
     // Auto-migrate option groups if missing honey/lemon/beans
     let optionGroupsMigrated = false;
