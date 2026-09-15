@@ -2155,29 +2155,54 @@
 
         const activeDrinks = (activeCoffeeCategory === 'hot') ? hotDrinks : coldDrinks;
 
+        let soldOutList = [];
+        let storedProds = [];
+        try {
+          soldOutList = JSON.parse(localStorage.getItem('coffeeshop_sold_out_products') || '[]');
+          storedProds = JSON.parse(localStorage.getItem('coffeeshop_products') || '[]');
+        } catch (e) {}
+
         coffeeRow.innerHTML = activeDrinks.map((c) => {
           const tempBadge = c.temp === 'hot'
             ? `<span class="text-[9px] sm:text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30 flex items-center gap-1">☕ ร้อน</span>`
             : `<span class="text-[9px] sm:text-[10px] font-bold px-2 py-0.5 rounded-full bg-sky-500/20 text-sky-300 border border-sky-500/30 flex items-center gap-1">🧊 เย็น</span>`;
 
+          const isSoldOut = Array.isArray(soldOutList) && soldOutList.some(id => {
+            if (id === c.id) return true;
+            const p = storedProds && storedProds.find(item => item.id === id);
+            if (p && p.name) {
+              const pName = p.name.trim().toLowerCase();
+              const cName = c.name.trim().toLowerCase();
+              return pName === cName || (pName.includes(cName) && (p.category === (c.temp === 'hot' ? 'กาแฟร้อน' : 'กาแฟเย็น')));
+            }
+            return false;
+          });
+
           return `
-            <div class="rounded-2xl bg-slate-950/85 border border-slate-800/90 hover:border-amber-500/50 p-2 sm:p-2.5 flex flex-col justify-between transition-all duration-200 shadow-md hover:shadow-amber-500/15 group select-none h-full overflow-hidden">
+            <div class="rounded-2xl bg-slate-950/85 border ${isSoldOut ? 'border-red-500/50 opacity-60' : 'border-slate-800/90 hover:border-amber-500/50'} p-2 sm:p-2.5 flex flex-col justify-between transition-all duration-200 shadow-md hover:shadow-amber-500/15 group select-none h-full overflow-hidden relative">
               <!-- Top: Temperature Badge & Price -->
               <div class="flex items-center justify-between w-full flex-shrink-0 mb-1">
                 ${tempBadge}
-                <span class="text-xs sm:text-sm font-black text-amber-400">฿${c.price}</span>
+                <span class="text-xs sm:text-sm font-black ${isSoldOut ? 'text-slate-500 line-through' : 'text-amber-400'}">฿${c.price}</span>
               </div>
 
               <!-- FULL 1:1 SQUARE PHOTO CONTAINER: Shows entire photo with zero clipping -->
               <div class="relative flex-1 min-h-0 w-full flex items-center justify-center my-0.5">
                 <div class="h-full aspect-square max-w-full rounded-xl overflow-hidden bg-slate-900/90 border border-slate-800/80 shadow-inner group relative flex items-center justify-center" style="aspect-ratio: 1 / 1;">
-                  <img src="${c.image}" alt="${c.name}" class="w-full h-full object-contain group-hover:scale-105 transition-transform duration-300 pointer-events-none p-0.5" onerror="this.style.display='none';">
+                  <img src="${c.image}" alt="${c.name}" class="w-full h-full object-contain group-hover:scale-105 transition-transform duration-300 pointer-events-none p-0.5 ${isSoldOut ? 'grayscale-[40%]' : ''}" onerror="this.style.display='none';">
+                  ${isSoldOut ? `
+                  <div class="absolute inset-0 bg-black/60 z-20 flex flex-col items-center justify-center p-1 text-center pointer-events-none">
+                    <span class="bg-red-600 text-white font-black text-[10px] sm:text-xs px-2 py-0.5 rounded-full shadow-lg border border-red-400 flex items-center gap-1 animate-pulse">
+                      🚫 หมดชั่วคราว
+                    </span>
+                  </div>
+                  ` : ''}
                 </div>
               </div>
 
               <!-- Bottom: Product Title and Subtitle -->
               <div class="w-full text-center flex-shrink-0 pt-0.5">
-                <h5 class="text-xs sm:text-sm font-black text-white truncate w-full group-hover:text-amber-300 transition-colors leading-tight">${c.name}</h5>
+                <h5 class="text-xs sm:text-sm font-black ${isSoldOut ? 'text-slate-400 line-through' : 'text-white'} truncate w-full group-hover:text-amber-300 transition-colors leading-tight">${c.name}</h5>
                 <p class="text-[9px] sm:text-[10px] text-slate-400 truncate w-full mt-0.5">${c.sub}</p>
               </div>
             </div>
@@ -2935,6 +2960,13 @@
           hideCustomerCustomizing();
           renderCustomerOrder({ cart: [], subtotal: 0, discount: 0, total: 0 });
           break;
+
+        case 'SETTINGS_UPDATE':
+          if (eventData.soldOutProducts && Array.isArray(eventData.soldOutProducts)) {
+            localStorage.setItem('coffeeshop_sold_out_products', JSON.stringify(eventData.soldOutProducts));
+          }
+          renderCustomerIdleShowcase();
+          break;
       }
     }
 
@@ -2951,7 +2983,7 @@
         } catch (err) {
           console.error('Storage sync error:', err);
         }
-      } else if (e.key === 'coffeeshop_option_groups') {
+      } else if (e.key === 'coffeeshop_option_groups' || e.key === 'coffeeshop_sold_out_products' || e.key === 'coffeeshop_products') {
         renderCustomerIdleShowcase();
       }
     });
@@ -2961,10 +2993,18 @@
     restartCoffeeAutoRotate();
     restartToppingsAutoScroll();
 
-    // Fetch fresh products from Supabase Cloud if available
+    // Fetch fresh products & sold-out items from Supabase Cloud if available
     if (typeof fetchProductsFromCloud === 'function') {
       fetchProductsFromCloud().then(() => {
         renderCustomerIdleShowcase();
+      }).catch(() => {});
+    }
+    if (typeof fetchSoldOutProductsFromCloud === 'function') {
+      fetchSoldOutProductsFromCloud().then(soldOut => {
+        if (Array.isArray(soldOut)) {
+          localStorage.setItem('coffeeshop_sold_out_products', JSON.stringify(soldOut));
+          renderCustomerIdleShowcase();
+        }
       }).catch(() => {});
     }
 

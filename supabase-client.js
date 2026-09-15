@@ -45,6 +45,20 @@ function initSupabase() {
         dbClient.from('products').delete().in('id', ['prod-7', 'prod-8', 'prod-affogato', 'prod-dirty', 'prod-9', 'prod-11', 'prod-12', 'prod-1']).then(() => {}).catch(() => {});
         dbClient.from('categories').delete().in('name', ['กาแฟ', 'ชา', 'เบเกอรี่']).then(() => {}).catch(() => {});
       } catch (e) {}
+
+      // Auto fetch sold out products
+      setTimeout(() => {
+        if (typeof fetchSoldOutProductsFromCloud === 'function') {
+          fetchSoldOutProductsFromCloud().then(ids => {
+            if (ids && Array.isArray(ids)) {
+              if (typeof soldOutProductIds !== 'undefined') soldOutProductIds = ids;
+              if (typeof window !== 'undefined') window.soldOutProductIds = ids;
+              if (typeof renderProductsGrid === 'function') renderProductsGrid();
+              if (typeof renderMenuConfigTable === 'function') renderMenuConfigTable();
+            }
+          });
+        }
+      }, 1000);
     } catch (err) {
       console.warn('⚠️ Supabase Init Warning:', err);
       isCloudConnected = false;
@@ -155,6 +169,22 @@ function initDbChangeListener() {
             });
           }
         }, 600);
+      })
+      .subscribe();
+
+    // 2.3 REALTIME SETTINGS & SOLD OUT PRODUCTS SYNC
+    dbClient
+      .channel('tantawan-settings-sync')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'shop_settings' }, (payload) => {
+        if (payload.new && payload.new.key === 'sold_out_products' && Array.isArray(payload.new.value)) {
+          const newSoldOut = payload.new.value;
+          localStorage.setItem('coffeeshop_sold_out_products', JSON.stringify(newSoldOut));
+          if (typeof window !== 'undefined') window.soldOutProductIds = newSoldOut;
+          if (typeof soldOutProductIds !== 'undefined') soldOutProductIds = newSoldOut;
+          if (typeof renderProductsGrid === 'function') renderProductsGrid();
+          if (typeof renderMenuConfigTable === 'function') renderMenuConfigTable();
+          if (typeof renderCustomerIdleShowcase === 'function') renderCustomerIdleShowcase();
+        }
       })
       .subscribe();
   } catch (err) {
@@ -559,6 +589,40 @@ async function syncSettingsToCloud(st) {
   } catch (e) {
     console.warn('Sync settings error:', e);
   }
+}
+
+// 8.1 SYNC & FETCH SOLD OUT / UNAVAILABLE PRODUCTS
+async function syncSoldOutProductsToCloud(soldOutIds) {
+  if (!dbClient || !isCloudConnected || !Array.isArray(soldOutIds)) return;
+  try {
+    await dbClient.from('shop_settings').upsert({
+      key: 'sold_out_products',
+      value: soldOutIds
+    });
+    console.log('☁️ Sold out products synced to Supabase:', soldOutIds);
+  } catch (e) {
+    console.warn('Sync sold out products error:', e);
+  }
+}
+
+async function fetchSoldOutProductsFromCloud() {
+  if (!dbClient || !isCloudConnected) return null;
+  try {
+    const { data: row, error } = await dbClient
+      .from('shop_settings')
+      .select('value')
+      .eq('key', 'sold_out_products')
+      .maybeSingle();
+
+    if (!error && row && Array.isArray(row.value)) {
+      localStorage.setItem('coffeeshop_sold_out_products', JSON.stringify(row.value));
+      return row.value;
+    }
+    return null;
+  } catch (e) {
+    console.warn('Fetch sold out products error:', e);
+  }
+  return null;
 }
 
 // 9. CLOUD STATUS LISTENER & UI INDICATOR

@@ -16,6 +16,7 @@ let settings = {};
 let cart = [];
 let heldBills = [];
 let pendingRestoreBillId = null;
+let soldOutProductIds = []; // IDs of products currently marked as unavailable/sold out
 
 let currentActiveTab = 'cashier';
 let selectedCategory = 'all';
@@ -607,6 +608,22 @@ function loadFromLocalStorage() {
     window.users = users;
     window.currentUser = currentUser;
 
+    // Load Sold Out Products State
+    soldOutProductIds = JSON.parse(localStorage.getItem('coffeeshop_sold_out_products') || '[]');
+    window.soldOutProductIds = soldOutProductIds;
+
+    // Sync remote sold out products from Supabase on startup
+    if (typeof fetchSoldOutProductsFromCloud === 'function') {
+      fetchSoldOutProductsFromCloud().then(cloudSoldOut => {
+        if (Array.isArray(cloudSoldOut)) {
+          soldOutProductIds = cloudSoldOut;
+          window.soldOutProductIds = soldOutProductIds;
+          if (typeof renderProductsGrid === 'function') renderProductsGrid();
+          if (typeof renderMenuConfigTable === 'function') renderMenuConfigTable();
+        }
+      }).catch(() => {});
+    }
+
     // Sync remote orders from Supabase on startup
     if (typeof fetchOrdersFromCloud === 'function') {
       fetchOrdersFromCloud().then(cloudOrders => {
@@ -983,12 +1000,13 @@ function renderProductsGrid() {
 
   filteredProducts.forEach(p => {
     const card = document.createElement('div');
+    const isSoldOut = Array.isArray(soldOutProductIds) && soldOutProductIds.includes(p.id);
     card.onclick = () => handleProductClick(p.id);
     const priceDisplay = Number.isInteger(p.basePrice) ? '฿' + p.basePrice : '฿' + p.basePrice.toFixed(2);
 
     if (p.image) {
       // 1:1 Aspect Ratio Card WITH Image
-      card.className = 'aspect-square rounded-xl relative overflow-hidden cursor-pointer select-none transition-all duration-150 active:scale-95 border border-slate-200 dark:border-slate-800 hover:border-amber-500 hover:shadow-md group flex flex-col justify-between p-2';
+      card.className = `aspect-square rounded-xl relative overflow-hidden cursor-pointer select-none transition-all duration-150 active:scale-95 border ${isSoldOut ? 'border-red-400 dark:border-red-900/70 opacity-65 grayscale-[35%]' : 'border-slate-200 dark:border-slate-800 hover:border-amber-500 hover:shadow-md'} group flex flex-col justify-between p-2`;
       card.innerHTML = `
         <img src="${p.image}" alt="${p.name}" class="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-300 pointer-events-none">
         <div class="absolute inset-0 bg-gradient-to-t from-slate-950/90 via-slate-950/30 to-transparent pointer-events-none"></div>
@@ -999,6 +1017,16 @@ function renderProductsGrid() {
           <span class="bg-amber-500 text-slate-950 text-[11px] font-black px-1.5 py-0.5 rounded shadow-sm">${priceDisplay}</span>
         </div>
 
+        ${isSoldOut ? `
+        <!-- Sold Out Badge Overlay -->
+        <div class="absolute inset-0 bg-black/60 z-20 flex flex-col items-center justify-center p-2 text-center pointer-events-none">
+          <span class="bg-red-600 text-white font-black text-[11px] sm:text-xs px-2.5 py-1 rounded-full shadow-lg border border-red-400 flex items-center gap-1 animate-pulse">
+            🚫 หมดชั่วคราว
+          </span>
+          <span class="text-[9.5px] text-red-200 mt-1 font-semibold">ปิดการขาย</span>
+        </div>
+        ` : ''}
+
         <!-- Bottom row: Product name -->
         <div class="relative z-10 w-full mt-auto pointer-events-none">
           <h4 class="text-xs sm:text-[13px] font-bold text-white leading-tight line-clamp-2 drop-shadow-sm">${p.name}</h4>
@@ -1006,13 +1034,23 @@ function renderProductsGrid() {
       `;
     } else {
       // 1:1 Aspect Ratio Card WITHOUT Image (Clean POS Touch Tile)
-      card.className = 'aspect-square rounded-xl relative overflow-hidden cursor-pointer select-none transition-all duration-150 active:scale-95 border border-slate-200 dark:border-slate-800 hover:border-amber-500/70 hover:shadow-md group bg-white dark:bg-slate-900 flex flex-col justify-between p-2 sm:p-2.5';
+      card.className = `aspect-square rounded-xl relative overflow-hidden cursor-pointer select-none transition-all duration-150 active:scale-95 border ${isSoldOut ? 'border-red-400 dark:border-red-900/70 opacity-65 grayscale-[35%] bg-red-50/20 dark:bg-red-950/20' : 'border-slate-200 dark:border-slate-800 hover:border-amber-500/70 hover:shadow-md bg-white dark:bg-slate-900'} group flex flex-col justify-between p-2 sm:p-2.5`;
       card.innerHTML = `
         <!-- Top row: Category -->
         <div class="flex justify-between items-center w-full pointer-events-none">
           <span class="text-[9px] sm:text-[10px] font-semibold text-slate-500 dark:text-slate-400 truncate max-w-[80%]">${p.category}</span>
-          <div class="w-1.5 h-1.5 rounded-full bg-amber-500/60 group-hover:bg-amber-500 transition-colors"></div>
+          <div class="w-1.5 h-1.5 rounded-full ${isSoldOut ? 'bg-red-500 animate-pulse' : 'bg-amber-500/60 group-hover:bg-amber-500'} transition-colors"></div>
         </div>
+
+        ${isSoldOut ? `
+        <!-- Sold Out Badge Overlay -->
+        <div class="absolute inset-0 bg-slate-950/60 z-20 flex flex-col items-center justify-center p-2 text-center pointer-events-none">
+          <span class="bg-red-600 text-white font-black text-[11px] sm:text-xs px-2.5 py-1 rounded-full shadow-lg border border-red-400 flex items-center gap-1 animate-pulse">
+            🚫 หมดชั่วคราว
+          </span>
+          <span class="text-[9.5px] text-red-200 mt-1 font-semibold">ปิดการขาย</span>
+        </div>
+        ` : ''}
 
         <!-- Center: Product name -->
         <div class="flex-1 flex items-center justify-center text-center my-0.5 pointer-events-none">
@@ -1033,6 +1071,19 @@ function renderProductsGrid() {
 function handleProductClick(productId) {
   const p = products.find(prod => prod.id === productId);
   if (!p) return;
+
+  const isSoldOut = Array.isArray(soldOutProductIds) && soldOutProductIds.includes(productId);
+  if (isSoldOut) {
+    if (currentUser && currentUser.role === 'owner') {
+      const reOpen = confirm(`เมนู "${p.name}" ปิดการขายชั่วคราวอยู่\n\nคุณเป็นเจ้าของร้าน ต้องการเปิดการขายเมนูนี้ทันทีหรือไม่?`);
+      if (reOpen) {
+        toggleProductStockStatus(productId);
+      }
+    } else {
+      showToast(`🚫 เมนู "${p.name}" สินค้าหมดชั่วคราวค่ะ (พนักงานไม่มีสิทธิ์ขาย)`, 'warning');
+    }
+    return;
+  }
 
   if (Array.isArray(p.optionGroupIds)) {
     if (p.optionGroupIds.length > 0) {
@@ -1130,6 +1181,22 @@ function openCustomizationModal(product) {
 
   document.getElementById('customModalTitle').innerText = product.name;
   document.getElementById('modalQtyDisplay').innerText = modalQty;
+
+  // Toggle stock button in modal for shop owner
+  const stockBtn = document.getElementById('modalToggleStockBtn');
+  if (stockBtn) {
+    if (currentUser && currentUser.role === 'owner') {
+      const isSold = Array.isArray(soldOutProductIds) && soldOutProductIds.includes(product.id);
+      stockBtn.classList.remove('hidden');
+      stockBtn.className = isSold
+        ? 'text-[11px] font-bold px-2.5 py-0.5 rounded-full border transition flex items-center gap-1 bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300 border-emerald-300 dark:border-emerald-800 hover:bg-emerald-100 cursor-pointer'
+        : 'text-[11px] font-bold px-2.5 py-0.5 rounded-full border transition flex items-center gap-1 bg-red-50 text-red-700 dark:bg-red-950/40 dark:text-red-300 border-red-300 dark:border-red-800 hover:bg-red-100 cursor-pointer';
+      stockBtn.innerHTML = isSold ? '<span>🟢 เปิดขาย</span>' : '<span>🚫 ปิดขาย (สินค้าหมด)</span>';
+      stockBtn.title = isSold ? 'คลิกเพื่อเปิดขายเมนูนี้' : 'คลิกเพื่อปิดขายเมนูนี้ชั่วคราว';
+    } else {
+      stockBtn.classList.add('hidden');
+    }
+  }
 
   // Reset price override state & UI
   modalCustomPrice = null;
@@ -4785,6 +4852,8 @@ function exportFullPOSBackup() {
     const backup = {
       products: JSON.parse(localStorage.getItem('coffeeshop_products') || '[]'),
       categories: JSON.parse(localStorage.getItem('coffeeshop_categories') || '[]'),
+      productOrder: JSON.parse(localStorage.getItem('coffeeshop_product_order') || '[]'),
+      soldOutProducts: JSON.parse(localStorage.getItem('coffeeshop_sold_out_products') || '[]'),
       optionGroups: JSON.parse(localStorage.getItem('coffeeshop_option_groups') || '[]'),
       promotions: JSON.parse(localStorage.getItem('coffeeshop_promotions') || '[]'),
       settings: JSON.parse(localStorage.getItem('coffeeshop_settings') || '{}'),
@@ -4828,6 +4897,19 @@ function importFullPOSBackup(fileInput) {
         categories = data.categories;
         window.categories = categories;
       }
+      if (data.productOrder && Array.isArray(data.productOrder)) {
+        localStorage.setItem('coffeeshop_product_order', JSON.stringify(data.productOrder));
+      } else if (data.products && Array.isArray(data.products)) {
+        localStorage.setItem('coffeeshop_product_order', JSON.stringify(data.products.map(p => p.id)));
+      }
+      if (data.soldOutProducts && Array.isArray(data.soldOutProducts)) {
+        localStorage.setItem('coffeeshop_sold_out_products', JSON.stringify(data.soldOutProducts));
+        soldOutProductIds = data.soldOutProducts;
+        window.soldOutProductIds = soldOutProductIds;
+        if (typeof syncSoldOutProductsToCloud === 'function') {
+          syncSoldOutProductsToCloud(soldOutProductIds);
+        }
+      }
       if (data.optionGroups && Array.isArray(data.optionGroups)) {
         localStorage.setItem('coffeeshop_option_groups', JSON.stringify(data.optionGroups));
         optionGroups = data.optionGroups;
@@ -4849,6 +4931,9 @@ function importFullPOSBackup(fileInput) {
       // Sync directly to Supabase cloud
       if (typeof syncProductsToCloud === 'function') {
         syncProductsToCloud(products);
+      }
+      if (typeof syncCategoriesToCloud === 'function') {
+        syncCategoriesToCloud(categories);
       }
       if (typeof syncSettingsToCloud === 'function') {
         syncSettingsToCloud(settings);
@@ -5328,6 +5413,7 @@ function renderMenuConfigTable() {
           <th class="px-6 py-3">ชื่อเมนู</th>
           <th class="px-6 py-3 text-right w-28">ราคาหลัก</th>
           <th class="px-6 py-3">กลุ่มตัวเลือกที่ผูก</th>
+          <th class="px-4 py-3 text-center w-36">สถานะการขาย</th>
           <th class="px-6 py-3 text-center w-24">จัดการ</th>
         </tr>
       </thead>
@@ -5353,7 +5439,7 @@ function renderMenuConfigTable() {
     if (catProducts.length === 0) {
       const emptyRow = document.createElement('tr');
       emptyRow.innerHTML = `
-        <td colspan="5" class="py-8 text-center text-xs text-slate-400 dark:text-slate-500">
+        <td colspan="6" class="py-8 text-center text-xs text-slate-400 dark:text-slate-500">
           ยังไม่มีเมนูในหมวด "${cat}" 
           <button type="button" onclick="openProductModal(null, '${cat}')" class="text-amber-600 dark:text-amber-400 underline font-semibold ml-1.5 hover:text-amber-700">
             + คลิกเพื่อเพิ่มเมนูแรกในหมวดนี้
@@ -5390,6 +5476,7 @@ function renderMenuConfigTable() {
 
         const isFirstInCat = catIndex === 0;
         const isLastInCat = catIndex === catProducts.length - 1;
+        const isSoldOut = Array.isArray(soldOutProductIds) && soldOutProductIds.includes(p.id);
 
         tr.innerHTML = `
           <td class="px-3 py-3 text-center">
@@ -5407,11 +5494,22 @@ function renderMenuConfigTable() {
           <td class="px-6 py-3.5 font-bold text-slate-900 dark:text-slate-100 text-sm">
             <div class="flex items-center space-x-3">
               ${thumbHtml}
-              <span>${p.name}</span>
+              <span class="${isSoldOut ? 'line-through text-slate-400 dark:text-slate-500' : ''}">${p.name}</span>
             </div>
           </td>
           <td class="px-6 py-3.5 text-right font-extrabold text-slate-950 dark:text-slate-100 text-sm">฿${p.basePrice.toFixed(2)}</td>
           <td class="px-6 py-3.5 text-xs font-medium text-slate-500 dark:text-slate-400">${optionsSummary}</td>
+          <td class="px-4 py-3.5 text-center whitespace-nowrap">
+            <button type="button" onclick="toggleProductStockStatus('${p.id}')"
+              class="px-2.5 py-1 rounded-full text-xs font-bold transition-all shadow-xs inline-flex items-center gap-1.5 active:scale-95 ${
+                isSoldOut
+                  ? 'bg-red-100 dark:bg-red-950/60 text-red-700 dark:text-red-400 border border-red-300 dark:border-red-800 hover:bg-red-200'
+                  : 'bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-400 border border-emerald-300 dark:border-emerald-800 hover:bg-emerald-200'
+              }" title="คลิกเพื่อเปิด/ปิดขายชั่วคราว (เฉพาะเจ้าของร้าน)">
+              <span class="w-2 h-2 rounded-full ${isSoldOut ? 'bg-red-500 animate-pulse' : 'bg-emerald-500'}"></span>
+              <span>${isSoldOut ? '🔴 ปิดขาย (หมด)' : '🟢 พร้อมขาย'}</span>
+            </button>
+          </td>
           <td class="px-6 py-4 text-center">
             <div class="flex justify-center items-center space-x-1">
               <button onclick="openProductModal('${p.id}')" class="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 hover:bg-blue-50 dark:hover:bg-blue-950/40 p-1.5 rounded-lg transition" title="แก้ไขสินค้า">
@@ -5449,6 +5547,72 @@ function renderMenuConfigTable() {
       </div>
     `;
   }
+}
+
+// --------------------------------------------------------------------------
+// TOGGLE PRODUCT STOCK STATUS (เปิด-ปิดการขายชั่วคราว เฉพาะเจ้าของร้าน)
+// --------------------------------------------------------------------------
+function toggleProductStockStatus(productId) {
+  const p = products.find(prod => prod.id === productId);
+  if (!p) return;
+
+  const executeToggle = () => {
+    if (!Array.isArray(soldOutProductIds)) {
+      soldOutProductIds = [];
+    }
+    const idx = soldOutProductIds.indexOf(productId);
+    let isNowSoldOut = false;
+    if (idx > -1) {
+      soldOutProductIds.splice(idx, 1);
+      isNowSoldOut = false;
+    } else {
+      soldOutProductIds.push(productId);
+      isNowSoldOut = true;
+    }
+
+    localStorage.setItem('coffeeshop_sold_out_products', JSON.stringify(soldOutProductIds));
+    window.soldOutProductIds = soldOutProductIds;
+
+    // Sync to Supabase Cloud
+    if (typeof syncSoldOutProductsToCloud === 'function') {
+      syncSoldOutProductsToCloud(soldOutProductIds);
+    }
+
+    // Broadcast update to customer screen
+    if (typeof broadcastToCustomerScreen === 'function') {
+      broadcastToCustomerScreen({
+        type: 'SETTINGS_UPDATE',
+        soldOutProducts: soldOutProductIds
+      });
+    }
+
+    // Re-render cashier & menu management
+    if (typeof renderProductsGrid === 'function') renderProductsGrid();
+    if (typeof renderMenuConfigTable === 'function') renderMenuConfigTable();
+
+    if (isNowSoldOut) {
+      showToast(`🔴 ปิดการขาย "${p.name}" (สินค้าหมดชั่วคราว) แล้ว`, 'warning');
+    } else {
+      showToast(`🟢 เปิดการขาย "${p.name}" พร้อมจำหน่ายแล้ว`, 'success');
+    }
+  };
+
+  // Enforce Owner permission
+  if (!currentUser || currentUser.role !== 'owner') {
+    promptOwnerPinOverride(() => {
+      executeToggle();
+    }, 'เฉพาะเจ้าของร้าน (Owner) เท่านั้นที่มีสิทธิ์เปิด-ปิดการขายเมนูชั่วคราว');
+    return;
+  }
+
+  executeToggle();
+}
+
+function toggleStockFromCurrentModal() {
+  if (!currentCustomizingProduct) return;
+  const p = currentCustomizingProduct;
+  closeCustomizationModal(false);
+  toggleProductStockStatus(p.id);
 }
 
 // --------------------------------------------------------------------------
