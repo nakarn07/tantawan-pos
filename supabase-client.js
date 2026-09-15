@@ -15,6 +15,9 @@ let dbClient = null;
 let realtimeChannel = null;
 let isCloudConnected = false;
 let cloudSyncListeners = [];
+let isSyncingProductsLocally = false;
+let localProductSyncTimer = null;
+let realtimeFetchTimeout = null;
 
 // 1. INITIALIZE SUPABASE CLIENT
 function initSupabase() {
@@ -134,16 +137,24 @@ function initDbChangeListener() {
       .channel('tantawan-products-sync')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'products' }, (payload) => {
         console.log('📡 Realtime Product DB change received:', payload.eventType);
-        if (typeof fetchProductsFromCloud === 'function') {
-          fetchProductsFromCloud().then(cloudProds => {
-            if (cloudProds && cloudProds.length > 0) {
-              window.products = cloudProds;
-              if (typeof products !== 'undefined') products = cloudProds;
-              if (typeof renderProductsGrid === 'function') renderProductsGrid();
-              if (typeof renderMenuConfigTable === 'function') renderMenuConfigTable();
-            }
-          });
+        // If this device just performed the local sync, skip self-triggered refresh to prevent bounce-back
+        if (isSyncingProductsLocally) {
+          console.log('⏳ Skipping self-triggered product realtime refresh');
+          return;
         }
+        if (realtimeFetchTimeout) clearTimeout(realtimeFetchTimeout);
+        realtimeFetchTimeout = setTimeout(() => {
+          if (typeof fetchProductsFromCloud === 'function') {
+            fetchProductsFromCloud().then(cloudProds => {
+              if (cloudProds && cloudProds.length > 0) {
+                window.products = cloudProds;
+                if (typeof products !== 'undefined') products = cloudProds;
+                if (typeof renderProductsGrid === 'function') renderProductsGrid();
+                if (typeof renderMenuConfigTable === 'function') renderMenuConfigTable();
+              }
+            });
+          }
+        }, 600);
       })
       .subscribe();
   } catch (err) {
@@ -329,6 +340,16 @@ async function fetchOrdersFromCloud() {
 async function syncProductsToCloud(prods) {
   if (!dbClient || !isCloudConnected || !Array.isArray(prods)) return;
   try {
+    // Set local sync lock for 3 seconds so incoming realtime echo won't overwrite active user changes
+    isSyncingProductsLocally = true;
+    if (localProductSyncTimer) clearTimeout(localProductSyncTimer);
+    localProductSyncTimer = setTimeout(() => {
+      isSyncingProductsLocally = false;
+    }, 3000);
+
+    const orderedIds = prods.map(p => p.id);
+    localStorage.setItem('coffeeshop_product_order', JSON.stringify(orderedIds));
+
     const rows = prods.map(p => ({
       id: String(p.id),
       name: p.name,
@@ -344,7 +365,14 @@ async function syncProductsToCloud(prods) {
       active: p.active !== false
     }));
     await dbClient.from('products').upsert(rows);
-    console.log('☁️ Products synced to Supabase (' + rows.length + ' items)');
+
+    // Save custom product order to shop_settings so it is permanently preserved across cloud and all devices
+    await dbClient.from('shop_settings').upsert({
+      key: 'product_order',
+      value: orderedIds
+    });
+
+    console.log('☁️ Products and custom order synced to Supabase (' + rows.length + ' items)');
   } catch (e) {
     console.warn('Sync products error:', e);
   }
@@ -365,7 +393,8 @@ async function fetchProductsFromCloud() {
     }
 
     if (Array.isArray(data) && data.length > 0) {
-      const formatted = data
+      // 1. Sanitize products
+      let formatted = data
         .filter(row => row.id !== 'prod-7' && row.id !== 'prod-8' && row.category !== 'เบเกอรี่' && !(row.name || '').includes('บลูเบอร์รี่') && !(row.name || '').includes('ครัวซองต์'))
         .map(row => {
           let cat = row.category;
@@ -391,8 +420,44 @@ async function fetchProductsFromCloud() {
             active: row.active !== false
           };
         });
+
+      // 2. Fetch custom product order from Supabase shop_settings or localStorage
+      let productOrder = null;
+      try {
+        const { data: orderRow } = await dbClient
+          .from('shop_settings')
+          .select('value')
+          .eq('key', 'product_order')
+          .maybeSingle();
+        if (orderRow && Array.isArray(orderRow.value) && orderRow.value.length > 0) {
+          productOrder = orderRow.value;
+          localStorage.setItem('coffeeshop_product_order', JSON.stringify(productOrder));
+        }
+      } catch (e) {}
+
+      if (!productOrder) {
+        try {
+          productOrder = JSON.parse(localStorage.getItem('coffeeshop_product_order') || 'null');
+        } catch (e) {}
+      }
+
+      if (!productOrder && typeof window !== 'undefined' && Array.isArray(window.products) && window.products.length > 0) {
+        productOrder = window.products.map(p => p.id);
+      }
+
+      // 3. Sort products by custom order
+      if (productOrder && Array.isArray(productOrder) && productOrder.length > 0) {
+        const orderMap = {};
+        productOrder.forEach((id, idx) => { orderMap[id] = idx; });
+        formatted.sort((a, b) => {
+          const aIdx = orderMap[a.id] !== undefined ? orderMap[a.id] : 999999;
+          const bIdx = orderMap[b.id] !== undefined ? orderMap[b.id] : 999999;
+          return aIdx - bIdx;
+        });
+      }
+
       localStorage.setItem('coffeeshop_products', JSON.stringify(formatted));
-      console.log('☁️ Loaded ' + formatted.length + ' products from Supabase Cloud');
+      console.log('☁️ Loaded ' + formatted.length + ' products in custom order from Supabase Cloud');
       return formatted;
     }
   } catch (err) {

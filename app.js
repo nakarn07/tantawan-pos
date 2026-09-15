@@ -541,6 +541,20 @@ function loadFromLocalStorage() {
     promotions = JSON.parse(localStorage.getItem('coffeeshop_promotions')) || DEFAULT_PROMOTIONS;
     products = JSON.parse(localStorage.getItem('coffeeshop_products')) || DEFAULT_PRODUCTS;
     if (Array.isArray(products)) {
+      // Sort by saved product order if available
+      try {
+        const savedOrder = JSON.parse(localStorage.getItem('coffeeshop_product_order') || 'null');
+        if (savedOrder && Array.isArray(savedOrder) && savedOrder.length > 0) {
+          const orderMap = {};
+          savedOrder.forEach((id, idx) => { orderMap[id] = idx; });
+          products.sort((a, b) => {
+            const aIdx = orderMap[a.id] !== undefined ? orderMap[a.id] : 999999;
+            const bIdx = orderMap[b.id] !== undefined ? orderMap[b.id] : 999999;
+            return aIdx - bIdx;
+          });
+        }
+      } catch (e) {}
+
       let prodsChanged = false;
       const lenBefore = products.length;
       
@@ -706,7 +720,8 @@ function loadFromLocalStorage() {
             }
           });
           window.products = products;
-          saveToStorage('coffeeshop_products', products);
+          localStorage.setItem('coffeeshop_products', JSON.stringify(products));
+          localStorage.setItem('coffeeshop_product_order', JSON.stringify(products.map(p => p.id)));
           if (typeof renderProductsGrid === 'function') renderProductsGrid();
           if (typeof renderMenuConfigTable === 'function') renderMenuConfigTable();
         }
@@ -719,7 +734,7 @@ function loadFromLocalStorage() {
         if (cloudCats && cloudCats.length > 0) {
           categories = cloudCats.filter(c => c !== 'กาแฟ' && c !== 'ชา' && c !== 'เบเกอรี่');
           window.categories = categories;
-          saveToStorage('coffeeshop_categories', categories);
+          localStorage.setItem('coffeeshop_categories', JSON.stringify(categories));
           if (typeof renderCategoryFilters === 'function') renderCategoryFilters();
           if (typeof renderMenuConfigTable === 'function') renderMenuConfigTable();
         }
@@ -875,6 +890,9 @@ function loadFromLocalStorage() {
 function saveToStorage(key, data) {
   try {
     localStorage.setItem(key, JSON.stringify(data));
+    if (key === 'coffeeshop_products' && Array.isArray(data)) {
+      localStorage.setItem('coffeeshop_product_order', JSON.stringify(data.map(p => p.id)));
+    }
   } catch (e) {
     console.error('Storage limit reached!', e);
     showToast('บันทึกข้อมูลล้มเหลว! พื้นที่จัดเก็บเต็ม', 'error');
@@ -5126,7 +5144,6 @@ function moveProduct(productId, direction) {
   }
 
   saveToStorage('coffeeshop_products', products);
-  if (typeof syncProductsToCloud === 'function') syncProductsToCloud(products);
   renderMenuConfigTable();
   renderProductsGrid();
 }
@@ -5163,7 +5180,6 @@ function autoSortProducts(sortType) {
   }
 
   saveToStorage('coffeeshop_products', products);
-  if (typeof syncProductsToCloud === 'function') syncProductsToCloud(products);
   renderMenuConfigTable();
   renderProductsGrid();
 }
@@ -5218,7 +5234,6 @@ function onProductRowDrop(e, targetProductId) {
     products.splice(toIdx, 0, moved);
 
     saveToStorage('coffeeshop_products', products);
-    if (typeof syncProductsToCloud === 'function') syncProductsToCloud(products);
     renderMenuConfigTable();
     renderProductsGrid();
   }
