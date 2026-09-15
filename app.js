@@ -150,19 +150,6 @@ const DEFAULT_PROMOTIONS = [
 
 const DEFAULT_PRODUCTS = [
   {
-    id: 'prod-1',
-    name: 'เอสเพรสโซ่ (Espresso)',
-    category: 'กาแฟร้อน',
-    basePrice: 35,
-    image: 'assets/coffee/hot_espresso.jpg',
-    optionGroupIds: ['optgrp-beans', 'optgrp-temp', 'optgrp-sweet', 'optgrp-toppings'],
-    hasTemp: true,
-    tempPrices: { hot: 0, cold: 15, frappe: 20 },
-    hasSweetness: true,
-    hasExtras: true,
-    extras: ['เพิ่มช็อตกาแฟ (Extra Shot)', 'คาราเมลซอส (Caramel)']
-  },
-  {
     id: 'prod-2',
     name: 'อเมริกาโน่ (Americano)',
     category: 'กาแฟเย็น',
@@ -202,43 +189,6 @@ const DEFAULT_PRODUCTS = [
     extras: ['เพิ่มช็อตกาแฟ (Extra Shot)', 'คาราเมลซอส (Caramel)']
   },
   {
-    id: 'prod-12',
-    name: 'มอคค่า (Mocha)',
-    category: 'กาแฟเย็น',
-    basePrice: 45,
-    image: 'assets/coffee/iced_mocha.jpg',
-    optionGroupIds: ['optgrp-beans', 'optgrp-temp', 'optgrp-sweet', 'optgrp-toppings'],
-    hasTemp: true,
-    tempPrices: { hot: 0, cold: 5, frappe: 10 },
-    hasSweetness: true,
-    hasExtras: true,
-    extras: ['วิปครีม (Whipped Cream)', 'ช็อกโกแลตซอส (Chocolate)']
-  },
-  {
-    id: 'prod-affogato',
-    name: 'อัฟโฟกาโต (Affogato)',
-    category: 'กาแฟเย็น',
-    basePrice: 70,
-    image: 'assets/coffee/iced_affogato.jpg',
-    optionGroupIds: ['optgrp-beans', 'optgrp-toppings'],
-    hasTemp: false,
-    hasSweetness: false,
-    hasExtras: true,
-    extras: ['เพิ่มช็อตกาแฟ (Extra Shot)', 'คาราเมลซอส (Caramel)']
-  },
-  {
-    id: 'prod-dirty',
-    name: 'เดอร์ตี้ (Dirty)',
-    category: 'กาแฟเย็น',
-    basePrice: 130,
-    image: 'assets/coffee/iced_dirty.jpg',
-    optionGroupIds: ['optgrp-beans', 'optgrp-sweet', 'optgrp-toppings'],
-    hasTemp: false,
-    hasSweetness: true,
-    hasExtras: true,
-    extras: ['เพิ่มช็อตกาแฟ (Extra Shot)']
-  },
-  {
     id: 'prod-5',
     name: 'ชาเขียวมัทฉะ (Matcha Latte)',
     category: 'เครื่องดื่มอื่นๆ',
@@ -263,30 +213,6 @@ const DEFAULT_PRODUCTS = [
     hasSweetness: true,
     hasExtras: true,
     extras: ['วิปครีม (Whipped Cream)', 'ไข่มุก (Boba)']
-  },
-  {
-    id: 'prod-9',
-    name: 'โกโก้เข้มข้น (Cocoa)',
-    category: 'เครื่องดื่มอื่นๆ',
-    basePrice: 40,
-    optionGroupIds: ['optgrp-temp', 'optgrp-sweet', 'optgrp-toppings'],
-    hasTemp: true,
-    tempPrices: { hot: 0, cold: 0, frappe: 5 },
-    hasSweetness: true,
-    hasExtras: true,
-    extras: ['วิปครีม (Whipped Cream)', 'คาราเมลซอส (Caramel)']
-  },
-  {
-    id: 'prod-11',
-    name: 'ชากุหลาบนม (Rose Milk Tea)',
-    category: 'เครื่องดื่มอื่นๆ',
-    basePrice: 50,
-    optionGroupIds: ['optgrp-temp', 'optgrp-sweet', 'optgrp-toppings'],
-    hasTemp: true,
-    tempPrices: { hot: 0, cold: 0, frappe: 5 },
-    hasSweetness: true,
-    hasExtras: true,
-    extras: ['วิปครีม (Whipped Cream)', 'บุกน้ำผึ้ง (Honey Jelly)', 'ไข่มุก (Boba)']
   }
 ];
 
@@ -558,26 +484,31 @@ function loadFromLocalStorage() {
       let prodsChanged = false;
       const lenBefore = products.length;
       
-      // Filter out unwanted mock bakery items
-      products = products.filter(p => p.id !== 'prod-7' && p.id !== 'prod-8' && p.category !== 'เบเกอรี่' && !(p.name || '').includes('บลูเบอร์รี่') && !(p.name || '').includes('ครัวซองต์'));
+      // Filter out unwanted mock bakery items and duplicate legacy templates
+      const BANNED_PRODUCT_IDS = ['prod-7', 'prod-8', 'prod-affogato', 'prod-dirty', 'prod-9', 'prod-11', 'prod-12', 'prod-1'];
+      products = products.filter(p => !BANNED_PRODUCT_IDS.includes(p.id) && p.category !== 'เบเกอรี่' && !(p.name || '').includes('บลูเบอร์รี่') && !(p.name || '').includes('ครัวซองต์'));
       if (products.length !== lenBefore) {
         prodsChanged = true;
         if (typeof deleteProductFromCloud === 'function') {
-          deleteProductFromCloud('prod-7');
-          deleteProductFromCloud('prod-8');
+          BANNED_PRODUCT_IDS.forEach(bid => deleteProductFromCloud(bid));
         }
       }
 
       // Reassign legacy categories 'กาแฟ' -> 'กาแฟเย็น' and 'ชา' -> 'เครื่องดื่มอื่นๆ'
       products.forEach(p => {
         if (p.category === 'กาแฟ') {
-          p.category = (p.name && (p.name.includes('ร้อน') || p.name.includes('Hot') || p.id === 'prod-1')) ? 'กาแฟร้อน' : 'กาแฟเย็น';
+          p.category = (p.name && (p.name.includes('ร้อน') || p.name.includes('Hot'))) ? 'กาแฟร้อน' : 'กาแฟเย็น';
           prodsChanged = true;
         } else if (p.category === 'ชา') {
           p.category = 'เครื่องดื่มอื่นๆ';
           prodsChanged = true;
         } else if (p.category === 'เบเกอรี่') {
           p.category = 'ของกินอื่นๆ';
+          prodsChanged = true;
+        }
+        // Fix spelling of Lychee Soda if present
+        if (p.id === 'prod-1789379487270' && p.name === 'ลิ้ยจี่โซดา') {
+          p.name = 'ลิ้นจี่โซดา';
           prodsChanged = true;
         }
       });
@@ -591,11 +522,7 @@ function loadFromLocalStorage() {
     if (Array.isArray(products)) {
       let prodsUpdated = false;
       products.forEach(p => {
-        if (p.id === 'prod-1' && p.basePrice === 50) {
-          p.basePrice = 35;
-          p.tempPrices = { hot: 0, cold: 15, frappe: 20 };
-          prodsUpdated = true;
-        } else if (p.id === 'prod-2' && p.basePrice === 50) {
+        if (p.id === 'prod-2' && p.basePrice === 50) {
           p.basePrice = 40;
           p.tempPrices = { hot: 0, cold: 5, frappe: 10 };
           prodsUpdated = true;
@@ -607,20 +534,6 @@ function loadFromLocalStorage() {
           p.basePrice = 45;
           p.tempPrices = { hot: 0, cold: 5, frappe: 10 };
           prodsUpdated = true;
-        } else if (p.id === 'prod-12' && p.basePrice === 60) {
-          p.basePrice = 45;
-          p.tempPrices = { hot: 0, cold: 5, frappe: 10 };
-          prodsUpdated = true;
-        } else if (p.id === 'prod-affogato') {
-          if (p.basePrice !== 70) {
-            p.basePrice = 70;
-            prodsUpdated = true;
-          }
-        } else if (p.id === 'prod-dirty') {
-          if (p.basePrice !== 130) {
-            p.basePrice = 130;
-            prodsUpdated = true;
-          }
         } else if (p.id === 'prod-5' && p.basePrice === 60) {
           p.basePrice = 70;
           p.tempPrices = { hot: 0, cold: 0, frappe: 5 };
@@ -629,9 +542,8 @@ function loadFromLocalStorage() {
           p.basePrice = 40;
           p.tempPrices = { hot: 0, cold: 0, frappe: 5 };
           prodsUpdated = true;
-        } else if (p.id === 'prod-9' && p.basePrice === 50) {
-          p.basePrice = 40;
-          p.tempPrices = { hot: 0, cold: 0, frappe: 5 };
+        } else if (p.id === 'prod-1789379487270' && p.name === 'ลิ้ยจี่โซดา') {
+          p.name = 'ลิ้นจี่โซดา';
           prodsUpdated = true;
         }
       });
@@ -5115,41 +5027,57 @@ function moveProduct(productId, direction) {
   const catIndex = catProducts.findIndex(p => p.id === productId);
   if (catIndex === -1) return;
 
-  const globalIndex = products.findIndex(p => p.id === productId);
+  let targetProd = null;
+  let insertAfter = false;
 
   if (direction === 'top') {
     if (catIndex === 0) return;
-    const targetProd = catProducts[0];
-    const targetGlobalIdx = products.findIndex(p => p.id === targetProd.id);
-    const [item] = products.splice(globalIndex, 1);
-    products.splice(targetGlobalIdx, 0, item);
-    showToast(`ย้ายเมนู "${item.name}" ไปอยู่อันดับ 1 ของหมวด "${category}"`);
+    targetProd = catProducts[0];
+    insertAfter = false;
   } else if (direction === 'bottom') {
     if (catIndex === catProducts.length - 1) return;
-    const targetProd = catProducts[catProducts.length - 1];
-    const targetGlobalIdx = products.findIndex(p => p.id === targetProd.id);
-    const [item] = products.splice(globalIndex, 1);
-    products.splice(targetGlobalIdx, 0, item);
-    showToast(`ย้ายเมนู "${item.name}" ไปอยู่อันดับสุดท้ายของหมวด "${category}"`);
+    targetProd = catProducts[catProducts.length - 1];
+    insertAfter = true;
   } else if (direction === 'up') {
     if (catIndex === 0) return;
-    const targetProd = catProducts[catIndex - 1];
-    const targetGlobalIdx = products.findIndex(p => p.id === targetProd.id);
-    const [item] = products.splice(globalIndex, 1);
-    products.splice(targetGlobalIdx, 0, item);
-    showToast(`เลื่อนเมนู "${item.name}" ขึ้น`);
+    targetProd = catProducts[catIndex - 1];
+    insertAfter = false;
   } else if (direction === 'down') {
     if (catIndex === catProducts.length - 1) return;
-    const targetProd = catProducts[catIndex + 1];
-    const targetGlobalIdx = products.findIndex(p => p.id === targetProd.id);
-    const [item] = products.splice(globalIndex, 1);
-    products.splice(targetGlobalIdx, 0, item);
-    showToast(`เลื่อนเมนู "${item.name}" ลง`);
+    targetProd = catProducts[catIndex + 1];
+    insertAfter = true;
   }
 
+  if (!targetProd) return;
+
+  // Remove item from products array
+  const curIdx = products.findIndex(p => p.id === productId);
+  if (curIdx === -1) return;
+  const [item] = products.splice(curIdx, 1);
+
+  // Find target index in remaining products
+  const targetIdx = products.findIndex(p => p.id === targetProd.id);
+  if (targetIdx === -1) {
+    products.splice(curIdx, 0, item);
+    return;
+  }
+
+  const insertIdx = insertAfter ? targetIdx + 1 : targetIdx;
+  products.splice(insertIdx, 0, item);
+
+  // Persist locally
   saveToStorage('coffeeshop_products', products);
+  const orderedIds = products.map(p => p.id);
+  localStorage.setItem('coffeeshop_product_order', JSON.stringify(orderedIds));
+
+  // Sync to Cloud immediately so order is permanently preserved across devices and reloads
+  if (typeof syncProductsToCloud === 'function') {
+    syncProductsToCloud(products);
+  }
+
   renderMenuConfigTable();
   renderProductsGrid();
+  showToast(`จัดลำดับเมนู "${item.name}" เรียบร้อยแล้ว`);
 }
 
 function autoSortProducts(sortType) {
@@ -5184,6 +5112,13 @@ function autoSortProducts(sortType) {
   }
 
   saveToStorage('coffeeshop_products', products);
+  const orderedIds = products.map(p => p.id);
+  localStorage.setItem('coffeeshop_product_order', JSON.stringify(orderedIds));
+
+  if (typeof syncProductsToCloud === 'function') {
+    syncProductsToCloud(products);
+  }
+
   renderMenuConfigTable();
   renderProductsGrid();
 }
@@ -5238,6 +5173,13 @@ function onProductRowDrop(e, targetProductId) {
     products.splice(toIdx, 0, moved);
 
     saveToStorage('coffeeshop_products', products);
+    const orderedIds = products.map(p => p.id);
+    localStorage.setItem('coffeeshop_product_order', JSON.stringify(orderedIds));
+
+    if (typeof syncProductsToCloud === 'function') {
+      syncProductsToCloud(products);
+    }
+
     renderMenuConfigTable();
     renderProductsGrid();
   }
@@ -5726,7 +5668,12 @@ function saveProductConfig() {
 
   if (id) {
     const idx = products.findIndex(p => p.id === id);
-    if (idx > -1) products[idx] = productData;
+    if (idx > -1) {
+      if (products[idx].tempPrices && !productData.tempPrices) productData.tempPrices = products[idx].tempPrices;
+      if (products[idx].extras && !productData.extras) productData.extras = products[idx].extras;
+      productData.active = products[idx].active !== false;
+      products[idx] = productData;
+    }
     showToast(`อัปเดตเมนู ${name} เรียบร้อยแล้ว`);
   } else {
     const pos = document.querySelector('input[name="configProdPosition"]:checked')?.value || 'top';
@@ -5740,6 +5687,9 @@ function saveProductConfig() {
   }
 
   saveToStorage('coffeeshop_products', products);
+  const orderedIds = products.map(p => p.id);
+  localStorage.setItem('coffeeshop_product_order', JSON.stringify(orderedIds));
+
   if (typeof syncProductsToCloud === 'function') {
     syncProductsToCloud(products);
   }
@@ -5765,6 +5715,14 @@ function deleteProduct(productId) {
   if (confirm(`คุณยืนยันต้องการลบสินค้า "${p.name}" ออกจาก POS หรือไม่?`)) {
     products = products.filter(prod => prod.id !== productId);
     saveToStorage('coffeeshop_products', products);
+
+    // Update coffeeshop_product_order
+    let savedOrder = JSON.parse(localStorage.getItem('coffeeshop_product_order') || '[]');
+    if (Array.isArray(savedOrder)) {
+      savedOrder = savedOrder.filter(id => id !== productId);
+      localStorage.setItem('coffeeshop_product_order', JSON.stringify(savedOrder));
+    }
+
     if (typeof deleteProductFromCloud === 'function') {
       deleteProductFromCloud(productId);
     }
@@ -5772,6 +5730,7 @@ function deleteProduct(productId) {
       syncProductsToCloud(products);
     }
     renderMenuConfigTable();
+    renderProductsGrid();
     showToast('ลบสินค้าสำเร็จ');
   }
 }
@@ -6482,6 +6441,7 @@ function moveCategory(catName, direction) {
   }
 
   saveToStorage('coffeeshop_categories', categories);
+  if (typeof syncCategoriesToCloud === 'function') syncCategoriesToCloud(categories);
   renderCategoriesList();
   renderCategoryFilters();
   if (typeof renderBestSellerCategoryTabs === 'function') {
@@ -6521,6 +6481,7 @@ function onCategoryDrop(e, targetCatName) {
   categories.splice(toIdx, 0, moved);
 
   saveToStorage('coffeeshop_categories', categories);
+  if (typeof syncCategoriesToCloud === 'function') syncCategoriesToCloud(categories);
   renderCategoriesList();
   renderCategoryFilters();
   if (typeof renderBestSellerCategoryTabs === 'function') {

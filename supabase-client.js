@@ -42,7 +42,7 @@ function initSupabase() {
 
       // Proactively purge unwanted mock categories & products from Cloud DB
       try {
-        dbClient.from('products').delete().in('id', ['prod-7', 'prod-8']).then(() => {}).catch(() => {});
+        dbClient.from('products').delete().in('id', ['prod-7', 'prod-8', 'prod-affogato', 'prod-dirty', 'prod-9', 'prod-11', 'prod-12', 'prod-1']).then(() => {}).catch(() => {});
         dbClient.from('categories').delete().in('name', ['กาแฟ', 'ชา', 'เบเกอรี่']).then(() => {}).catch(() => {});
       } catch (e) {}
     } catch (err) {
@@ -347,10 +347,12 @@ async function syncProductsToCloud(prods) {
       isSyncingProductsLocally = false;
     }, 3000);
 
-    const orderedIds = prods.map(p => p.id);
+    const BANNED_IDS = ['prod-7', 'prod-8', 'prod-affogato', 'prod-dirty', 'prod-9', 'prod-11', 'prod-12', 'prod-1'];
+    const cleanProds = prods.filter(p => !BANNED_IDS.includes(p.id));
+    const orderedIds = cleanProds.map(p => p.id);
     localStorage.setItem('coffeeshop_product_order', JSON.stringify(orderedIds));
 
-    const rows = prods.map(p => ({
+    const rows = cleanProds.map(p => ({
       id: String(p.id),
       name: p.name,
       category: p.category,
@@ -393,21 +395,26 @@ async function fetchProductsFromCloud() {
     }
 
     if (Array.isArray(data) && data.length > 0) {
+      const BANNED_IDS = ['prod-7', 'prod-8', 'prod-affogato', 'prod-dirty', 'prod-9', 'prod-11', 'prod-12', 'prod-1'];
       // 1. Sanitize products
       let formatted = data
-        .filter(row => row.id !== 'prod-7' && row.id !== 'prod-8' && row.category !== 'เบเกอรี่' && !(row.name || '').includes('บลูเบอร์รี่') && !(row.name || '').includes('ครัวซองต์'))
+        .filter(row => !BANNED_IDS.includes(row.id) && row.category !== 'เบเกอรี่' && !(row.name || '').includes('บลูเบอร์รี่') && !(row.name || '').includes('ครัวซองต์'))
         .map(row => {
           let cat = row.category;
           if (cat === 'กาแฟ') {
-            cat = (row.name && (row.name.includes('ร้อน') || row.name.includes('Hot') || row.id === 'prod-1')) ? 'กาแฟร้อน' : 'กาแฟเย็น';
+            cat = (row.name && (row.name.includes('ร้อน') || row.name.includes('Hot'))) ? 'กาแฟร้อน' : 'กาแฟเย็น';
           } else if (cat === 'ชา') {
             cat = 'เครื่องดื่มอื่นๆ';
           } else if (cat === 'เบเกอรี่') {
             cat = 'ของกินอื่นๆ';
           }
+          let name = row.name;
+          if (row.id === 'prod-1789379487270' && name === 'ลิ้ยจี่โซดา') {
+            name = 'ลิ้นจี่โซดา';
+          }
           return {
             id: row.id,
-            name: row.name,
+            name: name,
             category: cat,
             basePrice: Number(row.base_price || 0),
             image: row.image,
@@ -430,7 +437,7 @@ async function fetchProductsFromCloud() {
           .eq('key', 'product_order')
           .maybeSingle();
         if (orderRow && Array.isArray(orderRow.value) && orderRow.value.length > 0) {
-          productOrder = orderRow.value;
+          productOrder = orderRow.value.filter(id => !BANNED_IDS.includes(id));
           localStorage.setItem('coffeeshop_product_order', JSON.stringify(productOrder));
         }
       } catch (e) {}
@@ -471,6 +478,21 @@ async function deleteProductFromCloud(productId) {
   if (!dbClient || !isCloudConnected || !productId) return;
   try {
     await dbClient.from('products').delete().eq('id', String(productId));
+    // Also remove from shop_settings.product_order
+    try {
+      const { data: orderRow } = await dbClient
+        .from('shop_settings')
+        .select('value')
+        .eq('key', 'product_order')
+        .maybeSingle();
+      if (orderRow && Array.isArray(orderRow.value)) {
+        const newOrder = orderRow.value.filter(id => id !== String(productId));
+        await dbClient.from('shop_settings').upsert({
+          key: 'product_order',
+          value: newOrder
+        });
+      }
+    } catch (err2) {}
     console.log('☁️ Product deleted from Supabase:', productId);
   } catch (e) {
     console.warn('Delete product error:', e);
