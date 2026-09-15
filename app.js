@@ -659,6 +659,32 @@ function loadFromLocalStorage() {
         }
       }).catch(() => {});
     }
+
+    // Sync remote products from Supabase on startup
+    if (typeof fetchProductsFromCloud === 'function') {
+      fetchProductsFromCloud().then(cloudProds => {
+        if (cloudProds && cloudProds.length > 0) {
+          products = cloudProds;
+          window.products = products;
+          saveToStorage('coffeeshop_products', products);
+          if (typeof renderProductsGrid === 'function') renderProductsGrid();
+          if (typeof renderMenuConfigTable === 'function') renderMenuConfigTable();
+        }
+      }).catch(() => {});
+    }
+
+    // Sync remote categories from Supabase on startup
+    if (typeof fetchCategoriesFromCloud === 'function') {
+      fetchCategoriesFromCloud().then(cloudCats => {
+        if (cloudCats && cloudCats.length > 0) {
+          categories = cloudCats;
+          window.categories = categories;
+          saveToStorage('coffeeshop_categories', categories);
+          if (typeof renderCategoryFilters === 'function') renderCategoryFilters();
+          if (typeof renderMenuConfigTable === 'function') renderMenuConfigTable();
+        }
+      }).catch(() => {});
+    }
     
     // Auto-migrate products to optionGroupIds if missing
     let productsMigrated = false;
@@ -706,37 +732,27 @@ function loadFromLocalStorage() {
       }
     }
 
-    // 4. Auto-attach real photos and fix tea vs coffee images
+    // 4. Set fallback photos ONLY if product has no image
     products.forEach(p => {
       const n = (p.name || '').toLowerCase();
       const cat = (p.category || '').toLowerCase();
-      if (n.includes('มัทฉะ') || n.includes('matcha')) {
-        if (p.image !== 'assets/coffee/iced_matcha.jpg') {
+      if (!p.image || p.image.includes('placeholder')) {
+        if (n.includes('มัทฉะ') || n.includes('matcha')) {
           p.image = 'assets/coffee/iced_matcha.jpg';
           productsMigrated = true;
-        }
-      } else if (n.includes('เอสเพรสโซ') || n.includes('espresso')) {
-        if (!p.image || p.image.includes('placeholder')) {
+        } else if (n.includes('เอสเพรสโซ') || n.includes('espresso')) {
           p.image = 'assets/coffee/hot_espresso.jpg';
           productsMigrated = true;
-        }
-      } else if (n.includes('อเมริกาโน') || n.includes('americano')) {
-        if (!p.image || p.image.includes('placeholder')) {
+        } else if (n.includes('อเมริกาโน') || n.includes('americano')) {
           p.image = 'assets/coffee/iced_americano.jpg';
           productsMigrated = true;
-        }
-      } else if (n.includes('คาปู') || n.includes('cappuccino')) {
-        if (!p.image || p.image.includes('placeholder')) {
+        } else if (n.includes('คาปู') || n.includes('cappuccino')) {
           p.image = 'assets/coffee/iced_cappuccino.jpg';
           productsMigrated = true;
-        }
-      } else if ((n.includes('ลาเต้') || n.includes('latte')) && cat !== 'ชา' && !n.includes('ชา') && !n.includes('matcha')) {
-        if (!p.image || p.image.includes('placeholder') || p.image.includes('matcha')) {
+        } else if ((n.includes('ลาเต้') || n.includes('latte')) && cat !== 'ชา' && !n.includes('ชา')) {
           p.image = 'assets/coffee/iced_latte.jpg';
           productsMigrated = true;
-        }
-      } else if (n.includes('มอคค่า') || n.includes('mocha')) {
-        if (!p.image || p.image.includes('placeholder')) {
+        } else if (n.includes('มอคค่า') || n.includes('mocha')) {
           p.image = 'assets/coffee/iced_mocha.jpg';
           productsMigrated = true;
         }
@@ -5121,6 +5137,7 @@ function moveProduct(productId, direction) {
   }
 
   saveToStorage('coffeeshop_products', products);
+  if (typeof syncProductsToCloud === 'function') syncProductsToCloud(products);
   renderMenuConfigTable();
   renderProductsGrid();
 }
@@ -5157,6 +5174,7 @@ function autoSortProducts(sortType) {
   }
 
   saveToStorage('coffeeshop_products', products);
+  if (typeof syncProductsToCloud === 'function') syncProductsToCloud(products);
   renderMenuConfigTable();
   renderProductsGrid();
 }
@@ -5211,6 +5229,7 @@ function onProductRowDrop(e, targetProductId) {
     products.splice(toIdx, 0, moved);
 
     saveToStorage('coffeeshop_products', products);
+    if (typeof syncProductsToCloud === 'function') syncProductsToCloud(products);
     renderMenuConfigTable();
     renderProductsGrid();
   }
@@ -5699,9 +5718,22 @@ function saveProductConfig() {
   }
 
   saveToStorage('coffeeshop_products', products);
+  if (typeof syncProductsToCloud === 'function') {
+    syncProductsToCloud(products);
+  }
   renderMenuConfigTable();
   renderProductsGrid();
   closeProductModal();
+}
+
+function manualSyncMenuToCloud() {
+  if (typeof syncProductsToCloud === 'function') {
+    syncProductsToCloud(products);
+  }
+  if (typeof syncCategoriesToCloud === 'function') {
+    syncCategoriesToCloud(categories);
+  }
+  showToast(`☁️ บันทึกเมนูทั้งหมด ${products.length} รายการ และหมวดหมู่ขึ้น Supabase Cloud สำเร็จ!`, 'success');
 }
 
 function deleteProduct(productId) {
@@ -5711,6 +5743,12 @@ function deleteProduct(productId) {
   if (confirm(`คุณยืนยันต้องการลบสินค้า "${p.name}" ออกจาก POS หรือไม่?`)) {
     products = products.filter(prod => prod.id !== productId);
     saveToStorage('coffeeshop_products', products);
+    if (typeof deleteProductFromCloud === 'function') {
+      deleteProductFromCloud(productId);
+    }
+    if (typeof syncProductsToCloud === 'function') {
+      syncProductsToCloud(products);
+    }
     renderMenuConfigTable();
     showToast('ลบสินค้าสำเร็จ');
   }
@@ -6508,7 +6546,8 @@ function editCategoryName(oldName) {
 
   saveToStorage('coffeeshop_categories', categories);
   saveToStorage('coffeeshop_products', products);
-
+  if (typeof syncCategoriesToCloud === 'function') syncCategoriesToCloud(categories);
+  if (typeof syncProductsToCloud === 'function') syncProductsToCloud(products);
   renderCategoriesList();
   renderCategoryFilters();
   renderProductsGrid();
@@ -6523,6 +6562,7 @@ function editCategoryName(oldName) {
 function sortCategoriesAlphabetical() {
   categories.sort((a, b) => a.localeCompare(b, 'th'));
   saveToStorage('coffeeshop_categories', categories);
+  if (typeof syncCategoriesToCloud === 'function') syncCategoriesToCloud(categories);
   renderCategoriesList();
   renderCategoryFilters();
   if (typeof renderBestSellerCategoryTabs === 'function') {
@@ -6547,6 +6587,7 @@ function addNewCategory() {
 
   categories.push(name);
   saveToStorage('coffeeshop_categories', categories);
+  if (typeof syncCategoriesToCloud === 'function') syncCategoriesToCloud(categories);
   renderCategoriesList();
   renderCategoryFilters();
   if (typeof renderBestSellerCategoryTabs === 'function') {
@@ -6576,6 +6617,8 @@ function deleteCategory(catName) {
 
     saveToStorage('coffeeshop_categories', categories);
     saveToStorage('coffeeshop_products', products);
+    if (typeof syncCategoriesToCloud === 'function') syncCategoriesToCloud(categories);
+    if (typeof syncProductsToCloud === 'function') syncProductsToCloud(products);
 
     renderCategoriesList();
     renderCategoryFilters();

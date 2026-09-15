@@ -122,6 +122,24 @@ function initDbChangeListener() {
         }
       })
       .subscribe();
+
+    // 2.2 REALTIME PRODUCTS SYNC (ซิงค์เมนูข้ามเครื่องทันทีที่กดบันทึก)
+    dbClient
+      .channel('tantawan-products-sync')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'products' }, (payload) => {
+        console.log('📡 Realtime Product DB change received:', payload.eventType);
+        if (typeof fetchProductsFromCloud === 'function') {
+          fetchProductsFromCloud().then(cloudProds => {
+            if (cloudProds && cloudProds.length > 0) {
+              window.products = cloudProds;
+              if (typeof products !== 'undefined') products = cloudProds;
+              if (typeof renderProductsGrid === 'function') renderProductsGrid();
+              if (typeof renderMenuConfigTable === 'function') renderMenuConfigTable();
+            }
+          });
+        }
+      })
+      .subscribe();
   } catch (err) {
     console.warn('DB Change Listener Error:', err);
   }
@@ -320,10 +338,100 @@ async function syncProductsToCloud(prods) {
       active: p.active !== false
     }));
     await dbClient.from('products').upsert(rows);
-    console.log('☁️ Products synced to Supabase');
+    console.log('☁️ Products synced to Supabase (' + rows.length + ' items)');
   } catch (e) {
     console.warn('Sync products error:', e);
   }
+}
+
+// 7.1 FETCH PRODUCTS FROM CLOUD
+async function fetchProductsFromCloud() {
+  if (!dbClient || !isCloudConnected) return null;
+  try {
+    const { data, error } = await dbClient
+      .from('products')
+      .select('*')
+      .eq('active', true);
+
+    if (error) {
+      console.warn('Could not fetch products from Supabase:', error.message);
+      return null;
+    }
+
+    if (Array.isArray(data) && data.length > 0) {
+      const formatted = data.map(row => ({
+        id: row.id,
+        name: row.name,
+        category: row.category,
+        basePrice: Number(row.base_price || 0),
+        image: row.image,
+        optionGroupIds: row.option_group_ids || [],
+        hasTemp: !!row.has_temp,
+        tempPrices: row.temp_prices || { hot: 0, cold: 5, frappe: 10 },
+        hasSweetness: !!row.has_sweetness,
+        hasExtras: !!row.has_extras,
+        extras: row.extras || [],
+        active: row.active !== false
+      }));
+      localStorage.setItem('coffeeshop_products', JSON.stringify(formatted));
+      console.log('☁️ Loaded ' + formatted.length + ' products from Supabase Cloud');
+      return formatted;
+    }
+  } catch (err) {
+    console.error('fetchProductsFromCloud error:', err);
+  }
+  return null;
+}
+
+// 7.2 DELETE PRODUCT FROM CLOUD
+async function deleteProductFromCloud(productId) {
+  if (!dbClient || !isCloudConnected || !productId) return;
+  try {
+    await dbClient.from('products').delete().eq('id', String(productId));
+    console.log('☁️ Product deleted from Supabase:', productId);
+  } catch (e) {
+    console.warn('Delete product error:', e);
+  }
+}
+
+// 7.3 SYNC & FETCH CATEGORIES TO/FROM CLOUD
+async function syncCategoriesToCloud(cats) {
+  if (!dbClient || !isCloudConnected || !Array.isArray(cats)) return;
+  try {
+    const rows = cats.map((catName, idx) => ({
+      id: 'cat-' + idx,
+      name: catName,
+      display_order: idx
+    }));
+    await dbClient.from('categories').upsert(rows);
+    console.log('☁️ Categories synced to Supabase');
+  } catch (e) {
+    console.warn('Sync categories error:', e);
+  }
+}
+
+async function fetchCategoriesFromCloud() {
+  if (!dbClient || !isCloudConnected) return null;
+  try {
+    const { data, error } = await dbClient
+      .from('categories')
+      .select('*')
+      .order('display_order', { ascending: true });
+
+    if (error) {
+      console.warn('Could not fetch categories from Supabase:', error.message);
+      return null;
+    }
+
+    if (Array.isArray(data) && data.length > 0) {
+      const catNames = data.map(r => r.name);
+      localStorage.setItem('coffeeshop_categories', JSON.stringify(catNames));
+      return catNames;
+    }
+  } catch (err) {
+    console.error('fetchCategoriesFromCloud error:', err);
+  }
+  return null;
 }
 
 // 8. SYNC SETTINGS TO CLOUD

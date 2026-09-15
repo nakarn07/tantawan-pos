@@ -2960,6 +2960,13 @@
     restartCoffeeAutoRotate();
     restartToppingsAutoScroll();
 
+    // Fetch fresh products from Supabase Cloud if available
+    if (typeof fetchProductsFromCloud === 'function') {
+      fetchProductsFromCloud().then(() => {
+        renderCustomerIdleShowcase();
+      }).catch(() => {});
+    }
+
     // Expose handleDisplayEvent globally so Supabase Realtime can call it from any device
     window.handleDisplayEvent = handleDisplayEvent;
 
