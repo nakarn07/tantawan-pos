@@ -1,0 +1,2904 @@
+<!DOCTYPE html>
+<html lang="th" class="h-full bg-slate-950 dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>จอแสดงผลลูกค้า | ร้านทานตะวัน TANTAWAN COFFEE &amp; CAFÉ</title>
+  
+  <!-- Load Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            coffee: {
+              50: '#fffbeb',
+              100: '#fef3c7',
+              200: '#fde68a',
+              300: '#fcd34d',
+              400: '#fbbf24',
+              500: '#f59e0b',
+              600: '#d97706',
+              700: '#b45309',
+              800: '#92400e',
+              900: '#78350f',
+              950: '#451a03',
+            }
+          }
+        }
+      }
+    }
+  </script>
+
+  <!-- Google Font: Prompt -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  
+  <!-- QRious library for instant client-side QR generation -->
+  <script src="qrious.min.js"></script>
+
+  <!-- Supabase Cloud & Realtime Integration -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="supabase-client.js"></script>
+
+  <style>
+    * {
+      font-family: 'Prompt', sans-serif;
+      -webkit-tap-highlight-color: transparent;
+    }
+    ::-webkit-scrollbar {
+      width: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #0b0f19;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #334155;
+      border-radius: 8px;
+    }
+    .no-scrollbar::-webkit-scrollbar {
+      display: none !important;
+      width: 0 !important;
+      height: 0 !important;
+    }
+    .no-scrollbar {
+      -ms-overflow-style: none !important;
+      scrollbar-width: none !important;
+    }
+    @keyframes pulseSoft {
+      0%, 100% { transform: scale(1); opacity: 1; }
+      50% { transform: scale(1.03); opacity: 0.95; }
+    }
+    .pulse-soft {
+      animation: pulseSoft 3s infinite ease-in-out;
+    }
+    @keyframes fadeInScale {
+      from { opacity: 0; transform: scale(0.95); }
+      to { opacity: 1; transform: scale(1); }
+    }
+    .fade-in-scale {
+      animation: fadeInScale 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+    @keyframes steamDrift {
+      0% { transform: translateY(0) scaleX(1); opacity: 0.8; }
+      50% { transform: translateY(-7px) scaleX(1.1); opacity: 0.45; }
+      100% { transform: translateY(-14px) scaleX(1.2); opacity: 0; }
+    }
+    .steam-wisp-1 { animation: steamDrift 2.4s infinite ease-out; }
+    .steam-wisp-2 { animation: steamDrift 2.8s infinite ease-out 0.9s; }
+    .steam-wisp-3 { animation: steamDrift 2.2s infinite ease-out 0.45s; }
+  </style>
+</head>
+
+<body class="h-full bg-slate-950 text-slate-100 flex flex-col overflow-hidden select-none">
+
+  <!-- =========================================================================
+       CUSTOMER DISPLAY HEADER
+       ========================================================================= -->
+  <header class="h-20 bg-slate-900/90 border-b border-slate-800 px-6 lg:px-10 flex justify-between items-center flex-shrink-0 shadow-lg backdrop-blur-md">
+    <div class="flex items-center space-x-4">
+      <img src="logo.png" alt="โลโก้ร้านทานตะวัน" class="w-12 h-12 object-contain rounded-2xl p-1 bg-white shadow-md border border-amber-500/30">
+      <div>
+        <h1 class="text-xl lg:text-2xl font-black text-white tracking-wide flex items-center gap-2">
+          <span>ร้านทานตะวัน</span>
+          <span class="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-amber-500/20 text-amber-400 border border-amber-500/30">TANTAWAN POS</span>
+        </h1>
+        <p class="text-xs lg:text-sm text-amber-400 font-semibold tracking-wider">TANTAWAN COFFEE &amp; CAFÉ</p>
+      </div>
+    </div>
+
+    <div class="flex items-center space-x-6">
+      <!-- Live Clock -->
+      <div class="text-right hidden sm:block">
+        <div id="liveClock" class="text-xl font-black tracking-widest text-amber-400 font-mono">00:00:00</div>
+        <div id="liveDate" class="text-xs text-slate-400 font-medium">วันเสาร์ที่ 12 กันยายน 2026</div>
+      </div>
+
+      <!-- Fullscreen Toggle Button -->
+      <button onclick="toggleFullScreen()" title="สลับเต็มหน้าจอ (Full Screen F11)" class="p-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700 transition flex items-center gap-1.5 text-xs font-semibold shadow-sm">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" />
+        </svg>
+        <span class="hidden md:inline">เต็มจอ (F11)</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- =========================================================================
+       MAIN SPLIT CONTENT AREA
+       ========================================================================= -->
+  <main class="flex-1 flex flex-col lg:flex-row overflow-hidden relative">
+
+    <!-- LEFT SIDE: BRAND HERO / CAFE HIGHLIGHTS / PROMOTIONS -->
+    <section class="flex-1 bg-gradient-to-br from-slate-900 via-slate-950 to-amber-950/30 px-4 py-2.5 sm:px-6 sm:py-3.5 flex flex-col justify-between border-b lg:border-b-0 lg:border-r border-slate-800 overflow-hidden relative">
+      <!-- Background Ambient Glow -->
+      <div class="absolute -top-24 -left-24 w-96 h-96 bg-amber-500/10 rounded-full blur-3xl pointer-events-none"></div>
+      <div class="absolute -bottom-24 -right-24 w-96 h-96 bg-coffee-600/10 rounded-full blur-3xl pointer-events-none"></div>
+
+      <!-- 1. IDLE VIEW (PERMANENT SHOWCASE: COFFEE BEANS & ADD-ONS TO ENTICE CUSTOMERS) -->
+      <div id="customerIdleView" class="h-full flex flex-col justify-between transition-all duration-300">
+        <!-- Top Header Banner -->
+        <div class="relative z-10 flex items-center justify-between pb-1.5 border-b border-slate-800/80 flex-shrink-0">
+          <div class="space-y-0.5">
+            <div class="inline-flex items-center gap-2 px-2.5 py-0.5 rounded-full bg-amber-500/10 border border-amber-500/30 text-amber-400 text-[11px] font-semibold">
+              <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping"></span>
+              <span>ร้านทานตะวัน TANTAWAN CAFÉ • ยินดีต้อนรับ</span>
+            </div>
+            <h2 class="text-lg sm:text-xl font-black text-white leading-tight">
+              เลือกรสชาติแก้วโปรดที่คุณชอบ <span class="text-transparent bg-clip-text bg-gradient-to-r from-amber-400 to-yellow-300">แจ้งบาริสต้าได้เลยค่ะ</span>
+            </h2>
+          </div>
+          <div class="text-right hidden sm:block">
+            <span class="text-xs text-slate-400 font-medium">✨ คัดสรรพิเศษเพื่อคุณ</span>
+            <span class="text-[10px] text-amber-400/90 block font-bold">Specialty Beans &amp; Fresh Toppings</span>
+          </div>
+        </div>
+
+        <!-- Center Showcase Body: Top Coffee Showcase Row + Bottom 3 Option Columns -->
+        <div class="relative z-10 flex-1 my-1 flex flex-col gap-1.5 min-h-0 overflow-hidden">
+          
+          <!-- SECTION 1: COFFEE SHOWCASE ROW (ใหญ่เกินครึ่งหนึ่งของพื้นที่ 60% สเกลรูป 1:1 โชว์เต็มรูปไม่มีครอป แถวเดียว ไร้ scrollbar ไม่เห็นแก้วครึ่งเดียว) -->
+          <!-- SECTION 1: COFFEE SHOWCASE ROW (ใหญ่เกินครึ่งหนึ่งของพื้นที่ 60% สเกลรูป 1:1 โชว์เต็มรูปไม่มีครอป 4 แก้วพอดี ไม่เห็นแก้วครึ่งเดียว) -->
+          <div class="bg-slate-900/85 border border-amber-500/25 rounded-2xl p-2 sm:p-2.5 backdrop-blur-md shadow-lg flex flex-col min-h-0 overflow-hidden" style="height: 60%; min-height: 60%;">
+            <div class="flex items-center justify-between pb-1.5 flex-shrink-0">
+              <div class="flex items-center gap-2">
+                <span class="text-base sm:text-lg">☕</span>
+                <div class="flex items-center gap-2">
+                  <h4 class="text-xs sm:text-sm font-black text-white tracking-wide">
+                    เมนูกาแฟสดแนะนำ
+                  </h4>
+                  <!-- Clickable Category Buttons: กาแฟเย็น and กาแฟร้อน -->
+                  <div class="inline-flex p-0.5 rounded-xl bg-slate-950/80 border border-slate-800 gap-1 shadow-inner">
+                    <button type="button" id="tabCoffeeCold" onclick="setCoffeeCategory('cold')" class="px-3.5 py-1 rounded-xl text-xs sm:text-sm font-black transition-all flex items-center gap-1.5 cursor-pointer shadow-sm">
+                      <span>🧊</span>
+                      <span>กาแฟเย็น</span>
+                    </button>
+                    <button type="button" id="tabCoffeeHot" onclick="setCoffeeCategory('hot')" class="px-3.5 py-1 rounded-xl text-xs sm:text-sm font-bold transition-all flex items-center gap-1.5 cursor-pointer shadow-sm">
+                      <span>☕</span>
+                      <span>กาแฟร้อน</span>
+                    </button>
+                  </div>
+                </div>
+              </div>
+              
+              <!-- Navigation Controls: Prev / Next buttons and page counter -->
+              <div class="flex items-center gap-1.5">
+                <span id="idleCoffeePageIndicator" class="text-[11px] font-bold text-slate-400 font-mono mr-0.5">1/2</span>
+                <button type="button" id="idleCoffeePrevBtn" onclick="toggleCoffeeCategory()" class="w-7 h-7 rounded-lg bg-slate-800 hover:bg-amber-500/20 text-slate-300 hover:text-amber-400 border border-slate-700 hover:border-amber-500/40 flex items-center justify-center text-sm font-black transition cursor-pointer" title="สลับเมนูกาแฟ">
+                  ‹
+                </button>
+                <button type="button" id="idleCoffeeNextBtn" onclick="toggleCoffeeCategory()" class="w-7 h-7 rounded-lg bg-slate-800 hover:bg-amber-500/20 text-slate-300 hover:text-amber-400 border border-slate-700 hover:border-amber-500/40 flex items-center justify-center text-sm font-black transition cursor-pointer" title="สลับเมนูกาแฟ">
+                  ›
+                </button>
+              </div>
+            </div>
+
+            <!-- 4 Cards Grid: Exact 4 Cards Full Width (NO HALF CUPS, NO SCROLLBAR) -->
+            <div class="relative overflow-hidden rounded-xl flex-1 min-h-0">
+              <div id="idleCoffeeRow" class="h-full grid grid-cols-4 gap-2 py-0.5">
+                <!-- Populated dynamically with 4 exact drinks -->
+              </div>
+            </div>
+          </div>
+
+          <!-- SECTION 2: 3 VERTICAL COLUMNS (ตัวเลือกเมล็ดกาแฟ, ความหวาน, ส่วนผสมเพิ่มเติม - ลดขนาดกะทัดรัดลง) -->
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-2 flex-1 min-h-0 items-stretch overflow-hidden">
+            
+            <!-- COLUMN 1: COFFEE BEANS (ตัวเลือกเมล็ดกาแฟ) -->
+            <div class="bg-slate-900/85 border border-amber-500/25 rounded-2xl p-1.5 sm:p-2 backdrop-blur-md shadow-lg flex flex-col min-h-0 overflow-hidden space-y-1">
+              <div class="flex items-center justify-between pb-1 border-b border-slate-800/80 flex-shrink-0">
+                <div class="flex items-center gap-1.5">
+                  <span class="text-sm">🫘</span>
+                  <h4 class="text-xs sm:text-[13px] font-black text-white">1. เมล็ดกาแฟ (Beans)</h4>
+                </div>
+                <span class="text-[9px] px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-300 border border-amber-500/30 font-bold">
+                  คั่วสดใหม่
+                </span>
+              </div>
+              <div id="idleBeansGrid" class="flex-1 flex flex-col gap-1 overflow-y-auto no-scrollbar justify-between">
+                <!-- Populated by renderCustomerIdleShowcase() -->
+              </div>
+            </div>
+
+            <!-- COLUMN 2: SWEETNESS LEVEL (ระดับความหวาน) -->
+            <div class="bg-slate-900/85 border border-amber-500/25 rounded-2xl p-1.5 sm:p-2 backdrop-blur-md shadow-lg flex flex-col min-h-0 overflow-hidden space-y-1">
+              <div class="flex items-center justify-between pb-1 border-b border-slate-800/80 flex-shrink-0">
+                <div class="flex items-center gap-1.5">
+                  <span class="text-sm">🍬</span>
+                  <h4 class="text-xs sm:text-[13px] font-black text-white">2. ความหวาน (Sweetness)</h4>
+                </div>
+                <span class="text-[9px] px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-300 border border-amber-500/30 font-bold">
+                  6 ระดับ
+                </span>
+              </div>
+              <div id="idleSweetGrid" class="flex-1 flex flex-col gap-0.5 sm:gap-1 overflow-y-auto no-scrollbar justify-between">
+                <!-- Populated by renderCustomerIdleShowcase() -->
+              </div>
+            </div>
+
+            <!-- COLUMN 3: INGREDIENTS / ADD-ONS (ส่วนผสมเพิ่มเติม / ท็อปปิ้ง) -->
+            <div class="bg-slate-900/85 border border-amber-500/25 rounded-2xl p-1.5 sm:p-2 backdrop-blur-md shadow-lg flex flex-col min-h-0 overflow-hidden space-y-1">
+              <div class="flex items-center justify-between pb-1 border-b border-slate-800/80 flex-shrink-0">
+                <div class="flex items-center gap-1.5">
+                  <span class="text-sm">✨</span>
+                  <h4 class="text-xs sm:text-[13px] font-black text-white">3. ส่วนผสมเพิ่มเติม (Extras)</h4>
+                </div>
+                <!-- Clean Scroll Controls for Toppings (NO BROWSER SCROLL BAR) -->
+                <div class="flex items-center gap-1">
+                  <button type="button" onclick="scrollIdleToppings(-1)" class="w-5 h-5 rounded bg-slate-800 hover:bg-amber-500/20 text-slate-300 hover:text-amber-400 border border-slate-700 flex items-center justify-center text-[10px] font-bold transition" title="เลื่อนขึ้น">
+                    ▲
+                  </button>
+                  <button type="button" onclick="scrollIdleToppings(1)" class="w-5 h-5 rounded bg-slate-800 hover:bg-amber-500/20 text-slate-300 hover:text-amber-400 border border-slate-700 flex items-center justify-center text-[10px] font-bold transition" title="เลื่อนลงดูเพิ่ม">
+                    ▼
+                  </button>
+                </div>
+              </div>
+
+              <!-- Toppings Scroll Container: NO BROWSER SCROLLBAR, smooth scrolling -->
+              <div id="idleToppingsScroll" class="flex-1 space-y-1 overflow-y-auto no-scrollbar scroll-smooth pr-0.5">
+                <div id="idleToppingsGrid" class="space-y-1">
+                  <!-- Populated by renderCustomerIdleShowcase() -->
+                </div>
+              </div>
+
+              <!-- Interactive bottom button to scroll down if more toppings exist -->
+              <button type="button" id="idleToppingsScrollToggleBtn" onclick="toggleIdleToppingsScroll()" class="w-full py-1 text-[10px] font-bold rounded-lg bg-slate-800/80 hover:bg-amber-500/15 text-slate-400 hover:text-amber-300 border border-slate-700/80 flex items-center justify-center gap-1 transition flex-shrink-0">
+                <span>▼ เลื่อนดูส่วนผสมเพิ่มเติม</span>
+              </button>
+            </div>
+
+          </div>
+
+        </div>
+
+        <!-- Footer Notice -->
+        <div class="relative z-10 flex items-center justify-between text-xs text-slate-400 pt-1.5 border-t border-slate-800/80 flex-shrink-0">
+          <div class="flex items-center gap-2 text-slate-300">
+            <span class="text-amber-400">💡</span>
+            <span>มองเห็นตัวเลือกถูกใจ ชี้หรือแจ้งบาริสต้าเพื่อปรับแต่งเครื่องดื่มได้เลยค่ะ</span>
+          </div>
+          <span class="flex items-center gap-1.5 text-emerald-400 font-semibold hidden sm:flex">
+            <span class="w-2 h-2 rounded-full bg-emerald-400"></span>
+            <span>พร้อมรับออเดอร์</span>
+          </span>
+        </div>
+      </div>
+
+      <!-- 2. LIVE CUSTOMIZING VIEW (REAL-TIME CUP & OPTIONS SHOWCASE) -->
+      <div id="customerCustomizingView" class="h-full flex flex-col justify-between hidden transition-all duration-300">
+        <!-- Top Bar: Live status & pricing -->
+        <div class="relative z-10 flex items-center justify-between gap-3 pb-2.5 border-b border-slate-800/80 flex-shrink-0">
+          <div class="flex items-center gap-2">
+            <div class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 text-[11px] font-bold shadow-sm">
+              <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping"></span>
+              <span>กำลังสั่งเมนูนี้ (Live Ordering)</span>
+            </div>
+            <span id="custProdCategoryBadge" class="text-[11px] font-bold px-2.5 py-1 rounded-full bg-amber-500/10 text-amber-300 border border-amber-500/30">
+              ☕ กาแฟสด
+            </span>
+          </div>
+
+          <!-- Live Price Display -->
+          <div class="text-right">
+            <span class="text-[9px] text-slate-400 uppercase tracking-wider block font-semibold">ราคาแก้วนี้</span>
+            <span id="custLivePriceDisplay" class="text-xl sm:text-2xl font-black text-amber-400 tracking-tight block">฿0.00</span>
+          </div>
+        </div>
+
+        <!-- Middle Content Area: Cup on Left, Options Grid on Right -->
+        <div class="relative z-10 flex-1 my-2.5 flex flex-col lg:flex-row gap-3 sm:gap-4 items-stretch overflow-hidden min-h-0">
+          
+          <!-- Left Sub-panel: Vector Cup Graphic & Drink Info -->
+          <div class="w-full lg:w-[260px] xl:w-[280px] bg-slate-900/80 border border-amber-500/20 rounded-2xl p-3.5 backdrop-blur-md shadow-xl flex flex-col items-center justify-center text-center relative overflow-hidden flex-shrink-0">
+            <!-- Background Glow -->
+            <div class="absolute -top-10 -left-10 w-28 h-28 bg-amber-500/15 rounded-full blur-2xl pointer-events-none"></div>
+            
+            <!-- Animated Takeaway Cup Graphic (Inspired by user's reference) -->
+            <div id="custCupContainer" class="relative w-28 sm:w-32 h-36 sm:h-40 flex items-center justify-center select-none my-auto">
+              <!-- Floating Live Sweetness Badge on Cup (Hidden to avoid cluttering the clean cup graphic) -->
+              <div id="custCupSweetTag" class="hidden absolute -top-1 right-0 px-2 py-0.5 rounded-lg text-[10px] font-black bg-slate-950/90 border border-amber-500/40 text-amber-300 shadow-md backdrop-blur-md flex items-center gap-1 transition-all duration-300 z-10 scale-100">
+                <span id="custCupSweetDot" class="w-1.5 h-1.5 rounded-full bg-amber-400"></span>
+                <span id="custCupSweetText">หวาน 100%</span>
+              </div>
+              <svg id="liveCupSvg" viewBox="0 0 200 320" class="w-full h-full max-h-40 object-contain drop-shadow-xl transition-all duration-300" xmlns="http://www.w3.org/2000/svg">
+                <defs>
+                  <!-- Dynamic Drink Liquid Gradient -->
+                  <linearGradient id="cupLiquidGrad" x1="0" y1="0" x2="0" y2="1">
+                    <stop id="liquidGradStop1" offset="0%" stop-color="#3d2113" />
+                    <stop id="liquidGradStop2" offset="100%" stop-color="#1f1008" />
+                  </linearGradient>
+
+                  <!-- Clip path matching the cup body interior -->
+                  <clipPath id="cupInteriorClip">
+                    <path d="M 38 114 L 162 114 L 144 294 Q 100 299 56 294 Z" />
+                  </clipPath>
+                </defs>
+
+                <!-- 1. BENDY STRAW -->
+                <g id="cupStrawGroup">
+                  <path d="M 96 110 L 96 28 Q 96 18 106 18 L 165 18" fill="none" stroke="#0f172a" stroke-width="12" stroke-linecap="round" stroke-linejoin="round" />
+                  <path d="M 96 110 L 96 28 Q 96 18 106 18 L 165 18" fill="none" stroke="#f8fafc" stroke-width="6" stroke-linecap="round" stroke-linejoin="round" />
+                  <line x1="91" y1="36" x2="101" y2="36" stroke="#0f172a" stroke-width="2.5" stroke-linecap="round" />
+                  <line x1="91" y1="44" x2="101" y2="44" stroke="#0f172a" stroke-width="2.5" stroke-linecap="round" />
+                  <line x1="91" y1="52" x2="101" y2="52" stroke="#0f172a" stroke-width="2.5" stroke-linecap="round" />
+                  <ellipse cx="165" cy="18" rx="3.5" ry="6" fill="#cbd5e1" stroke="#0f172a" stroke-width="2" />
+                </g>
+
+                <!-- 2. CUP BODY BASE (WHITE PLASTIC CUP) -->
+                <path d="M 36 112 L 164 112 L 146 295 Q 100 300 54 295 Z" fill="#ffffff" stroke="#0f172a" stroke-width="8" stroke-linejoin="round" />
+
+                <!-- 3. DRINK LIQUID (Clipped to cup interior) -->
+                <g clip-path="url(#cupInteriorClip)">
+                  <path id="cupLiquidFill" d="M 36 136 Q 100 144 164 136 L 148 296 Q 100 300 52 296 Z" fill="url(#cupLiquidGrad)" class="transition-all duration-500" />
+                  <ellipse id="cupLiquidSurface" cx="100" cy="136" rx="64" ry="7" fill="#ffffff" fill-opacity="0.25" />
+
+                  <!-- Ice Cubes (when Cold / Frappe) -->
+                  <g id="cupIceCubesGroup" class="transition-opacity duration-300">
+                    <rect x="68" y="152" width="22" height="22" rx="4" fill="#ffffff" fill-opacity="0.32" stroke="#ffffff" stroke-width="1.5" stroke-opacity="0.6" transform="rotate(12 79 163)" />
+                    <rect x="110" y="158" width="24" height="24" rx="4" fill="#ffffff" fill-opacity="0.32" stroke="#ffffff" stroke-width="1.5" stroke-opacity="0.6" transform="rotate(-15 122 170)" />
+                    <rect x="88" y="186" width="20" height="20" rx="4" fill="#ffffff" fill-opacity="0.25" stroke="#ffffff" stroke-width="1.5" stroke-opacity="0.5" transform="rotate(8 98 196)" />
+                  </g>
+
+                  <!-- Side Shadow & Highlights -->
+                  <path d="M 36 112 L 52 112 L 64 295 L 54 295 Z" fill="#000000" fill-opacity="0.08" />
+                  <path d="M 164 112 L 148 112 L 136 295 L 146 295 Z" fill="#000000" fill-opacity="0.12" />
+                </g>
+
+                <!-- 4. CENTER EMBLEM / BADGE (Matching uploaded reference image) -->
+                <g id="cupCenterBadge">
+                  <circle cx="100" cy="214" r="32" fill="#0f172a" stroke="#ffffff" stroke-width="2.5" />
+                  <circle cx="100" cy="214" r="29" fill="none" stroke="#f59e0b" stroke-width="1" stroke-dasharray="3 3" />
+                  <text id="cupBadgeText" x="100" y="219" text-anchor="middle" font-family="'Prompt', sans-serif" font-size="11" font-weight="900" fill="#ffffff" letter-spacing="0.5">COFFEE</text>
+                </g>
+
+                <!-- 5. DOME LID (Overlapping top of cup) -->
+                <g id="cupDomeLidGroup">
+                  <rect x="22" y="102" width="156" height="18" rx="8" fill="#ffffff" stroke="#0f172a" stroke-width="8" />
+                  <path d="M 38 102 C 38 72, 70 60, 100 60 C 130 60, 162 72, 162 102 Z" fill="#ffffff" fill-opacity="0.5" stroke="#0f172a" stroke-width="8" stroke-linejoin="round" />
+                  <path d="M 46 88 C 54 75, 75 70, 100 70 C 125 70, 146 75, 154 88" fill="none" stroke="#0f172a" stroke-width="4" stroke-linecap="round" />
+                  <path d="M 50 94 C 54 78, 72 72, 92 72" fill="none" stroke="#ffffff" stroke-width="4" stroke-linecap="round" />
+                </g>
+
+                <!-- 6. HOT STEAM CURS (for hot drinks) -->
+                <g id="cupSteamGroup" class="hidden opacity-0 transition-opacity duration-300">
+                  <path d="M 85 45 Q 80 30 85 15 Q 90 0 85 -10" fill="none" stroke="#ffffff" stroke-width="3" stroke-linecap="round" stroke-opacity="0.6" />
+                  <path d="M 100 40 Q 95 25 100 10 Q 105 -5 100 -20" fill="none" stroke="#ffffff" stroke-width="3.5" stroke-linecap="round" stroke-opacity="0.75" />
+                  <path d="M 115 45 Q 110 30 115 15 Q 120 0 115 -10" fill="none" stroke="#ffffff" stroke-width="3" stroke-linecap="round" stroke-opacity="0.6" />
+                </g>
+              </svg>
+
+              <!-- 2. HOT DRINK CUP & GLASS GRAPHIC (Espresso Shot, Cappuccino, Fresh Milk, Hot Mug) -->
+              <svg id="liveHotCupSvg" viewBox="0 0 240 260" class="w-full h-full max-h-40 object-contain drop-shadow-xl transition-all duration-300 hidden" xmlns="http://www.w3.org/2000/svg">
+                <defs>
+                  <!-- Hot Liquid Gradient -->
+                  <linearGradient id="hotLiquidGrad" x1="0" y1="0" x2="0" y2="1">
+                    <stop id="hotLiquidStop1" offset="0%" stop-color="#3d2113" />
+                    <stop id="hotLiquidStop2" offset="100%" stop-color="#1f1008" />
+                  </linearGradient>
+                  <linearGradient id="espressoShotGrad" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stop-color="#2d1307" />
+                    <stop offset="60%" stop-color="#1a0903" />
+                    <stop offset="100%" stop-color="#0d0401" />
+                  </linearGradient>
+                  <linearGradient id="cremaGrad" x1="0" y1="0" x2="1" y2="1">
+                    <stop offset="0%" stop-color="#f59e0b" />
+                    <stop offset="50%" stop-color="#d97706" />
+                    <stop offset="100%" stop-color="#b45309" />
+                  </linearGradient>
+                  <linearGradient id="glassReflection" x1="0" y1="0" x2="1" y2="0">
+                    <stop offset="0%" stop-color="#ffffff" stop-opacity="0.35" />
+                    <stop offset="30%" stop-color="#ffffff" stop-opacity="0.05" />
+                    <stop offset="70%" stop-color="#ffffff" stop-opacity="0.0" />
+                    <stop offset="100%" stop-color="#ffffff" stop-opacity="0.2" />
+                  </linearGradient>
+                </defs>
+
+                <!-- ANIMATED RISING STEAM TRAILS (Shared) -->
+                <g id="hotAromaSteamGroup">
+                  <path class="steam-wisp-1" d="M 95 65 Q 85 45 95 25 Q 105 5 95 -10" fill="none" stroke="#fcd34d" stroke-width="3" stroke-linecap="round" stroke-opacity="0.75" />
+                  <path class="steam-wisp-2" d="M 120 58 Q 110 38 120 18 Q 130 -2 120 -18" fill="none" stroke="#fef3c7" stroke-width="3.5" stroke-linecap="round" stroke-opacity="0.85" />
+                  <path class="steam-wisp-3" d="M 145 65 Q 135 45 145 25 Q 155 5 145 -10" fill="none" stroke="#fcd34d" stroke-width="3" stroke-linecap="round" stroke-opacity="0.75" />
+                </g>
+
+                <!-- VARIATION 1: ESPRESSO SHOT GLASS (#hotEspressoShotGroup) -->
+                <g id="hotEspressoShotGroup" class="hidden">
+                  <!-- Coaster -->
+                  <ellipse cx="120" cy="235" rx="55" ry="12" fill="#0f172a" stroke="#475569" stroke-width="2" />
+                  <!-- Glass Base (thick heavy base) -->
+                  <path d="M 82 105 L 158 105 L 146 225 Q 120 230 94 225 Z" fill="#ffffff" fill-opacity="0.12" stroke="#e2e8f0" stroke-width="6" stroke-linejoin="round" />
+                  <path d="M 94 200 L 146 200 L 144 225 Q 120 229 96 225 Z" fill="#ffffff" fill-opacity="0.35" />
+                  <!-- Espresso Liquid inside shot glass -->
+                  <path d="M 85 125 L 155 125 L 145 205 Q 120 210 95 205 Z" fill="url(#espressoShotGrad)" />
+                  <!-- Golden Crema Layer -->
+                  <ellipse cx="120" cy="125" rx="35" ry="9" fill="url(#cremaGrad)" />
+                  <ellipse cx="118" cy="124" rx="26" ry="6" fill="#fbbf24" fill-opacity="0.6" />
+                  <ellipse cx="114" cy="123" rx="14" ry="3" fill="#fef3c7" fill-opacity="0.75" />
+                  <!-- Measurement graduation line (30ml / 60ml) -->
+                  <line x1="86" y1="150" x2="98" y2="150" stroke="#ffffff" stroke-width="1.8" stroke-opacity="0.7" />
+                  <text x="101" y="153" fill="#ffffff" fill-opacity="0.7" font-size="8" font-weight="bold" font-family="'Prompt', sans-serif">30ml</text>
+                  <line x1="84" y1="132" x2="96" y2="132" stroke="#ffffff" stroke-width="1.8" stroke-opacity="0.7" />
+                  <text x="99" y="135" fill="#ffffff" fill-opacity="0.7" font-size="8" font-weight="bold" font-family="'Prompt', sans-serif">60ml</text>
+                  <!-- Glass Highlight Reflection -->
+                  <path d="M 85 105 L 155 105 L 146 225 Q 120 230 94 225 Z" fill="url(#glassReflection)" pointer-events="none" />
+                  <!-- Center Emblem Badge on Shot Glass -->
+                  <circle cx="120" cy="172" r="22" fill="#0f172a" stroke="#f59e0b" stroke-width="2" />
+                  <circle cx="120" cy="172" r="19.5" fill="none" stroke="#fbbf24" stroke-width="1" stroke-dasharray="2 2" />
+                  <text x="120" y="171" text-anchor="middle" font-family="'Prompt', sans-serif" font-size="8" font-weight="900" fill="#f59e0b" letter-spacing="0.5">ESPRESSO</text>
+                  <text x="120" y="180" text-anchor="middle" font-family="'Prompt', sans-serif" font-size="7" font-weight="bold" fill="#ffffff">HOT SHOT</text>
+                </g>
+
+                <!-- VARIATION 2: CAPPUCCINO & LATTE WITH LATTE ART (#hotCappuccinoGroup) -->
+                <g id="hotCappuccinoGroup" class="hidden">
+                  <!-- Saucer Plate -->
+                  <ellipse cx="120" cy="230" rx="90" ry="16" fill="#ffffff" stroke="#0f172a" stroke-width="6" />
+                  <ellipse cx="120" cy="230" rx="60" ry="10" fill="#f1f5f9" stroke="#cbd5e1" stroke-width="1.5" />
+                  <!-- Cup Body (Classic Ceramic Cup) -->
+                  <path d="M 50 115 C 50 200, 75 220, 120 220 C 165 220, 190 200, 190 115 Z" fill="#ffffff" stroke="#0f172a" stroke-width="7" stroke-linejoin="round" />
+                  <!-- Handle -->
+                  <path d="M 185 130 C 220 130, 220 190, 182 190" fill="none" stroke="#ffffff" stroke-width="16" stroke-linecap="round" />
+                  <path d="M 185 130 C 220 130, 220 190, 182 190" fill="none" stroke="#0f172a" stroke-width="7" stroke-linecap="round" />
+                  <!-- Drink Liquid / Crema Surface in Cup -->
+                  <ellipse id="hotCapLiquidSurface" cx="120" cy="115" rx="66" ry="20" fill="#854d0e" stroke="#0f172a" stroke-width="4" />
+                  <!-- Velvety Milk Microfoam -->
+                  <ellipse id="hotCapFoamSurface" cx="120" cy="115" rx="58" ry="17" fill="#b48a60" />
+                  <!-- Barista Heart / Rosetta Latte Art -->
+                  <g id="hotLatteArtHeart">
+                    <path d="M 120 126 C 120 126, 92 108, 92 97 C 92 88, 102 82, 110 88 C 115 92, 120 100, 120 100 C 120 100, 125 92, 130 88 C 138 82, 148 88, 148 97 C 148 108, 120 126, 120 126 Z" fill="#ffffff" />
+                    <path d="M 120 125 C 120 125, 96 109, 96 99 C 96 92, 104 87, 111 92 C 115 95, 120 102, 120 102 C 120 102, 125 95, 129 92 C 136 87, 144 92, 144 99 C 144 109, 120 125, 120 125 Z" fill="#fef3c7" fill-opacity="0.85" />
+                    <circle cx="120" cy="127" r="1.5" fill="#854d0e" />
+                  </g>
+                  <!-- Center Emblem Badge on Cup -->
+                  <circle cx="120" cy="178" r="26" fill="#0f172a" stroke="#ffffff" stroke-width="2.5" />
+                  <circle cx="120" cy="178" r="23" fill="none" stroke="#f59e0b" stroke-width="1" stroke-dasharray="2.5 2.5" />
+                  <text id="hotCapBadgeText" x="120" y="182" text-anchor="middle" font-family="'Prompt', sans-serif" font-size="9" font-weight="900" fill="#ffffff" letter-spacing="0.5">CAPPUCCINO</text>
+                </g>
+
+                <!-- VARIATION 3: FRESH MILK (นมสดร้อน) (#hotMilkGroup) -->
+                <g id="hotMilkGroup" class="hidden">
+                  <!-- Ceramic Milk Mug -->
+                  <rect x="68" y="105" width="104" height="115" rx="14" fill="#ffffff" stroke="#0f172a" stroke-width="7" />
+                  <!-- Mug Handle -->
+                  <path d="M 170 125 C 205 125, 205 185, 168 185" fill="none" stroke="#ffffff" stroke-width="16" stroke-linecap="round" />
+                  <path d="M 170 125 C 205 125, 205 185, 168 185" fill="none" stroke="#0f172a" stroke-width="7" stroke-linecap="round" />
+                  <!-- Warm Milk Surface with Foam Texture -->
+                  <ellipse cx="120" cy="105" rx="52" ry="16" fill="#ffffff" stroke="#0f172a" stroke-width="4" />
+                  <ellipse cx="120" cy="105" rx="46" ry="13" fill="#f8fafc" />
+                  <!-- Foam bubbles -->
+                  <circle cx="105" cy="104" r="5" fill="#e2e8f0" fill-opacity="0.8" />
+                  <circle cx="132" cy="103" r="6" fill="#e2e8f0" fill-opacity="0.8" />
+                  <circle cx="118" cy="107" r="4" fill="#e2e8f0" fill-opacity="0.8" />
+                  <circle cx="140" cy="106" r="3" fill="#e2e8f0" fill-opacity="0.8" />
+                  <!-- Center Emblem Badge on Milk Mug -->
+                  <circle cx="120" cy="165" r="26" fill="#0f172a" stroke="#ffffff" stroke-width="2.5" />
+                  <circle cx="120" cy="165" r="23" fill="none" stroke="#38bdf8" stroke-width="1" stroke-dasharray="2.5 2.5" />
+                  <text x="120" y="165" text-anchor="middle" font-family="'Prompt', sans-serif" font-size="8.5" font-weight="900" fill="#38bdf8" letter-spacing="0.5">FRESH MILK</text>
+                  <text x="120" y="174" text-anchor="middle" font-family="'Prompt', sans-serif" font-size="7" font-weight="bold" fill="#ffffff">นมสดร้อน</text>
+                </g>
+
+                <!-- VARIATION 4: HOT TEA / COCOA / AMERICANO / CAFE MUG (#hotMugGroup) -->
+                <g id="hotMugGroup" class="hidden">
+                  <!-- Saucer Plate -->
+                  <ellipse cx="120" cy="230" rx="85" ry="15" fill="#ffffff" stroke="#0f172a" stroke-width="6" />
+                  <!-- Cup Body -->
+                  <path d="M 55 115 C 55 195, 75 220, 120 220 C 165 220, 185 195, 185 115 Z" fill="#ffffff" stroke="#0f172a" stroke-width="7" stroke-linejoin="round" />
+                  <!-- Handle -->
+                  <path d="M 180 130 C 215 130, 215 190, 178 190" fill="none" stroke="#ffffff" stroke-width="16" stroke-linecap="round" />
+                  <path d="M 180 130 C 215 130, 215 190, 178 190" fill="none" stroke="#0f172a" stroke-width="7" stroke-linecap="round" />
+                  <!-- Liquid Surface -->
+                  <ellipse id="hotMugLiquidSurface" cx="120" cy="115" rx="62" ry="18" fill="url(#hotLiquidGrad)" stroke="#0f172a" stroke-width="4" />
+                  <ellipse cx="118" cy="114" rx="45" ry="11" fill="#ffffff" fill-opacity="0.15" />
+                  <!-- Center Emblem Badge -->
+                  <circle cx="120" cy="175" r="26" fill="#0f172a" stroke="#ffffff" stroke-width="2.5" />
+                  <circle cx="120" cy="175" r="23" fill="none" stroke="#f59e0b" stroke-width="1" stroke-dasharray="2.5 2.5" />
+                  <text id="hotMugBadgeText" x="120" y="179" text-anchor="middle" font-family="'Prompt', sans-serif" font-size="9" font-weight="900" fill="#ffffff" letter-spacing="0.5">HOT TEA</text>
+                </g>
+              </svg>
+            </div>
+
+            <!-- Drink Details -->
+            <div class="mt-1 space-y-1 w-full flex-shrink-0">
+              <h3 id="custDrinkName" class="text-sm sm:text-base font-black text-white leading-snug break-words">อเมริกาโน่ (Americano)</h3>
+              <p id="custDrinkBasePrice" class="text-[11px] text-amber-400 font-bold">ราคาเริ่มต้น ฿50.00</p>
+              
+              <!-- Sweetness and Summary Badges -->
+              <div class="pt-0.5 flex flex-wrap items-center justify-center gap-1">
+                <span id="custLiveSweetBadge" class="inline-flex items-center gap-1 text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/40 shadow-sm transition-all duration-300">
+                  🍬 ความหวาน: ปกติ (100%)
+                </span>
+                <span id="custLiveSummaryPill" class="inline-block text-[10px] text-slate-300 bg-slate-950/70 border border-slate-800 px-2.5 py-0.5 rounded-full max-w-[90%] truncate">
+                  กำลังเลือกตัวเลือก...
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Right Sub-panel: Option Groups & Options Grid -->
+          <div class="flex-1 w-full bg-slate-900/80 border border-amber-500/20 rounded-2xl p-3 sm:p-3.5 backdrop-blur-md shadow-xl flex flex-col min-h-0 overflow-hidden">
+            <div class="flex justify-between items-center pb-2 mb-2 border-b border-slate-800/80 flex-shrink-0">
+              <div class="flex items-center gap-1.5">
+                <span class="text-sm">✨</span>
+                <span class="text-xs sm:text-sm font-bold text-white tracking-wide">ตัวเลือกสำหรับเมนูนี้ (Options)</span>
+              </div>
+              <span class="text-[10px] text-amber-400/90 font-medium hidden sm:inline">แจ้งพนักงานเพื่อเลือกตามชอบได้เลยค่ะ</span>
+            </div>
+
+            <!-- Scrollable List of Groups -->
+            <div id="custOptionGroupsList" class="flex-1 overflow-y-auto space-y-2.5 pr-1 custom-scrollbar min-h-0">
+              <!-- Dynamically populated option groups cards -->
+            </div>
+          </div>
+        </div>
+
+        <!-- Bottom Status Notification -->
+        <div class="relative z-10 flex items-center justify-between text-xs text-slate-400 pt-3 border-t border-slate-800/80">
+          <div class="flex items-center gap-2 text-slate-300">
+            <span class="text-amber-400">💡</span>
+            <span>เมื่อพนักงานกดยืนยัน รายการนี้จะถูกเพิ่มไปยังรายการสั่งซื้อของคุณ</span>
+          </div>
+          <div id="custQtyBadge" class="px-3 py-1 rounded-full bg-slate-800 text-amber-300 font-bold border border-slate-700 text-xs">
+            จำนวน: 1 แก้ว
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- RIGHT SIDE: LIVE ORDER SUMMARY (CUSTOMER CART) -->
+    <section class="w-full lg:w-[480px] xl:w-[540px] bg-slate-900/95 flex flex-col h-full shadow-2xl relative flex-shrink-0">
+      <!-- Order Panel Header -->
+      <div class="p-5 border-b border-slate-800 flex justify-between items-center bg-slate-900">
+        <div class="flex items-center space-x-2.5">
+          <div class="p-2 rounded-xl bg-amber-500/20 text-amber-400 border border-amber-500/30">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
+            </svg>
+          </div>
+          <div>
+            <h3 class="text-base font-bold text-white">รายการสั่งซื้อของคุณ</h3>
+            <p class="text-[11px] text-slate-400" id="orderStatusHint">กำลังรอทำรายการ...</p>
+          </div>
+        </div>
+
+        <div id="itemCountBadge" class="px-3 py-1 rounded-full text-xs font-bold bg-slate-800 text-slate-300 border border-slate-700">
+          0 รายการ
+        </div>
+      </div>
+
+      <!-- Order Items List (Scrollable) -->
+      <div id="orderItemsContainer" class="flex-1 overflow-y-auto p-5 space-y-3">
+        <!-- Empty State Default -->
+        <div id="emptyOrderState" class="h-full flex flex-col items-center justify-center text-center p-8 space-y-3 text-slate-500">
+          <div class="w-20 h-20 rounded-full bg-slate-800/80 border border-slate-700 flex items-center justify-center text-3xl shadow-inner pulse-soft">
+            📋
+          </div>
+          <h4 class="text-base font-bold text-slate-300">ยังไม่มีรายการสั่งซื้อ</h4>
+          <p class="text-xs text-slate-400 max-w-xs leading-relaxed">
+            สามารถสั่งเครื่องดื่มและเบเกอรี่กับทีมงานที่หน้าเคาน์เตอร์ รายการจะปรากฏบนหน้านี้ทันทีค่ะ
+          </p>
+        </div>
+
+        <!-- Dynamic Items Container -->
+        <div id="liveItemsList" class="space-y-3 hidden">
+          <!-- Dynamically populated -->
+        </div>
+      </div>
+
+      <!-- Order Summary Card Bottom -->
+      <div class="p-6 border-t border-slate-800 bg-slate-950/80 space-y-3">
+        <div class="space-y-2 text-sm">
+          <div class="flex justify-between text-slate-400">
+            <span>ราคารวม (Subtotal)</span>
+            <span id="subtotalDisplay" class="font-semibold text-slate-200">฿0.00</span>
+          </div>
+
+          <div id="discountRow" class="flex justify-between text-emerald-400 text-sm hidden">
+            <span class="flex items-center gap-1.5">
+              <span>ส่วนลด (Discount)</span>
+              <span id="discountBadge" class="text-[10px] bg-emerald-950 text-emerald-300 px-2 py-0.5 rounded border border-emerald-800 font-bold">-</span>
+            </span>
+            <span id="discountDisplay" class="font-bold">-฿0.00</span>
+          </div>
+
+          <div class="pt-3 border-t border-dashed border-slate-800 flex justify-between items-baseline">
+            <span class="text-base font-bold text-white">ยอดชำระสุทธิ (Total)</span>
+            <div class="text-right">
+              <span id="totalDisplay" class="text-3xl lg:text-4xl font-black text-amber-400 tracking-tight">฿0.00</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- =========================================================================
+       FULLSCREEN MODAL OVERLAY: PROMPTPAY QR CODE SCAN
+       ========================================================================= -->
+  <div id="customerQrModal" class="fixed inset-0 bg-slate-950/90 backdrop-blur-md z-50 flex items-center justify-center p-4 hidden">
+    <div class="bg-slate-900 border-2 border-amber-500/40 rounded-3xl p-6 sm:p-8 max-w-md w-full shadow-2xl text-center space-y-5 fade-in-scale relative overflow-hidden">
+      <!-- Glow effect -->
+      <div class="absolute -top-20 -left-20 w-48 h-48 bg-amber-500/20 rounded-full blur-3xl pointer-events-none"></div>
+
+      <!-- Modal Header Badge -->
+      <div class="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-amber-500/20 border border-amber-500/40 text-amber-300 text-xs font-bold">
+        <span>📱</span>
+        <span>สแกน QR เพื่อชำระเงิน</span>
+      </div>
+
+      <div>
+        <h3 class="text-xl sm:text-2xl font-black text-white">ร้านทานตะวัน TANTAWAN CAFÉ</h3>
+        <p class="text-xs text-slate-400 mt-1">เปิดแอปธนาคารของท่านและสแกน QR Code ด้านล่างนี้</p>
+      </div>
+
+      <!-- QR Code Presentation Box -->
+      <div class="bg-white p-5 rounded-2xl inline-block shadow-2xl border-4 border-amber-400/60 mx-auto">
+        <canvas id="customerQrCanvas" class="w-56 h-56 sm:w-64 sm:h-64 block mx-auto"></canvas>
+        <img id="customerQrStaticImg" class="w-56 h-56 sm:w-64 sm:h-64 object-contain mx-auto hidden" alt="Bank QR">
+      </div>
+
+      <!-- Total Amount to Pay -->
+      <div class="bg-slate-950/80 p-4 rounded-2xl border border-slate-800 space-y-1">
+        <span class="text-xs font-semibold text-slate-400 block">ยอดเงินที่ต้องชำระ</span>
+        <span id="customerQrAmount" class="text-3xl sm:text-4xl font-black text-amber-400 tracking-tight block">฿0.00</span>
+      </div>
+
+      <!-- Bank / PromptPay Details Hint -->
+      <div id="customerQrBankInfo" class="text-xs text-slate-400 space-y-0.5">
+        <p id="customerQrAccountName" class="font-medium text-slate-300">ชื่อบัญชี: ร้านทานตะวัน</p>
+        <p id="customerQrAccountNo" class="text-[11px] text-slate-400 font-mono">PromptPay ID: -</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- =========================================================================
+       FULLSCREEN MODAL OVERLAY: PAYMENT SUCCESS
+       ========================================================================= -->
+  <div id="customerSuccessModal" class="fixed inset-0 bg-slate-950/95 backdrop-blur-md z-50 flex items-center justify-center p-4 hidden">
+    <div class="bg-slate-900 border-2 border-emerald-500/50 rounded-3xl p-8 max-w-sm w-full shadow-2xl text-center space-y-5 fade-in-scale">
+      <div class="w-20 h-20 rounded-full bg-emerald-500/20 border border-emerald-500/50 flex items-center justify-center mx-auto text-4xl text-emerald-400 shadow-inner">
+        ✓
+      </div>
+      <div class="space-y-1.5">
+        <h3 class="text-2xl font-black text-white">ชำระเงินสำเร็จแล้ว</h3>
+        <p class="text-xs text-emerald-400 font-semibold">Payment Completed Successfully</p>
+      </div>
+      <div class="bg-slate-950/80 p-4 rounded-xl border border-slate-800 text-xs text-slate-300 space-y-1">
+        <p>ขอบคุณที่อุดหนุนร้านทานตะวันค่ะ</p>
+        <p class="text-amber-400 font-medium text-[11px]">ขอให้มีวันที่สดชื่นและมีความสุขนะคะ ☀️</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- =========================================================================
+       CLIENT LOGIC & REALTIME BROADCAST LISTENER
+       ========================================================================= -->
+  <script>
+    // Live Clock Update
+    function updateClock() {
+      const now = new Date();
+      const timeStr = now.toLocaleTimeString('th-TH', { hour12: false });
+      const dateStr = now.toLocaleDateString('th-TH', { 
+        weekday: 'long', 
+        year: 'numeric', 
+        month: 'long', 
+        day: 'numeric' 
+      });
+      document.getElementById('liveClock').innerText = timeStr;
+      document.getElementById('liveDate').innerText = dateStr;
+    }
+    setInterval(updateClock, 1000);
+    updateClock();
+
+    // Full Screen Toggle
+    function toggleFullScreen() {
+      if (!document.fullscreenElement) {
+        document.documentElement.requestFullscreen().catch(err => console.log(err));
+      } else {
+        if (document.exitFullscreen) {
+          document.exitFullscreen();
+        }
+      }
+    }
+
+    // QR Canvas Renderer
+    function drawQrCode(canvasId, text) {
+      const canvas = document.getElementById(canvasId);
+      if (!canvas || !text) return;
+      try {
+        new QRious({
+          element: canvas,
+          value: text,
+          size: 260,
+          level: 'M'
+        });
+      } catch (err) {
+        console.error('QRious Error:', err);
+      }
+    }
+
+    // -----------------------------------------------------------------------
+    // RENDER ORDER STATE FROM CASHIER POS
+    // -----------------------------------------------------------------------
+    function renderCustomerOrder(data) {
+      const { cart = [], subtotal = 0, discount = 0, total = 0, discountDetail = null } = data;
+      
+      const emptyState = document.getElementById('emptyOrderState');
+      const itemsList = document.getElementById('liveItemsList');
+      const countBadge = document.getElementById('itemCountBadge');
+      const statusHint = document.getElementById('orderStatusHint');
+
+      const subtotalDisplay = document.getElementById('subtotalDisplay');
+      const discountRow = document.getElementById('discountRow');
+      const discountDisplay = document.getElementById('discountDisplay');
+      const discountBadge = document.getElementById('discountBadge');
+      const totalDisplay = document.getElementById('totalDisplay');
+
+      subtotalDisplay.innerText = `฿${subtotal.toFixed(2)}`;
+      totalDisplay.innerText = `฿${total.toFixed(2)}`;
+
+      if (discount > 0) {
+        discountRow.classList.remove('hidden');
+        discountDisplay.innerText = `-฿${discount.toFixed(2)}`;
+        if (discountDetail && discountDetail.type === 'percent') {
+          discountBadge.innerText = `${discountDetail.value}%`;
+        } else {
+          discountBadge.innerText = `ลด ฿${discount}`;
+        }
+      } else {
+        discountRow.classList.add('hidden');
+      }
+
+      if (!cart || cart.length === 0) {
+        emptyState.classList.remove('hidden');
+        itemsList.classList.add('hidden');
+        itemsList.innerHTML = '';
+        countBadge.innerText = '0 รายการ';
+        statusHint.innerText = 'กำลังรอทำรายการ...';
+        return;
+      }
+
+      emptyState.classList.add('hidden');
+      itemsList.classList.remove('hidden');
+      itemsList.innerHTML = '';
+
+      const totalQty = cart.reduce((sum, item) => sum + (item.qty || 1), 0);
+      countBadge.innerText = `${totalQty} รายการ`;
+      statusHint.innerText = 'กำลังเลือกรายการ...';
+
+      cart.forEach(item => {
+        const itemCard = document.createElement('div');
+        itemCard.className = 'bg-slate-950/70 border border-slate-800/80 p-3.5 rounded-2xl flex justify-between items-start space-x-3 fade-in-scale';
+
+        // Modifiers
+        let modsHtml = '';
+        if (item.selectedOptions && item.selectedOptions.length > 0) {
+          const modNames = item.selectedOptions.map(o => o.optName.split(' ')[0]);
+          modsHtml = `<div class="text-[11px] text-amber-400/90 mt-0.5">${modNames.join(', ')}</div>`;
+        }
+
+        const zeroBahtBadge = (item.itemTotal === 0 || item.pricePerItem === 0)
+          ? `<span class="px-1.5 py-0.2 rounded text-[10px] font-black bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 ml-1">แลกแต้ม/ฟรี</span>`
+          : '';
+
+        const noteHtml = item.customPriceNote
+          ? `<div class="text-[10px] text-emerald-400 font-medium italic mt-0.5">📝 ${item.customPriceNote}</div>`
+          : '';
+
+        itemCard.innerHTML = `
+          <div class="flex-1">
+            <div class="flex items-center gap-2 flex-wrap">
+              <span class="w-6 h-6 rounded-lg bg-amber-500/20 text-amber-300 font-bold text-xs flex items-center justify-center border border-amber-500/30 flex-shrink-0">
+                ${item.qty}x
+              </span>
+              <h5 class="text-sm font-bold text-white leading-tight">${item.name}</h5>
+              ${zeroBahtBadge}
+            </div>
+            ${modsHtml}
+            ${noteHtml}
+          </div>
+          <div class="text-right flex-shrink-0">
+            <span class="text-sm font-bold ${item.itemTotal === 0 ? 'text-emerald-400' : 'text-amber-400'}">฿${(item.itemTotal || 0).toFixed(2)}</span>
+          </div>
+        `;
+        itemsList.appendChild(itemCard);
+      });
+    }
+
+    // -----------------------------------------------------------------------
+    // SHOW / HIDE MODALS
+    // -----------------------------------------------------------------------
+    function showCustomerQr(qrData) {
+      const modal = document.getElementById('customerQrModal');
+      const canvas = document.getElementById('customerQrCanvas');
+      const staticImg = document.getElementById('customerQrStaticImg');
+      const amountEl = document.getElementById('customerQrAmount');
+      const nameEl = document.getElementById('customerQrAccountName');
+      const noEl = document.getElementById('customerQrAccountNo');
+
+      amountEl.innerText = `฿${(qrData.amount || 0).toFixed(2)}`;
+      
+      if (qrData.type === 'image' && qrData.imageUrl) {
+        canvas.classList.add('hidden');
+        staticImg.classList.remove('hidden');
+        staticImg.src = qrData.imageUrl;
+      } else {
+        staticImg.classList.add('hidden');
+        canvas.classList.remove('hidden');
+        drawQrCode('customerQrCanvas', qrData.qrString);
+      }
+
+      if (qrData.accountName) {
+        nameEl.innerText = `ชื่อบัญชี: ${qrData.accountName}`;
+      }
+      if (qrData.accountNo) {
+        noEl.innerText = `${qrData.bankName || 'PromptPay'}: ${qrData.accountNo}`;
+      }
+
+      modal.classList.remove('hidden');
+    }
+
+    function hideCustomerQr() {
+      document.getElementById('customerQrModal').classList.add('hidden');
+    }
+
+    function showPaymentSuccess(amount = 0, gender = 'female') {
+      hideCustomerQr();
+      const modal = document.getElementById('customerSuccessModal');
+      modal.classList.remove('hidden');
+
+      // Play chime & Thai voice on customer display
+      playCustomerAudioAlert(amount, gender);
+
+      setTimeout(() => {
+        modal.classList.add('hidden');
+      }, 4500);
+    }
+
+    // -----------------------------------------------------------------------
+    // CUSTOMER AUDIO & VOICE NOTIFICATION ENGINE
+    // -----------------------------------------------------------------------
+    function playCustomerChime() {
+      try {
+        const AudioCtx = window.AudioContext || window.webkitAudioContext;
+        if (!AudioCtx) return;
+        const ctx = new AudioCtx();
+        if (ctx.state === 'suspended') ctx.resume();
+        const t = ctx.currentTime;
+
+        const osc1 = ctx.createOscillator();
+        const gain1 = ctx.createGain();
+        osc1.type = 'sine';
+        osc1.frequency.setValueAtTime(1318.5, t);
+        gain1.gain.setValueAtTime(0.35, t);
+        gain1.gain.exponentialRampToValueAtTime(0.0001, t + 0.55);
+        osc1.connect(gain1);
+        gain1.connect(ctx.destination);
+        osc1.start(t);
+        osc1.stop(t + 0.55);
+
+        const osc2 = ctx.createOscillator();
+        const gain2 = ctx.createGain();
+        osc2.type = 'sine';
+        osc2.frequency.setValueAtTime(1975.5, t + 0.12);
+        gain2.gain.setValueAtTime(0.4, t + 0.12);
+        gain2.gain.exponentialRampToValueAtTime(0.0001, t + 1.2);
+        osc2.connect(gain2);
+        gain2.connect(ctx.destination);
+        osc2.start(t + 0.12);
+        osc2.stop(t + 1.2);
+      } catch (e) {
+        console.warn('Customer chime error:', e);
+      }
+    }
+
+    // Pre-initialize voice cache
+    let cachedCustomerVoices = [];
+    function updateCustomerVoicesCache() {
+      if ('speechSynthesis' in window) {
+        cachedCustomerVoices = window.speechSynthesis.getVoices();
+      }
+    }
+    if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+      updateCustomerVoicesCache();
+      window.speechSynthesis.onvoiceschanged = updateCustomerVoicesCache;
+    }
+
+    function getCustomerVoice(preferredGender = 'female') {
+      if (!('speechSynthesis' in window)) return null;
+      let voices = window.speechSynthesis.getVoices();
+      if (!voices || voices.length === 0) {
+        voices = cachedCustomerVoices || [];
+      }
+      if (!voices || voices.length === 0) return null;
+
+      const thaiVoices = voices.filter(v => {
+        const l = (v.lang || '').toLowerCase().replace('_', '-');
+        return l === 'th-th' || l.startsWith('th');
+      });
+      if (thaiVoices.length === 0) return null;
+
+      const femaleKeywords = ['premwadee', 'google', 'kanya', 'narisa', 'achara', 'female', 'woman', 'siri'];
+      const maleKeywords = ['pattara', 'niwat', 'male', 'man'];
+
+      if (preferredGender === 'female') {
+        const female = thaiVoices.find(v => {
+          const name = (v.name || '').toLowerCase();
+          return femaleKeywords.some(k => name.includes(k));
+        });
+        if (female) return female;
+
+        const nonMale = thaiVoices.find(v => {
+          const name = (v.name || '').toLowerCase();
+          return !maleKeywords.some(k => name.includes(k));
+        });
+        if (nonMale) return nonMale;
+
+        return thaiVoices[0];
+      } else {
+        const male = thaiVoices.find(v => {
+          const name = (v.name || '').toLowerCase();
+          return maleKeywords.some(k => name.includes(k));
+        });
+        if (male) return male;
+
+        return thaiVoices[0];
+      }
+    }
+
+    function speakCustomerNotice(amount, genderOverride = null) {
+      if (!('speechSynthesis' in window)) return;
+      try {
+        window.speechSynthesis.cancel();
+
+        let gender = genderOverride;
+        if (!gender) {
+          try {
+            const raw = localStorage.getItem('coffeeshop_settings');
+            if (raw) {
+              const parsed = JSON.parse(raw);
+              gender = parsed.voiceGender;
+            }
+          } catch(e) {}
+        }
+        if (!gender) gender = 'female';
+
+        const isFemale = gender === 'female';
+        const rounded = Math.round(amount || 0);
+        const particle = isFemale ? 'ค่ะ' : 'ครับ';
+        const text = rounded > 0 
+          ? `ได้รับชำระเงินแล้ว${particle} ${rounded} บาท ขอบคุณ${particle}`
+          : `ได้รับชำระเงินเรียบร้อยแล้ว${particle} ขอบคุณ${particle}`;
+
+        const utterance = new SpeechSynthesisUtterance(text);
+        utterance.lang = 'th-TH';
+
+        const selectedVoice = getCustomerVoice(gender);
+        if (selectedVoice) {
+          utterance.voice = selectedVoice;
+        }
+
+        const voiceName = (selectedVoice ? selectedVoice.name : '').toLowerCase();
+        const isMaleVoice = voiceName.includes('pattara') || voiceName.includes('niwat') || voiceName.includes('male');
+
+        if (isFemale) {
+          utterance.pitch = isMaleVoice ? 1.35 : 1.15;
+          utterance.rate = 1.02;
+        } else {
+          utterance.pitch = 0.95;
+          utterance.rate = 1.0;
+        }
+
+        window.speechSynthesis.speak(utterance);
+      } catch (e) {
+        console.warn('Customer SpeechSynthesis error:', e);
+      }
+    }
+
+    function playCustomerAudioAlert(amount, gender = 'female') {
+      playCustomerChime();
+      setTimeout(() => {
+        speakCustomerNotice(amount, gender);
+      }, 380);
+    }
+
+    // -----------------------------------------------------------------------
+    // REAL-TIME CUSTOMIZATION SHOWCASE (CUP & OPTIONS SHOWCASE)
+    // -----------------------------------------------------------------------
+    let activeCustomerCustomization = null;
+
+    function getDrinkColorProfile(drinkName, category) {
+      const name = (drinkName || '').toLowerCase();
+      const cat = (category || '').toLowerCase();
+
+      // Rose Tea / Rose Milk Tea / Pink Milk (ชากุหลาบ / ชากุหลาบนม / นมชมพู)
+      if (name.includes('กุหลาบ') || name.includes('rose') || name.includes('นมชมพู') || name.includes('pink milk') || name.includes('ชาชมพู') || name.includes('pink tea')) {
+        const isMilk = name.includes('นม') || name.includes('milk') || name.includes('ลาเต้') || name.includes('latte');
+        return {
+          stop1: isMilk ? '#fbcfe8' : '#f472b6',
+          stop2: isMilk ? '#ec4899' : '#db2777',
+          badge: 'ROSE TEA',
+          category: isMilk ? '🌹 ชากุหลาบนม' : '🌹 ชากุหลาบแท้'
+        };
+      }
+
+      // Matcha / Green Tea
+      if (name.includes('มัทฉะ') || name.includes('matcha') || name.includes('เขียว') || name.includes('green tea')) {
+        return {
+          stop1: '#4ade80',
+          stop2: '#166534',
+          badge: 'MATCHA',
+          category: '🍵 มัทฉะแท้'
+        };
+      }
+
+      // Thai Tea / Cha Yen
+      if (name.includes('ชาไทย') || name.includes('ชาเย็น') || name.includes('thai tea') || name.includes('ชาส้ม')) {
+        return {
+          stop1: '#fb923c',
+          stop2: '#c2410c',
+          badge: 'THAI TEA',
+          category: '🧋 ชาไทยพรีเมียม'
+        };
+      }
+
+      // Chocolate / Cocoa
+      if (name.includes('ช็อก') || name.includes('โกโก้') || name.includes('choco') || name.includes('cocoa')) {
+        return {
+          stop1: '#5c311f',
+          stop2: '#261208',
+          badge: 'CHOCO',
+          category: '🍫 โกโก้เข้มข้น'
+        };
+      }
+
+      // Honey Lemon / Peach / Fruit Teas
+      if (name.includes('มะนาว') || name.includes('lemon') || name.includes('ส้ม') || name.includes('orange') || name.includes('yuzu') || name.includes('ยูสุ') || name.includes('พีช') || name.includes('peach') || name.includes('เสาวรส') || name.includes('passion')) {
+        return {
+          stop1: '#facc15',
+          stop2: '#ca8a04',
+          badge: 'REFRESH',
+          category: '🍋 เครื่องดื่มผลไม้'
+        };
+      }
+
+      // Berry / Strawberry / Soda
+      if (name.includes('เบอร์รี่') || name.includes('berry') || name.includes('สตอ') || name.includes('strawberry') || name.includes('ลิ้นจี่')) {
+        return {
+          stop1: '#fb7185',
+          stop2: '#be123c',
+          badge: 'BERRY',
+          category: '🍓 อิตาเลียนโซดา'
+        };
+      }
+
+      // Milk Tea / Milk
+      if (name.includes('นมสด') || name.includes('fresh milk') || name.includes('คาราเมลนม') || name.includes('นม') || name.includes('milk')) {
+        return {
+          stop1: '#fef3c7',
+          stop2: '#d97706',
+          badge: 'FRESH MILK',
+          category: '🥛 นมสดแท้'
+        };
+      }
+
+      // Clear / Black Tea
+      if (name.includes('ชาดำ') || name.includes('black tea') || name.includes('เอิร์ลเกรย์') || name.includes('earl grey')) {
+        return {
+          stop1: '#b45309',
+          stop2: '#78350f',
+          badge: 'FINE TEA',
+          category: '🫖 ใบชาคัดพิเศษ'
+        };
+      }
+
+      // Latte / Cappuccino / Macchiato / Mocha (Coffee with milk)
+      if (name.includes('ลาเต้') || name.includes('latte') || name.includes('คาปู') || name.includes('cappuccino') || name.includes('มอคค่า') || name.includes('mocha') || name.includes('มัคคิ') || name.includes('macchiato')) {
+        return {
+          stop1: '#b48a60',
+          stop2: '#6f4423',
+          badge: 'LATTE',
+          category: '☕ กาแฟนมสด'
+        };
+      }
+
+      // Americano / Espresso / Dark Coffee default
+      return {
+        stop1: '#3d2113',
+        stop2: '#1a0d06',
+        badge: 'COFFEE',
+        category: '☕ กาแฟสดอาราบิก้า'
+      };
+    }
+
+    function parseSweetnessOption(optName) {
+      const name = String(optName || '').toLowerCase();
+      if (name.includes('125%') || (name.includes('หวานมาก') && !name.includes('น้อย'))) {
+        return {
+          pct: '125%',
+          label: 'หวานมาก',
+          fullLabel: 'หวานมาก 125%',
+          sub: 'หวานฉ่ำสะใจ',
+          color: 'text-rose-400',
+          badgeColor: 'bg-rose-500/20 text-rose-300 border-rose-500/40',
+          border: 'border-rose-500/30 bg-rose-500/10',
+          dot: 'bg-rose-400',
+          icon: '🍯'
+        };
+      }
+      if (name.includes('75%') || name.includes('กำลังดี')) {
+        return {
+          pct: '75%',
+          label: 'หวาน 75%',
+          fullLabel: 'หวาน 75%',
+          sub: 'หวานกำลังดี',
+          color: 'text-yellow-400',
+          badgeColor: 'bg-yellow-500/20 text-yellow-300 border-yellow-500/40',
+          border: 'border-yellow-500/30 bg-yellow-500/10',
+          dot: 'bg-yellow-400',
+          icon: '🍬'
+        };
+      }
+      if (name.includes('50%') || (name.includes('หวานน้อย') && !name.includes('น้อยมาก'))) {
+        return {
+          pct: '50%',
+          label: 'หวานน้อย',
+          fullLabel: 'หวานน้อย 50%',
+          sub: 'หวานกลมกล่อม',
+          color: 'text-sky-400',
+          badgeColor: 'bg-sky-500/20 text-sky-300 border-sky-500/40',
+          border: 'border-sky-500/30 bg-sky-500/10',
+          dot: 'bg-sky-400',
+          icon: '🍬'
+        };
+      }
+      if (name.includes('25%') || name.includes('หวานน้อยมาก') || name.includes('น้อยมาก')) {
+        return {
+          pct: '25%',
+          label: 'หวาน 25%',
+          fullLabel: 'หวานน้อยมาก 25%',
+          sub: 'หวานน้อยมาก',
+          color: 'text-emerald-400',
+          badgeColor: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40',
+          border: 'border-emerald-500/30 bg-emerald-500/10',
+          dot: 'bg-emerald-400',
+          icon: '🌿'
+        };
+      }
+      if (/(^|\D)0%/.test(name) || name.includes('ไม่หวาน')) {
+        return {
+          pct: '0%',
+          label: 'ไม่หวาน',
+          fullLabel: 'ไม่หวาน 0%',
+          sub: 'ไม่เติมไซรัป',
+          color: 'text-slate-400',
+          badgeColor: 'bg-slate-800 text-slate-300 border-slate-700',
+          border: 'border-slate-700/80 bg-slate-800/40',
+          dot: 'bg-slate-400',
+          icon: '🍃'
+        };
+      }
+      // Default: 100%
+      return {
+        pct: '100%',
+        label: 'ปกติ',
+        fullLabel: 'หวานปกติ 100%',
+        sub: 'สูตรมาตรฐาน',
+        color: 'text-amber-400',
+        badgeColor: 'bg-amber-500/20 text-amber-300 border-amber-500/40',
+        border: 'border-amber-500/30 bg-amber-500/10',
+        dot: 'bg-amber-400',
+        icon: '🍬'
+      };
+    }
+
+    function getOptionVisualIcon(optName, groupName, groupType, isLarge = false) {
+      const name = (optName || '').toLowerCase();
+      const gName = (groupName || '').toLowerCase();
+
+      // 1. COFFEE BEANS (เมล็ดกาแฟ) - Identical bean silhouette, 3 distinct roast colors!
+      if (gName.includes('เมล็ด') || name.includes('คั่ว') || name.includes('bean') || name.includes('roast') || name.includes('house blend') || name.includes('single origin')) {
+        let beanFill = '#6e3e1e'; // medium roast default
+        let roastLabel = 'MED';
+        let beanGlow = 'rgba(110,62,30,0.3)';
+
+        if (name.includes('เข้ม') || name.includes('dark') || name.includes('bold')) {
+          beanFill = '#1c0f08'; // Dark roast
+          roastLabel = 'DARK';
+          beanGlow = 'rgba(28,15,8,0.5)';
+        } else if (name.includes('อ่อน') || name.includes('light') || name.includes('fruity')) {
+          beanFill = '#b77943'; // Light roast
+          roastLabel = 'LIGHT';
+          beanGlow = 'rgba(183,121,67,0.4)';
+        } else if (name.includes('กลาง') || name.includes('medium') || name.includes('balance')) {
+          beanFill = '#6e3e1e'; // Medium roast
+          roastLabel = 'MED';
+          beanGlow = 'rgba(110,62,30,0.3)';
+        } else if (name.includes('เทพเสด็จ') || name.includes('single') || name.includes('ดอย') || name.includes('special')) {
+          beanFill = '#d97706'; // Specialty
+          roastLabel = 'SPEC';
+          beanGlow = 'rgba(217,119,6,0.4)';
+        }
+
+        const containerClass = isLarge 
+          ? 'relative w-10 h-10 sm:w-11 sm:h-11 flex items-center justify-center flex-shrink-0'
+          : 'relative w-7 h-7 flex items-center justify-center flex-shrink-0';
+        const svgClass = isLarge ? 'w-8 h-8 sm:w-9 sm:h-9' : 'w-6 h-6';
+        const badgeClass = isLarge 
+          ? 'absolute -bottom-1 -right-1 text-[8px] sm:text-[9px] font-black px-1 rounded bg-slate-900 border border-slate-700 text-amber-300 font-mono leading-none py-0.5'
+          : 'absolute -bottom-1 -right-1 text-[7px] font-black px-0.5 rounded bg-slate-900 border border-slate-700 text-amber-300 font-mono leading-none py-0.2';
+
+        return `
+          <div class="${containerClass}" style="filter: drop-shadow(0 1px 4px ${beanGlow});">
+            <svg viewBox="0 0 36 36" class="${svgClass}">
+              <ellipse cx="18" cy="18" rx="14" ry="11" fill="${beanFill}" transform="rotate(-30 18 18)" stroke="#fcd34d" stroke-width="0.75" stroke-opacity="0.3" />
+              <path d="M 9 10 Q 18 20 18 18 Q 18 16 27 26" fill="none" stroke="#0b0604" stroke-width="2.2" stroke-linecap="round" />
+              <path d="M 10 11 Q 17 19 18 18" fill="none" stroke="#fcd34d" stroke-width="0.8" stroke-linecap="round" stroke-opacity="0.5" />
+              <ellipse cx="14" cy="13" rx="4" ry="2" fill="#ffffff" fill-opacity="0.22" transform="rotate(-30 14 13)" />
+            </svg>
+            <span class="${badgeClass}">${roastLabel}</span>
+          </div>
+        `;
+      }
+
+      const boxClass = isLarge 
+        ? 'w-9 h-9 sm:w-10 sm:h-10 rounded-xl flex items-center justify-center flex-shrink-0 shadow-sm' 
+        : 'w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 shadow-sm';
+      const svgClass = isLarge ? 'w-5 h-5 sm:w-5.5 sm:h-5.5' : 'w-4 h-4';
+
+      // 2. HONEY / HONEYCOMB (น้ำผึ้ง / รังผึ้ง)
+      if (name.includes('น้ำผึ้ง') || name.includes('รังผึ้ง') || name.includes('honey')) {
+        return `
+          <div class="${boxClass} bg-amber-500/20 border border-amber-500/40">
+            <svg viewBox="0 0 32 32" class="${svgClass}">
+              <polygon points="16,3 27,9 27,21 16,27 5,21 5,9" fill="#f59e0b" fill-opacity="0.35" stroke="#fbbf24" stroke-width="2" stroke-linejoin="round" />
+              <path d="M 16 9 C 16 9 22 17 22 20 C 22 23.3 19.3 26 16 26 C 12.7 26 10 23.3 10 20 C 10 17 16 9 16 9 Z" fill="#f59e0b" stroke="#d97706" stroke-width="1.5" />
+              <circle cx="14" cy="18" r="1.5" fill="#ffffff" fill-opacity="0.7" />
+            </svg>
+          </div>
+        `;
+      }
+
+      // 2.0 ROSE / ROSE SYRUP (กุหลาบ / ไซรัปกุหลาบ)
+      if (name.includes('กุหลาบ') || name.includes('rose')) {
+        return `
+          <div class="${boxClass} bg-pink-500/20 border border-pink-400/40 shadow-sm" title="กุหลาบ (Rose)">
+            <svg viewBox="0 0 32 32" class="${svgClass}">
+              <path d="M 16 8 C 12 8 10 11 11 15 C 12 19 16 23 16 25 C 16 23 20 19 21 15 C 22 11 20 8 16 8 Z" fill="#ec4899" stroke="#db2777" stroke-width="1.2" />
+              <path d="M 16 11 C 14 11 13 13 14 15 C 15 17 16 19 16 20 C 16 19 17 17 18 15 C 19 13 18 11 16 11 Z" fill="#f472b6" />
+              <path d="M 16 25 L 16 29" stroke="#15803d" stroke-width="1.5" stroke-linecap="round" />
+              <path d="M 16 27 Q 19 26 21 24" fill="none" stroke="#16a34a" stroke-width="1.2" stroke-linecap="round" />
+            </svg>
+          </div>
+        `;
+      }
+
+      // 2.1 STRAWBERRY / BERRY (สตรอเบอร์รี่ / ซอสสตรอเบอร์รี่)
+      if (name.includes('สตรอ') || name.includes('straw') || name.includes('berry') || name.includes('เบอร์รี่')) {
+        return `
+          <div class="${boxClass} bg-rose-500/20 border border-rose-500/40 shadow-sm" title="ซอสสตรอเบอร์รี่ (Strawberry Sauce)">
+            <svg viewBox="0 0 32 32" class="${svgClass}">
+              <!-- Strawberry Heart/Berry Cone -->
+              <path d="M 16 28 C 11.5 28 7.5 20.5 7.5 13 C 7.5 8 11.5 6 16 8 C 20.5 6 24.5 8 24.5 13 C 24.5 20.5 20.5 28 16 28 Z" fill="#e11d48" stroke="#be123c" stroke-width="1.2" />
+              <!-- Calyx / Leaves -->
+              <path d="M 16 8 L 16 3 M 16 7 L 10 5 M 16 7 L 22 5 M 16 8 L 12 9 M 16 8 L 20 9" stroke="#22c55e" stroke-width="1.8" stroke-linecap="round" />
+              <polygon points="16,8 11.5,9 13.5,6.5 16,7.5 18.5,6.5 20.5,9" fill="#16a34a" />
+              <!-- Golden Seeds -->
+              <circle cx="12" cy="12" r="0.85" fill="#fef08a" />
+              <circle cx="20" cy="12" r="0.85" fill="#fef08a" />
+              <circle cx="16" cy="15" r="0.85" fill="#fef08a" />
+              <circle cx="11.5" cy="18" r="0.85" fill="#fef08a" />
+              <circle cx="20.5" cy="18" r="0.85" fill="#fef08a" />
+              <circle cx="16" cy="22" r="0.85" fill="#fef08a" />
+              <!-- Glossy highlight -->
+              <path d="M 10 10 C 9.5 13 10 17 11.5 19" fill="none" stroke="#ffffff" stroke-width="1.2" stroke-linecap="round" stroke-opacity="0.6" />
+            </svg>
+          </div>
+        `;
+      }
+
+      // 2.2 CHOCOLATE / COCOA (ช็อกโกแลต / โกโก้)
+      if (name.includes('ช็อก') || name.includes('ช็อค') || name.includes('choco') || name.includes('โกโก้') || name.includes('cocoa')) {
+        return `
+          <div class="${boxClass} bg-amber-950/40 border border-amber-800/50 shadow-sm" title="ช็อกโกแลตแท้ / ซอสเข้มข้น (Rich Chocolate)">
+            <svg viewBox="0 0 32 32" class="${svgClass}">
+              <!-- Chocolate Bar Base -->
+              <rect x="7" y="7" width="18" height="18" rx="2.5" fill="#3b1d0c" stroke="#5a2a10" stroke-width="1.2" />
+              <!-- 4 Squares with beveled 3D look -->
+              <rect x="9" y="9" width="6.5" height="6.5" rx="1" fill="#4d240e" stroke="#2a1205" stroke-width="0.8" />
+              <rect x="16.5" y="9" width="6.5" height="6.5" rx="1" fill="#4d240e" stroke="#2a1205" stroke-width="0.8" />
+              <rect x="9" y="16.5" width="6.5" height="6.5" rx="1" fill="#4d240e" stroke="#2a1205" stroke-width="0.8" />
+              <rect x="16.5" y="16.5" width="6.5" height="6.5" rx="1" fill="#4d240e" stroke="#2a1205" stroke-width="0.8" />
+              <!-- Top Highlights -->
+              <line x1="9.5" y1="9.5" x2="15" y2="9.5" stroke="#78350f" stroke-width="0.8" />
+              <line x1="17" y1="9.5" x2="22.5" y2="9.5" stroke="#78350f" stroke-width="0.8" />
+              <!-- Sauce drip / swirl -->
+              <path d="M 6 22 Q 12 20 16 23 Q 20 26 26 21" fill="none" stroke="#92400e" stroke-width="1.8" stroke-linecap="round" />
+            </svg>
+          </div>
+        `;
+      }
+
+      // 2.3 VANILLA (วานิลลา)
+      if (name.includes('วานิล') || name.includes('vanilla')) {
+        return `
+          <div class="${boxClass} bg-yellow-500/15 border border-yellow-400/35 shadow-sm" title="วานิลลา (Vanilla)">
+            <svg viewBox="0 0 32 32" class="${svgClass}">
+              <path d="M 8 26 Q 16 22 24 8" fill="none" stroke="#3b1d0c" stroke-width="2" stroke-linecap="round" />
+              <path d="M 12 26 Q 18 20 22 12" fill="none" stroke="#5a2a10" stroke-width="1.5" stroke-linecap="round" />
+              <ellipse cx="14" cy="14" rx="4" ry="2.5" fill="#fef9c3" stroke="#fef08a" stroke-width="0.8" transform="rotate(-30 14 14)" />
+              <ellipse cx="18" cy="14" rx="4" ry="2.5" fill="#fef9c3" stroke="#fef08a" stroke-width="0.8" transform="rotate(30 18 14)" />
+              <ellipse cx="16" cy="18" rx="4" ry="2.5" fill="#fef9c3" stroke="#fef08a" stroke-width="0.8" transform="rotate(90 16 18)" />
+              <circle cx="16" cy="15" r="1.5" fill="#f59e0b" />
+            </svg>
+          </div>
+        `;
+      }
+
+      // 2.4 MINT / PEPPERMINT (มิ้นท์สดชื่น)
+      if (name.includes('มิ้นท์') || name.includes('มิ้น') || name.includes('mint')) {
+        return `
+          <div class="${boxClass} bg-emerald-500/20 border border-emerald-400/40 shadow-sm" title="มิ้นท์ (Mint)">
+            <svg viewBox="0 0 32 32" class="${svgClass}">
+              <path d="M 16 26 Q 16 16 24 12 C 24 19 20 25 16 26 Z" fill="#10b981" stroke="#059669" stroke-width="1" />
+              <path d="M 16 26 Q 16 16 8 12 C 8 19 12 25 16 26 Z" fill="#34d399" stroke="#059669" stroke-width="1" />
+              <path d="M 16 26 L 16 14" stroke="#047857" stroke-width="1.2" stroke-linecap="round" />
+            </svg>
+          </div>
+        `;
+      }
+
+      // 2.5 PEACH (พีช)
+      if (name.includes('พีช') || name.includes('peach')) {
+        return `
+          <div class="${boxClass} bg-rose-400/20 border border-rose-300/40 shadow-sm" title="พีช (Peach)">
+            <svg viewBox="0 0 32 32" class="${svgClass}">
+              <path d="M 16 26 C 9 25 7 19 8 14 C 9 9 14 9 16 12 C 18 9 23 9 24 14 C 25 19 23 25 16 26 Z" fill="#fda4af" stroke="#f43f5e" stroke-width="1.2" />
+              <path d="M 16 12 Q 17 6 21 5" fill="none" stroke="#15803d" stroke-width="1.5" stroke-linecap="round" />
+              <ellipse cx="20" cy="7" rx="3" ry="1.5" fill="#22c55e" transform="rotate(-20 20 7)" />
+            </svg>
+          </div>
+        `;
+      }
+
+      // 2.6 ORANGE / YUZU (ส้ม / ยูสุ)
+      if (name.includes('ส้ม') || name.includes('orange') || name.includes('ยูสุ') || name.includes('yuzu')) {
+        return `
+          <div class="${boxClass} bg-orange-500/20 border border-orange-400/40 shadow-sm" title="ส้ม / ยูสุ (Orange / Yuzu)">
+            <svg viewBox="0 0 32 32" class="${svgClass}">
+              <circle cx="16" cy="16" r="12" fill="#f97316" stroke="#ea580c" stroke-width="1.5" />
+              <circle cx="16" cy="16" r="10" fill="#ffedd5" />
+              <circle cx="16" cy="16" r="8.5" fill="#fb923c" />
+              <circle cx="16" cy="16" r="1.8" fill="#ffffff" />
+              <line x1="16" y1="7.5" x2="16" y2="24.5" stroke="#ffffff" stroke-width="1" />
+              <line x1="7.5" y1="16" x2="24.5" y2="16" stroke="#ffffff" stroke-width="1" />
+              <line x1="10" y1="10" x2="22" y2="22" stroke="#ffffff" stroke-width="1" />
+              <line x1="10" y1="22" x2="22" y2="10" stroke="#ffffff" stroke-width="1" />
+            </svg>
+          </div>
+        `;
+      }
+
+      // 2.7 COCONUT (มะพร้าว)
+      if (name.includes('มะพร้าว') || name.includes('coconut')) {
+        return `
+          <div class="${boxClass} bg-amber-900/25 border border-amber-700/40 shadow-sm" title="มะพร้าว (Coconut)">
+            <svg viewBox="0 0 32 32" class="${svgClass}">
+              <path d="M 6 16 C 6 23 11 27 16 27 C 21 27 26 23 26 16 Z" fill="#78350f" stroke="#451a03" stroke-width="1.5" />
+              <ellipse cx="16" cy="16" rx="10" ry="3.5" fill="#f8fafc" stroke="#e2e8f0" stroke-width="1" />
+              <ellipse cx="16" cy="16" rx="8" ry="2.5" fill="#e0f2fe" fill-opacity="0.6" />
+            </svg>
+          </div>
+        `;
+      }
+
+      // 2.8 OAT MILK (นมโอ๊ต)
+      if (name.includes('โอ๊ต') || name.includes('oat')) {
+        return `
+          <div class="${boxClass} bg-amber-500/15 border border-amber-400/35 shadow-sm" title="นมโอ๊ต (Oat Milk)">
+            <svg viewBox="0 0 32 32" class="${svgClass}">
+              <path d="M 16 27 L 16 6 M 16 11 Q 20 8 22 11 Q 19 14 16 14 M 16 16 Q 12 13 10 16 Q 13 19 16 19 M 16 21 Q 20 18 22 21 Q 19 24 16 24" fill="#fef08a" stroke="#d97706" stroke-width="1.2" stroke-linejoin="round" />
+            </svg>
+          </div>
+        `;
+      }
+
+      // 2.9 COOKIE / OREO (คุกกี้ / โอริโอ้)
+      if (name.includes('คุกกี้') || name.includes('โอริโอ') || name.includes('cookie') || name.includes('oreo')) {
+        return `
+          <div class="${boxClass} bg-amber-950/40 border border-amber-900/50 shadow-sm" title="คุกกี้ / โอริโอ้ (Cookie Crumble)">
+            <svg viewBox="0 0 32 32" class="${svgClass}">
+              <circle cx="16" cy="16" r="10" fill="#292524" stroke="#1c1917" stroke-width="1.2" />
+              <circle cx="13" cy="13" r="1.5" fill="#f8fafc" />
+              <circle cx="19" cy="14" r="1.2" fill="#f8fafc" />
+              <circle cx="15" cy="19" r="1.3" fill="#f8fafc" />
+              <circle cx="18" cy="18" r="1" fill="#78350f" />
+              <circle cx="12" cy="18" r="1" fill="#78350f" />
+            </svg>
+          </div>
+        `;
+      }
+
+      // 2.10 CHEESE / CHEESE FOAM (ครีมชีส)
+      if (name.includes('ชีส') || name.includes('cheese')) {
+        return `
+          <div class="${boxClass} bg-yellow-500/20 border border-yellow-400/40 shadow-sm" title="ครีมชีส (Cheese Foam)">
+            <svg viewBox="0 0 32 32" class="${svgClass}">
+              <polygon points="6,22 26,22 23,10 6,17" fill="#facc15" stroke="#ca8a04" stroke-width="1.2" stroke-linejoin="round" />
+              <circle cx="12" cy="18" r="1.5" fill="#eab308" />
+              <circle cx="18" cy="19" r="1.8" fill="#eab308" />
+              <circle cx="16" cy="14" r="1.2" fill="#eab308" />
+            </svg>
+          </div>
+        `;
+      }
+
+      // 3. LEMON SLICE (มะนาว)
+      if (name.includes('มะนาว') || name.includes('lemon') || name.includes('เลมอน')) {
+        return `
+          <div class="${boxClass} bg-yellow-500/20 border border-yellow-500/40">
+            <svg viewBox="0 0 32 32" class="${svgClass}">
+              <circle cx="16" cy="16" r="13" fill="#facc15" stroke="#ca8a04" stroke-width="1.5" />
+              <circle cx="16" cy="16" r="11" fill="#fef08a" />
+              <circle cx="16" cy="16" r="9.5" fill="#eab308" />
+              <circle cx="16" cy="16" r="2" fill="#ffffff" />
+              <line x1="16" y1="6.5" x2="16" y2="25.5" stroke="#ffffff" stroke-width="1.2" />
+              <line x1="6.5" y1="16" x2="25.5" y2="16" stroke="#ffffff" stroke-width="1.2" />
+              <line x1="9.3" y1="9.3" x2="22.7" y2="22.7" stroke="#ffffff" stroke-width="1.2" />
+              <line x1="9.3" y1="22.7" x2="22.7" y2="9.3" stroke="#ffffff" stroke-width="1.2" />
+            </svg>
+          </div>
+        `;
+      }
+
+      // 4. CARAMEL (คาราเมล)
+      if (name.includes('คาราเมล') || name.includes('caramel')) {
+        return `
+          <div class="${boxClass} bg-amber-700/20 border border-amber-600/40">
+            <svg viewBox="0 0 32 32" class="${svgClass}">
+              <path d="M 6 12 Q 12 16 16 12 Q 20 8 26 12 L 26 16 C 26 21 21 25 16 25 C 11 25 6 21 6 16 Z" fill="#b45309" stroke="#78350f" stroke-width="1.5" />
+              <path d="M 16 18 C 17 21 17 24 16 27 C 15 24 15 21 16 18 Z" fill="#f59e0b" />
+              <path d="M 10 14 Q 14 17 18 14" fill="none" stroke="#fcd34d" stroke-width="1.5" stroke-linecap="round" />
+            </svg>
+          </div>
+        `;
+      }
+
+      // 5. MATCHA POWDER / CHAWAN (ผงมัทฉะ / ชามัทฉะ)
+      if (name.includes('มัทฉะ') || name.includes('ชาเขียว') || name.includes('matcha')) {
+        return `
+          <div class="${boxClass} bg-emerald-500/20 border border-emerald-500/40">
+            <svg viewBox="0 0 32 32" class="${svgClass}">
+              <path d="M 5 13 Q 5 24 16 25 Q 27 24 27 13 Z" fill="#166534" stroke="#14532d" stroke-width="1.5" />
+              <ellipse cx="16" cy="13" rx="11" ry="3.5" fill="#4ade80" stroke="#16a34a" stroke-width="1" />
+              <path d="M 14 6 L 18 6 L 17 11 L 15 11 Z" fill="#d97706" />
+              <line x1="16" y1="11" x2="16" y2="14" stroke="#15803d" stroke-width="1.5" />
+            </svg>
+          </div>
+        `;
+      }
+
+      // 6. EXTRA SHOT (ช็อตกาแฟ / เอสเพรสโซ่)
+      if (name.includes('ช็อต') || name.includes('shot') || name.includes('espresso') || (name.includes('กาแฟ') && !gName.includes('เมล็ด'))) {
+        return `
+          <div class="${boxClass} bg-amber-950/40 border border-amber-500/50 shadow-sm" title="เอสเพรสโซ่ช็อต (Espresso Shot)">
+            <svg viewBox="0 0 32 32" class="${svgClass}">
+              <!-- Espresso Shot Glass -->
+              <path d="M 8 9 L 24 9 L 22 26 Q 16 28 10 26 Z" fill="none" stroke="#e2e8f0" stroke-width="1.5" stroke-linejoin="round" />
+              <path d="M 9.5 22 L 22.5 22 L 22 26 Q 16 28 10 26 Z" fill="#ffffff" fill-opacity="0.25" />
+              <!-- Dark Espresso liquid -->
+              <path d="M 8.8 14 L 23.2 14 L 22 22 L 10 22 Z" fill="#2d1307" />
+              <!-- Golden hazelnut crema -->
+              <ellipse cx="16" cy="14" rx="7.2" ry="2.2" fill="#d97706" />
+              <ellipse cx="15.5" cy="13.8" rx="5.5" ry="1.4" fill="#f59e0b" />
+              <ellipse cx="14.5" cy="13.5" rx="2" ry="0.6" fill="#fef3c7" fill-opacity="0.8" />
+              <!-- Measurement line 30ml -->
+              <line x1="8" y1="17" x2="11" y2="17" stroke="#ffffff" stroke-width="1" stroke-opacity="0.7" />
+              <!-- Aroma steam -->
+              <path d="M 13 10 Q 12 7 13 4" fill="none" stroke="#fcd34d" stroke-width="1.2" stroke-linecap="round" stroke-opacity="0.85" />
+              <path d="M 18 10 Q 19 7 18 4" fill="none" stroke="#fcd34d" stroke-width="1.2" stroke-linecap="round" stroke-opacity="0.85" />
+            </svg>
+          </div>
+        `;
+      }
+
+      // 6.1 FRESH MILK / MILK (นมสด / ฟองนม)
+      if (name.includes('นม') || name.includes('milk')) {
+        return `
+          <div class="${boxClass} bg-sky-500/20 border border-sky-400/40 shadow-sm" title="นมสดแท้ (Fresh Milk)">
+            <svg viewBox="0 0 32 32" class="${svgClass}">
+              <rect x="8" y="11" width="13" height="15" rx="3" fill="#f8fafc" stroke="#cbd5e1" stroke-width="1.5" />
+              <path d="M 21 14 C 25 14 25 21 21 21" fill="none" stroke="#cbd5e1" stroke-width="2" stroke-linecap="round" />
+              <ellipse cx="14.5" cy="11" rx="6.5" ry="2" fill="#ffffff" />
+              <circle cx="12.5" cy="10.8" r="1" fill="#e2e8f0" />
+              <circle cx="15.5" cy="10.6" r="0.8" fill="#e2e8f0" />
+              <path d="M 12 7 Q 11 4 12 2" fill="none" stroke="#bae6fd" stroke-width="1.2" stroke-linecap="round" stroke-opacity="0.9" />
+              <path d="M 16 7 Q 17 4 16 2" fill="none" stroke="#bae6fd" stroke-width="1.2" stroke-linecap="round" stroke-opacity="0.9" />
+            </svg>
+          </div>
+        `;
+      }
+
+      // 7. WHIPPED CREAM (วิปครีม)
+      if (name.includes('วิป') || name.includes('whip') || name.includes('cream')) {
+        return `
+          <div class="${boxClass} bg-slate-700/30 border border-slate-600/40">
+            <svg viewBox="0 0 32 32" class="${svgClass}">
+              <path d="M 16 5 Q 19 10 22 13 Q 26 18 24 23 Q 22 26 16 26 Q 10 26 8 23 Q 6 18 10 13 Q 13 10 16 5 Z" fill="#f8fafc" stroke="#94a3b8" stroke-width="1.5" />
+              <path d="M 16 8 Q 18 14 16 22" fill="none" stroke="#cbd5e1" stroke-width="1.2" />
+            </svg>
+          </div>
+        `;
+      }
+
+      // 8. BOBA / JELLY (ไข่มุก / บุก)
+      if (name.includes('มุก') || name.includes('บุก') || name.includes('boba') || name.includes('jelly') || name.includes('pearl')) {
+        return `
+          <div class="${boxClass} bg-amber-950/30 border border-amber-900/50">
+            <svg viewBox="0 0 32 32" class="${svgClass}">
+              <circle cx="12" cy="14" r="5" fill="#1e1b18" stroke="#78350f" stroke-width="1.5" />
+              <circle cx="10.5" cy="12.5" r="1.2" fill="#ffffff" fill-opacity="0.8" />
+              <circle cx="20" cy="15" r="5" fill="#292524" stroke="#78350f" stroke-width="1.5" />
+              <circle cx="18.5" cy="13.5" r="1.2" fill="#ffffff" fill-opacity="0.8" />
+              <circle cx="16" cy="22" r="5.5" fill="#0c0a09" stroke="#78350f" stroke-width="1.5" />
+              <circle cx="14.5" cy="20.5" r="1.4" fill="#ffffff" fill-opacity="0.8" />
+            </svg>
+          </div>
+        `;
+      }
+
+      // 9. TEMPERATURE (ร้อน / เย็น / ปั่น) - Contextual & Elegant Icons
+      if (gName.includes('ประเภท') || gName.includes('อุณหภูมิ') || gName.includes('temp') || name.includes('ร้อน') || name.includes('เย็น') || name.includes('ปั่น') || name.includes('hot') || name.includes('ice') || name.includes('frappe')) {
+        if (name.includes('ร้อน') || name.includes('hot')) {
+          const curProd = (typeof activeCustomerCustomization !== 'undefined' && activeCustomerCustomization && activeCustomerCustomization.product) ? activeCustomerCustomization.product : null;
+          const prodName = (curProd && curProd.name) ? curProd.name.toLowerCase() : '';
+
+          // 9.1 HOT ESPRESSO SHOT
+          if (prodName.includes('เอสเพรสโซ่') || prodName.includes('espresso') || prodName.includes('shot') || name.includes('espresso') || name.includes('shot')) {
+            return `
+              <div class="${boxClass} bg-amber-950/45 border border-amber-500/50 shadow-sm" title="เอสเพรสโซ่ช็อตร้อน (Hot Espresso Shot)">
+                <svg viewBox="0 0 32 32" class="${svgClass}">
+                  <path d="M 8 9 L 24 9 L 22 26 Q 16 28 10 26 Z" fill="none" stroke="#e2e8f0" stroke-width="1.5" stroke-linejoin="round" />
+                  <path d="M 9.5 22 L 22.5 22 L 22 26 Q 16 28 10 26 Z" fill="#ffffff" fill-opacity="0.25" />
+                  <path d="M 8.8 14 L 23.2 14 L 22 22 L 10 22 Z" fill="#2d1307" />
+                  <ellipse cx="16" cy="14" rx="7.2" ry="2.2" fill="#d97706" />
+                  <ellipse cx="15.5" cy="13.8" rx="5.5" ry="1.4" fill="#f59e0b" />
+                  <ellipse cx="14.5" cy="13.5" rx="2" ry="0.6" fill="#fef3c7" fill-opacity="0.8" />
+                  <line x1="8" y1="17" x2="11" y2="17" stroke="#ffffff" stroke-width="1" stroke-opacity="0.7" />
+                  <path d="M 13 10 Q 12 7 13 4 Q 14 2 13 0" fill="none" stroke="#fcd34d" stroke-width="1.2" stroke-linecap="round" stroke-opacity="0.85" />
+                  <path d="M 18 10 Q 19 7 18 4 Q 17 2 18 0" fill="none" stroke="#fcd34d" stroke-width="1.2" stroke-linecap="round" stroke-opacity="0.85" />
+                </svg>
+              </div>
+            `;
+          }
+
+          // 9.2 HOT CAPPUCCINO & LATTE WITH BARISTA LATTE ART
+          if (prodName.includes('คาปู') || prodName.includes('cappuccino') || prodName.includes('ลาเต้') || prodName.includes('latte') || prodName.includes('มอคค่า') || prodName.includes('mocha') || name.includes('คาปู') || name.includes('cappuccino')) {
+            return `
+              <div class="${boxClass} bg-amber-900/35 border border-amber-600/45 shadow-sm" title="คาปูชิโน่ร้อน / ลาเต้ร้อน (Hot Cappuccino / Latte)">
+                <svg viewBox="0 0 32 32" class="${svgClass}">
+                  <ellipse cx="16" cy="27" rx="12" ry="3" fill="#334155" stroke="#64748b" stroke-width="1.2" />
+                  <path d="M 6 12 Q 6 24 16 24 Q 26 24 26 12 Z" fill="#f8fafc" stroke="#94a3b8" stroke-width="1.5" />
+                  <path d="M 25 14 C 29 14 29 21 25 21" fill="none" stroke="#94a3b8" stroke-width="2" stroke-linecap="round" />
+                  <ellipse cx="16" cy="12" rx="9.5" ry="3" fill="#854d0e" />
+                  <ellipse cx="16" cy="12" rx="8" ry="2.3" fill="#b48a60" />
+                  <!-- Latte Art Heart -->
+                  <path d="M 16 13.8 C 16 13.8 13.5 12 13.5 11 C 13.5 10.2 14.3 9.7 15 10.2 C 15.5 10.6 16 11.4 16 11.4 C 16 11.4 16.5 10.6 17 10.2 C 17.7 9.7 18.5 10.2 18.5 11 C 18.5 12 16 13.8 16 13.8 Z" fill="#ffffff" />
+                  <path d="M 13 7 Q 12 4 13 1" fill="none" stroke="#fef3c7" stroke-width="1.2" stroke-linecap="round" stroke-opacity="0.8" />
+                  <path d="M 19 7 Q 20 4 19 1" fill="none" stroke="#fef3c7" stroke-width="1.2" stroke-linecap="round" stroke-opacity="0.8" />
+                </svg>
+              </div>
+            `;
+          }
+
+          // 9.3 HOT FRESH MILK (นมสดร้อน - Pure milk only)
+          if ((prodName.includes('นม') || prodName.includes('milk') || name.includes('นม') || name.includes('milk')) && !prodName.includes('กุหลาบ') && !prodName.includes('rose') && !prodName.includes('ชา') && !name.includes('กุหลาบ') && !name.includes('rose')) {
+            return `
+              <div class="${boxClass} bg-sky-500/20 border border-sky-400/40 shadow-sm" title="นมสดร้อน (Hot Fresh Milk)">
+                <svg viewBox="0 0 32 32" class="${svgClass}">
+                  <rect x="8" y="11" width="13" height="15" rx="3" fill="#f8fafc" stroke="#cbd5e1" stroke-width="1.5" />
+                  <path d="M 21 14 C 25 14 25 21 21 21" fill="none" stroke="#cbd5e1" stroke-width="2" stroke-linecap="round" />
+                  <ellipse cx="14.5" cy="11" rx="6.5" ry="2" fill="#ffffff" />
+                  <circle cx="12.5" cy="10.8" r="1" fill="#e2e8f0" />
+                  <circle cx="15.5" cy="10.6" r="0.8" fill="#e2e8f0" />
+                  <path d="M 12 7 Q 11 4 12 2" fill="none" stroke="#bae6fd" stroke-width="1.2" stroke-linecap="round" stroke-opacity="0.9" />
+                  <path d="M 16 7 Q 17 4 16 2" fill="none" stroke="#bae6fd" stroke-width="1.2" stroke-linecap="round" stroke-opacity="0.9" />
+                </svg>
+              </div>
+            `;
+          }
+
+          // 9.4 HOT ROSE TEA / ROSE MILK TEA (ชากุหลาบร้อน / ชากุหลาบนมร้อน)
+          if (prodName.includes('กุหลาบ') || prodName.includes('rose') || prodName.includes('ชมพู') || name.includes('กุหลาบ') || name.includes('rose')) {
+            return `
+              <div class="${boxClass} bg-pink-500/25 border border-pink-400/50 shadow-sm" title="ชากุหลาบร้อน (Hot Rose Tea)">
+                <svg viewBox="0 0 32 32" class="${svgClass}">
+                  <ellipse cx="16" cy="27" rx="12" ry="3" fill="#334155" stroke="#64748b" stroke-width="1.2" />
+                  <path d="M 6 12 Q 6 24 16 24 Q 26 24 26 12 Z" fill="#ffffff" stroke="#94a3b8" stroke-width="1.5" />
+                  <path d="M 25 14 C 29 14 29 21 25 21" fill="none" stroke="#94a3b8" stroke-width="2" stroke-linecap="round" />
+                  <ellipse cx="16" cy="12" rx="9.5" ry="3" fill="#ec4899" />
+                  <ellipse cx="16" cy="12" rx="8" ry="2" fill="#fbcfe8" />
+                  <path d="M 13 7 Q 12 4 13 1" fill="none" stroke="#f472b6" stroke-width="1.2" stroke-linecap="round" stroke-opacity="0.85" />
+                  <path d="M 19 7 Q 20 4 19 1" fill="none" stroke="#f472b6" stroke-width="1.2" stroke-linecap="round" stroke-opacity="0.85" />
+                </svg>
+              </div>
+            `;
+          }
+
+          // 9.5 GENERAL HOT COFFEE / TEA / AMERICANO / COCOA
+          return `
+            <div class="${boxClass} bg-rose-500/20 border border-rose-500/40 shadow-sm" title="เครื่องดื่มร้อน (Hot)">
+              <svg viewBox="0 0 32 32" class="${svgClass}">
+                <ellipse cx="16" cy="27" rx="12" ry="3" fill="#334155" stroke="#64748b" stroke-width="1.2" />
+                <path d="M 6 12 Q 6 24 16 24 Q 26 24 26 12 Z" fill="#f8fafc" stroke="#94a3b8" stroke-width="1.5" />
+                <path d="M 25 14 C 29 14 29 21 25 21" fill="none" stroke="#94a3b8" stroke-width="2" stroke-linecap="round" />
+                <ellipse cx="16" cy="12" rx="9.5" ry="3" fill="#3d2113" />
+                <ellipse cx="16" cy="12" rx="8" ry="2" fill="#5c311f" />
+                <path d="M 13 7 Q 12 4 13 1" fill="none" stroke="#fcd34d" stroke-width="1.2" stroke-linecap="round" stroke-opacity="0.85" />
+                <path d="M 19 7 Q 20 4 19 1" fill="none" stroke="#fcd34d" stroke-width="1.2" stroke-linecap="round" stroke-opacity="0.85" />
+              </svg>
+            </div>
+          `;
+        }
+
+        // 9.5 FRAPPE / BLENDED
+        if (name.includes('ปั่น') || name.includes('frappe') || name.includes('blend')) {
+          return `
+            <div class="${boxClass} bg-purple-500/20 border border-purple-500/40 text-purple-300 shadow-sm" title="เครื่องดื่มปั่น (Frappe)">
+              <svg viewBox="0 0 32 32" class="${svgClass}">
+                <path d="M 9 14 L 23 14 L 21 28 Q 16 30 11 28 Z" fill="#ffffff" fill-opacity="0.3" stroke="#cbd5e1" stroke-width="1.5" />
+                <path d="M 10 16 L 22 16 L 20.5 27 Q 16 29 11.5 27 Z" fill="#a855f7" fill-opacity="0.4" />
+                <path d="M 11 14 Q 16 10 16 6 Q 16 10 21 14 Z" fill="#f8fafc" stroke="#94a3b8" stroke-width="1.2" />
+                <line x1="16" y1="12" x2="22" y2="3" stroke="#ec4899" stroke-width="2" stroke-linecap="round" />
+              </svg>
+            </div>
+          `;
+        }
+
+        // 9.6 COLD / ICED
+        return `
+          <div class="${boxClass} bg-cyan-500/20 border border-cyan-500/40 text-cyan-300 shadow-sm" title="เครื่องดื่มเย็น (Iced)">
+            <svg viewBox="0 0 32 32" class="${svgClass}">
+              <path d="M 9 11 L 23 11 L 21 28 Q 16 30 11 28 Z" fill="#ffffff" fill-opacity="0.3" stroke="#cbd5e1" stroke-width="1.5" />
+              <path d="M 10 14 L 22 14 L 20.5 27 Q 16 29 11.5 27 Z" fill="#06b6d4" fill-opacity="0.35" />
+              <rect x="12" y="16" width="4.5" height="4.5" rx="1" fill="#ffffff" fill-opacity="0.8" transform="rotate(10 14 18)" />
+              <rect x="17" y="18" width="4" height="4" rx="1" fill="#ffffff" fill-opacity="0.8" transform="rotate(-15 19 20)" />
+              <line x1="15" y1="12" x2="20" y2="3" stroke="#38bdf8" stroke-width="2" stroke-linecap="round" />
+            </svg>
+          </div>
+        `;
+      }
+
+      // 10. SWEETNESS (ความหวาน)
+      if (gName.includes('หวาน') || gName.includes('sweet') || name.includes('หวาน') || name.includes('%')) {
+        const sw = parseSweetnessOption(name);
+        return `
+          <div class="${boxClass} ${sw.badgeColor} border flex flex-col items-center justify-center flex-shrink-0 shadow-sm">
+            <span class="${isLarge ? 'text-[10px]' : 'text-[8px]'} font-black leading-none">${sw.pct}</span>
+            <span class="${isLarge ? 'text-[8px]' : 'text-[7px]'} opacity-75 leading-none mt-0.5">หวาน</span>
+          </div>
+        `;
+      }
+
+      // DEFAULT / FALLBACK
+      return `
+        <div class="${boxClass} bg-slate-800 border border-slate-700 text-amber-400 ${isLarge ? 'text-base' : 'text-sm'} font-bold">
+          ✨
+        </div>
+      `;
+    }
+
+    function updateCupVisual(productName, category, selectedOptions) {
+      const colorProfile = getDrinkColorProfile(productName, category);
+      const pNameLower = String(productName || '').toLowerCase();
+      
+      // Update liquid gradient
+      const stop1 = document.getElementById('liquidGradStop1');
+      const stop2 = document.getElementById('liquidGradStop2');
+      if (stop1 && stop2) {
+        stop1.setAttribute('stop-color', colorProfile.stop1);
+        stop2.setAttribute('stop-color', colorProfile.stop2);
+      }
+
+      // Update center emblem badge text on cold cup
+      const badgeText = document.getElementById('cupBadgeText');
+      if (badgeText) {
+        badgeText.textContent = colorProfile.badge;
+        if (colorProfile.badge && colorProfile.badge.length > 8) {
+          badgeText.setAttribute('font-size', '9.5');
+        } else {
+          badgeText.setAttribute('font-size', '11');
+        }
+      }
+
+      // Update category badge
+      const catBadge = document.getElementById('custProdCategoryBadge');
+      if (catBadge) {
+        catBadge.textContent = colorProfile.category;
+      }
+
+      // Determine Hot vs Cold/Frappe
+      let isHot = false;
+      if (pNameLower.includes('ร้อน') || pNameLower.includes('hot')) {
+        isHot = true;
+      }
+      if (Array.isArray(selectedOptions)) {
+        if (selectedOptions.some(o => {
+          const n = ((o && (o.optName || o.name)) || '').toLowerCase();
+          return n.includes('ร้อน') || n.includes('hot') || (o && (o.optId === 'opt-t-1' || o.id === 'opt-t-1'));
+        })) {
+          isHot = true;
+        } else if (selectedOptions.some(o => {
+          const n = ((o && (o.optName || o.name)) || '').toLowerCase();
+          return n.includes('เย็น') || n.includes('ice') || n.includes('ปั่น') || n.includes('frappe') || (o && (o.optId === 'opt-t-2' || o.optId === 'opt-t-3'));
+        })) {
+          isHot = false;
+        }
+      } else if (selectedOptions && typeof selectedOptions === 'object') {
+        for (const k of Object.keys(selectedOptions)) {
+          const v = String(selectedOptions[k] || '').toLowerCase();
+          if (v.includes('hot') || v.includes('ร้อน') || v.includes('opt-t-1')) isHot = true;
+          if (v.includes('ice') || v.includes('เย็น') || v.includes('opt-t-2') || v.includes('frappe') || v.includes('ปั่น') || v.includes('opt-t-3')) isHot = false;
+        }
+      }
+
+      const coldCup = document.getElementById('liveCupSvg');
+      const hotCup = document.getElementById('liveHotCupSvg');
+
+      if (isHot && hotCup) {
+        if (coldCup) coldCup.classList.add('hidden');
+        hotCup.classList.remove('hidden');
+
+        // Hide all hot sub-variations first
+        const gEspresso = document.getElementById('hotEspressoShotGroup');
+        const gCappuccino = document.getElementById('hotCappuccinoGroup');
+        const gMilk = document.getElementById('hotMilkGroup');
+        const gMug = document.getElementById('hotMugGroup');
+
+        if (gEspresso) gEspresso.classList.add('hidden');
+        if (gCappuccino) gCappuccino.classList.add('hidden');
+        if (gMilk) gMilk.classList.add('hidden');
+        if (gMug) gMug.classList.add('hidden');
+
+        // 1. ESPRESSO SHOT GLASS
+        if (pNameLower.includes('เอสเพรสโซ่') || pNameLower.includes('espresso') || pNameLower.includes('shot')) {
+          if (gEspresso) gEspresso.classList.remove('hidden');
+        } 
+        // 2. FRESH MILK MUG (Pure milk only, not rose/tea/pink drinks)
+        else if ((pNameLower.includes('นม') || pNameLower.includes('milk')) && !pNameLower.includes('กุหลาบ') && !pNameLower.includes('rose') && !pNameLower.includes('ชมพู') && !pNameLower.includes('ชา')) {
+          if (gMilk) gMilk.classList.remove('hidden');
+        } 
+        // 3. CAPPUCCINO / LATTE WITH LATTE ART
+        else if (pNameLower.includes('คาปู') || pNameLower.includes('cappuccino') || pNameLower.includes('ลาเต้') || pNameLower.includes('latte') || pNameLower.includes('มอคค่า') || pNameLower.includes('mocha')) {
+          if (gCappuccino) {
+            gCappuccino.classList.remove('hidden');
+            const capBadge = document.getElementById('hotCapBadgeText');
+            if (capBadge) capBadge.textContent = colorProfile.badge || 'CAPPUCCINO';
+            const capFoam = document.getElementById('hotCapFoamSurface');
+            if (capFoam && pNameLower.includes('มอคค่า')) {
+              capFoam.setAttribute('fill', '#6f4423');
+            } else if (capFoam) {
+              capFoam.setAttribute('fill', '#b48a60');
+            }
+          }
+        } 
+        // 4. TEA / COCOA / AMERICANO / ROSE TEA / GENERAL HOT MUG
+        else {
+          if (gMug) {
+            gMug.classList.remove('hidden');
+            const hStop1 = document.getElementById('hotLiquidStop1');
+            const hStop2 = document.getElementById('hotLiquidStop2');
+            if (hStop1 && hStop2) {
+              hStop1.setAttribute('stop-color', colorProfile.stop1);
+              hStop2.setAttribute('stop-color', colorProfile.stop2);
+            }
+            const mugLiquid = document.getElementById('hotMugLiquidSurface');
+            if (mugLiquid) mugLiquid.setAttribute('fill', colorProfile.stop1);
+            const mugBadge = document.getElementById('hotMugBadgeText');
+            if (mugBadge) mugBadge.textContent = colorProfile.badge || 'HOT DRINK';
+          }
+        }
+      } else {
+        if (hotCup) hotCup.classList.add('hidden');
+        if (coldCup) coldCup.classList.remove('hidden');
+
+        const iceCubes = document.getElementById('cupIceCubesGroup');
+        const steamGroup = document.getElementById('cupSteamGroup');
+        if (steamGroup) steamGroup.classList.add('hidden');
+        if (iceCubes) iceCubes.classList.remove('hidden');
+      }
+    }
+
+    // -----------------------------------------------------------------------
+    // COFFEE SHOWCASE & IDLE SCREEN CONTROLS (กาแฟเย็น 4 แก้ว / กาแฟร้อน 4 แก้ว)
+    // -----------------------------------------------------------------------
+    let activeCoffeeCategory = 'cold'; // 'cold' | 'hot'
+    let coffeeAutoRotateTimer = null;
+
+    function setCoffeeCategory(category, isUserClick = true) {
+      activeCoffeeCategory = (category === 'hot') ? 'hot' : 'cold';
+      renderCustomerIdleShowcase();
+      if (isUserClick) {
+        restartCoffeeAutoRotate();
+      }
+    }
+
+    function toggleCoffeeCategory(isUserClick = true) {
+      setCoffeeCategory(activeCoffeeCategory === 'cold' ? 'hot' : 'cold', isUserClick);
+    }
+
+    function restartCoffeeAutoRotate() {
+      if (coffeeAutoRotateTimer) {
+        clearInterval(coffeeAutoRotateTimer);
+        coffeeAutoRotateTimer = null;
+      }
+      // Auto-toggle between Cold & Hot every 12 seconds when idle
+      coffeeAutoRotateTimer = setInterval(() => {
+        toggleCoffeeCategory(false);
+      }, 12000);
+    }
+
+    function updateCoffeeTabsUI() {
+      const tabCold = document.getElementById('tabCoffeeCold');
+      const tabHot = document.getElementById('tabCoffeeHot');
+      const indicator = document.getElementById('idleCoffeePageIndicator');
+
+      if (activeCoffeeCategory === 'cold') {
+        if (tabCold) {
+          tabCold.className = "px-3.5 py-1 rounded-xl text-xs sm:text-sm font-black transition-all flex items-center gap-1.5 cursor-pointer shadow-md bg-sky-500 text-white ring-1 ring-sky-400/50";
+        }
+        if (tabHot) {
+          tabHot.className = "px-3.5 py-1 rounded-xl text-xs sm:text-sm font-bold transition-all flex items-center gap-1.5 cursor-pointer text-slate-400 hover:text-amber-300 hover:bg-slate-900";
+        }
+        if (indicator) {
+          indicator.textContent = "1/2 (เย็น)";
+        }
+      } else {
+        if (tabCold) {
+          tabCold.className = "px-3.5 py-1 rounded-xl text-xs sm:text-sm font-bold transition-all flex items-center gap-1.5 cursor-pointer text-slate-400 hover:text-sky-300 hover:bg-slate-900";
+        }
+        if (tabHot) {
+          tabHot.className = "px-3.5 py-1 rounded-xl text-xs sm:text-sm font-black transition-all flex items-center gap-1.5 cursor-pointer shadow-md bg-amber-500 text-slate-950 ring-1 ring-amber-400/50";
+        }
+        if (indicator) {
+          indicator.textContent = "2/2 (ร้อน)";
+        }
+      }
+    }
+
+
+    // -----------------------------------------------------------------------
+    // AUTO-SCROLL FOR TOPPINGS / EXTRAS (เลื่อนอัตโนมัติทุกๆ 4 วินาที)
+    // - ทุกๆ 4 วิ เลื่อนลง 1 สเต็ป
+    // - เมื่อเลื่อนจนถึงล่างสุด พอครบ 4 วิ ให้เลื่อนกลับขึ้นบนสุด แล้ววนใหม่
+    // -----------------------------------------------------------------------
+    let idleToppingsAutoScrollTimer = null;
+
+    function restartToppingsAutoScroll() {
+      if (idleToppingsAutoScrollTimer) {
+        clearInterval(idleToppingsAutoScrollTimer);
+        idleToppingsAutoScrollTimer = null;
+      }
+
+      // ทำงานทุกๆ 4 วินาที (4000ms)
+      idleToppingsAutoScrollTimer = setInterval(() => {
+        const scrollEl = document.getElementById('idleToppingsScroll');
+        if (!scrollEl) return;
+
+        // หากเนื้อหาไม่ยาวเกินกว่าความสูงกล่อง ไม่จำเป็นต้องเลื่อน
+        if (scrollEl.scrollHeight <= scrollEl.clientHeight) return;
+
+        // เช็คว่าเลื่อนถึงล่างสุดหรือยัง (tolerance 15px)
+        const isAtBottom = (scrollEl.scrollTop + scrollEl.clientHeight >= scrollEl.scrollHeight - 15);
+
+        if (isAtBottom) {
+          // เมื่อถึงล่างสุดแล้ว พอครบ 4 วิ ให้ขึ้นบนสุดเลย แล้ววนใหม่
+          scrollEl.scrollTo({ top: 0, behavior: 'smooth' });
+        } else {
+          // ทุกๆ 4 วิ ลงหนึ่งครั้ง (สเต็ปละประมาณ 85px หรือ 2 รายการ)
+          const step = 85;
+          scrollEl.scrollBy({ top: step, behavior: 'smooth' });
+        }
+
+        setTimeout(updateIdleToppingsScrollBtn, 250);
+      }, 4000);
+    }
+
+    function scrollIdleToppings(direction) {
+      const scrollEl = document.getElementById('idleToppingsScroll');
+      if (!scrollEl) return;
+      const step = 85;
+      scrollEl.scrollBy({ top: direction * step, behavior: 'smooth' });
+      setTimeout(updateIdleToppingsScrollBtn, 200);
+      restartToppingsAutoScroll();
+    }
+
+    function toggleIdleToppingsScroll() {
+      const scrollEl = document.getElementById('idleToppingsScroll');
+      if (!scrollEl) return;
+      if (scrollEl.scrollTop + scrollEl.clientHeight >= scrollEl.scrollHeight - 20) {
+        scrollEl.scrollTo({ top: 0, behavior: 'smooth' });
+      } else {
+        scrollEl.scrollBy({ top: 120, behavior: 'smooth' });
+      }
+      setTimeout(updateIdleToppingsScrollBtn, 200);
+      restartToppingsAutoScroll();
+    }
+
+    function updateIdleToppingsScrollBtn() {
+      const scrollEl = document.getElementById('idleToppingsScroll');
+      const btn = document.getElementById('idleToppingsScrollToggleBtn');
+      if (!scrollEl || !btn) return;
+      if (scrollEl.scrollHeight <= scrollEl.clientHeight) {
+        btn.classList.add('hidden');
+        return;
+      }
+      btn.classList.remove('hidden');
+      if (scrollEl.scrollTop + scrollEl.clientHeight >= scrollEl.scrollHeight - 20) {
+        btn.innerHTML = '<span>▲ เลื่อนกลับขึ้นด้านบน</span>';
+      } else {
+        btn.innerHTML = '<span>▼ เลื่อนดูส่วนผสมเพิ่มเติม</span>';
+      }
+    }
+
+    function renderCustomerIdleShowcase() {
+      // ---------------------------------------------------------------------
+      // 1. RENDER COFFEE DRINKS SHOWCASE (กาแฟเย็น 4 แก้ว / กาแฟร้อน 4 แก้ว ตรงสเปก)
+      // ---------------------------------------------------------------------
+      const coffeeRow = document.getElementById('idleCoffeeRow');
+      if (coffeeRow) {
+        updateCoffeeTabsUI();
+
+        // 4 เมนูกาแฟเย็น (กาแฟสดแท้ 100% ลาเต้เย็น = 50 บาท ไม่ปนกับมัทฉะ)
+        const coldDrinks = [
+          { 
+            id: 'c-cold-ame', 
+            name: 'อเมริกาโน่เย็น', 
+            sub: 'Iced Americano', 
+            temp: 'cold', 
+            price: 45,
+            image: 'assets/coffee/iced_americano.jpg'
+          },
+          { 
+            id: 'c-cold-lat', 
+            name: 'ลาเต้เย็น', 
+            sub: 'Iced Latte', 
+            temp: 'cold', 
+            price: 50,
+            image: 'assets/coffee/iced_latte.jpg'
+          },
+          { 
+            id: 'c-cold-affo', 
+            name: 'Affogato', 
+            sub: 'Espresso & Ice Cream', 
+            temp: 'cold', 
+            price: 65,
+            image: 'assets/coffee/iced_affogato.jpg'
+          },
+          { 
+            id: 'c-cold-dirty', 
+            name: 'Dirty', 
+            sub: 'Dirty Coffee', 
+            temp: 'cold', 
+            price: 60,
+            image: 'assets/coffee/iced_dirty.jpg'
+          }
+        ];
+
+        // 4 เมนูกาแฟร้อน (กาแฟสดแท้ 100% ลาเต้ร้อน = 45 บาท ตามระบบหลังบ้าน)
+        const hotDrinks = [
+          { 
+            id: 'c-hot-esp', 
+            name: 'เอสเพรสโซ่ช๊อต', 
+            sub: 'Espresso Shot', 
+            temp: 'hot', 
+            price: 35,
+            image: 'assets/coffee/hot_espresso.jpg'
+          },
+          { 
+            id: 'c-hot-ame', 
+            name: 'อเมริกาโน่ร้อน', 
+            sub: 'Hot Americano', 
+            temp: 'hot', 
+            price: 45,
+            image: 'assets/coffee/hot_americano.png'
+          },
+          { 
+            id: 'c-hot-lat', 
+            name: 'ลาเต้ร้อน', 
+            sub: 'Hot Latte', 
+            temp: 'hot', 
+            price: 45,
+            image: 'assets/coffee/hot_latte.png'
+          },
+          { 
+            id: 'c-hot-cap', 
+            name: 'คาปูชิโน่ร้อน', 
+            sub: 'Hot Cappuccino', 
+            temp: 'hot', 
+            price: 45,
+            image: 'assets/coffee/hot_cappuccino.png'
+          }
+        ];
+
+        // ---------------------------------------------------------------------
+        // ป้องกันไม่ให้เมนูอื่นๆ หรือชา/มัทฉะ มาปนกับกาแฟสดอย่างเด็ดขาด
+        // ลาเต้เย็น = ฿50, ลาเต้ร้อน = ฿45
+        // ---------------------------------------------------------------------
+        try {
+          const storedProds = JSON.parse(localStorage.getItem('coffeeshop_products'));
+          if (Array.isArray(storedProds)) {
+            const allDrinks = [...coldDrinks, ...hotDrinks];
+            allDrinks.forEach(drink => {
+              // ล็อกราคาเมนูกาแฟสดมาตรฐาน ห้ามดึงค่ามัทฉะหรือชามาปนเด็ดขาด
+              if (drink.id === 'c-cold-lat') { drink.price = 50; return; }
+              if (drink.id === 'c-hot-lat') { drink.price = 45; return; }
+              if (drink.id === 'c-hot-esp') { drink.price = 35; return; }
+              if (drink.id === 'c-hot-cap') { drink.price = 45; return; }
+              if (drink.id === 'c-cold-affo') { drink.price = 65; return; }
+              if (drink.id === 'c-cold-dirty') { drink.price = 60; return; }
+
+              // สำหรับอเมริกาโน่
+              if (drink.id === 'c-cold-ame' || drink.id === 'c-hot-ame') {
+                const matched = storedProds.find(p => {
+                  const n = (p.name || '').toLowerCase();
+                  const cat = (p.category || '').toLowerCase();
+                  if (cat !== 'กาแฟ') return false;
+                  if (n.match(/มัทฉะ|มัจฉะ|ชา|matcha|tea|green/i)) return false;
+                  return (n.includes('อเมริกาโน') || n.includes('americano') || p.id === 'prod-2');
+                });
+                if (matched) {
+                  let price = matched.basePrice;
+                  if (matched.tempPrices) {
+                    if (drink.temp === 'cold' && matched.tempPrices.cold !== undefined) {
+                      price = matched.basePrice + matched.tempPrices.cold;
+                    } else if (drink.temp === 'hot' && matched.tempPrices.hot !== undefined) {
+                      price = matched.basePrice + matched.tempPrices.hot;
+                    }
+                  }
+                  if (price && typeof price === 'number' && price >= 35 && price <= 60) {
+                    drink.price = price;
+                  }
+                }
+              }
+            });
+          }
+        } catch (e) {}
+
+        const activeDrinks = (activeCoffeeCategory === 'hot') ? hotDrinks : coldDrinks;
+
+        coffeeRow.innerHTML = activeDrinks.map((c) => {
+          const tempBadge = c.temp === 'hot'
+            ? `<span class="text-[9px] sm:text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30 flex items-center gap-1">☕ ร้อน</span>`
+            : `<span class="text-[9px] sm:text-[10px] font-bold px-2 py-0.5 rounded-full bg-sky-500/20 text-sky-300 border border-sky-500/30 flex items-center gap-1">🧊 เย็น</span>`;
+
+          return `
+            <div class="rounded-2xl bg-slate-950/85 border border-slate-800/90 hover:border-amber-500/50 p-2 sm:p-2.5 flex flex-col justify-between transition-all duration-200 shadow-md hover:shadow-amber-500/15 group select-none h-full overflow-hidden">
+              <!-- Top: Temperature Badge & Price -->
+              <div class="flex items-center justify-between w-full flex-shrink-0 mb-1">
+                ${tempBadge}
+                <span class="text-xs sm:text-sm font-black text-amber-400">฿${c.price}</span>
+              </div>
+
+              <!-- FULL 1:1 SQUARE PHOTO CONTAINER: Shows entire photo with zero clipping -->
+              <div class="relative flex-1 min-h-0 w-full flex items-center justify-center my-0.5">
+                <div class="h-full aspect-square max-w-full rounded-xl overflow-hidden bg-slate-900/90 border border-slate-800/80 shadow-inner group relative flex items-center justify-center" style="aspect-ratio: 1 / 1;">
+                  <img src="${c.image}" alt="${c.name}" class="w-full h-full object-contain group-hover:scale-105 transition-transform duration-300 pointer-events-none p-0.5" onerror="this.style.display='none';">
+                </div>
+              </div>
+
+              <!-- Bottom: Product Title and Subtitle -->
+              <div class="w-full text-center flex-shrink-0 pt-0.5">
+                <h5 class="text-xs sm:text-sm font-black text-white truncate w-full group-hover:text-amber-300 transition-colors leading-tight">${c.name}</h5>
+                <p class="text-[9px] sm:text-[10px] text-slate-400 truncate w-full mt-0.5">${c.sub}</p>
+              </div>
+            </div>
+          `;
+        }).join('');
+      }
+
+      // ---------------------------------------------------------------------
+      // 2. COLUMN 1: COFFEE BEANS (แนวตั้ง 4 รายการ คั่วเข้ม, กลาง, อ่อน, พิเศษ)
+      // ---------------------------------------------------------------------
+      const beansGrid = document.getElementById('idleBeansGrid');
+      if (beansGrid) {
+        let beanOptions = [
+          { name: 'คั่วเข้ม (Dark Roast)', sub: 'หอมเข้ม หนักแน่น สไตล์คลาสสิก', price: 0 },
+          { name: 'คั่วกลาง (Medium Roast)', sub: 'นุ่มละมุน ช็อกโกแลต กลมกล่อม', price: 0 },
+          { name: 'คั่วอ่อน (Light Roast)', sub: 'ฟรุตตี้ โทนเบอร์รี่ ดอกไม้สดชื่น', price: 10 },
+          { name: 'เมล็ดพิเศษ (Specialty)', sub: 'ดอยเทพเสด็จ Single Origin', price: 20 }
+        ];
+
+        try {
+          const stored = localStorage.getItem('coffeeshop_option_groups');
+          if (stored) {
+            const groups = JSON.parse(stored);
+            const bGroup = groups.find(g => g.id === 'optgrp-beans' || (g.name && g.name.includes('เมล็ด')));
+            if (bGroup && bGroup.options && bGroup.options.length > 0) {
+              beanOptions = bGroup.options.map(o => {
+                let sub = 'คัดสรรเมล็ดกาแฟคุณภาพเยี่ยม';
+                const n = o.name.toLowerCase();
+                if (n.includes('เข้ม')) sub = 'หอมเข้ม หนักแน่น สไตล์คลาสสิก';
+                else if (n.includes('กลาง')) sub = 'นุ่มละมุน ช็อกโกแลต กลมกล่อม';
+                else if (n.includes('อ่อน')) sub = 'ฟรุตตี้ โทนเบอร์รี่ ดอกไม้สดชื่น';
+                else if (n.includes('พิเศษ') || n.includes('single')) sub = 'ดอยเทพเสด็จ Single Origin';
+                return { name: o.name, sub: sub, price: o.price || 0 };
+              });
+            }
+          }
+        } catch (e) {}
+
+        beansGrid.innerHTML = beanOptions.map(b => `
+          <div class="bg-slate-950/75 border border-slate-800/90 hover:border-amber-500/40 rounded-lg px-2 py-0.5 sm:py-1 flex items-center justify-between transition-all duration-200 shadow-sm hover:shadow-amber-500/10 group select-none">
+            <div class="flex items-center gap-1.5 min-w-0 flex-1 pr-1">
+              ${getOptionVisualIcon(b.name, 'เมล็ดกาแฟ', 'single', true)}
+              <div class="min-w-0 flex-1">
+                <h5 class="text-[10.5px] sm:text-[11px] font-bold text-white truncate group-hover:text-amber-300 transition-colors">${b.name}</h5>
+                <p class="text-[8.5px] text-slate-400 truncate mt-0.5">${b.sub}</p>
+              </div>
+            </div>
+            <div class="flex-shrink-0 text-right">
+              <span class="text-[9.5px] font-black ${b.price > 0 ? 'text-amber-400' : 'text-emerald-400'}">
+                ${b.price > 0 ? `+฿${b.price}` : 'ฟรี (+฿0)'}
+              </span>
+            </div>
+          </div>
+        `).join('');
+      }
+
+      // ---------------------------------------------------------------------
+      // 3. COLUMN 2: SWEETNESS LEVEL (แนวตั้ง 6 ระดับ)
+      // ---------------------------------------------------------------------
+      const sweetGrid = document.getElementById('idleSweetGrid');
+      if (sweetGrid) {
+        const sweetLevels = [
+          { pct: '125%', label: 'หวานมาก', sub: 'หวานฉ่ำสะใจ', color: 'text-rose-400', border: 'border-rose-500/30 bg-rose-500/10' },
+          { pct: '100%', label: 'หวานปกติ', sub: 'สูตรมาตรฐาน', color: 'text-amber-400', border: 'border-amber-500/30 bg-amber-500/10' },
+          { pct: '75%', label: 'หวาน 75%', sub: 'หวานกำลังดี', color: 'text-yellow-400', border: 'border-yellow-500/30 bg-yellow-500/10' },
+          { pct: '50%', label: 'หวานน้อย', sub: 'หวานกลมกล่อม', color: 'text-sky-400', border: 'border-sky-500/30 bg-sky-500/10' },
+          { pct: '25%', label: 'หวาน 25%', sub: 'หวานน้อยมาก', color: 'text-emerald-400', border: 'border-emerald-500/30 bg-emerald-500/10' },
+          { pct: '0%', label: 'ไม่หวาน', sub: 'ไม่เติมไซรัป', color: 'text-slate-400', border: 'border-slate-700/80 bg-slate-800/40' }
+        ];
+
+        sweetGrid.innerHTML = sweetLevels.map(s => `
+          <div class="${s.border} border rounded-lg px-2 py-0.5 flex items-center justify-between transition-all duration-200 shadow-sm group select-none">
+            <div class="flex items-center gap-1.5">
+              <span class="text-[10.5px] font-black ${s.color} w-8 text-center group-hover:scale-105 transition-transform">${s.pct}</span>
+              <div>
+                <span class="text-[10px] sm:text-[10.5px] font-bold text-white block leading-tight">${s.label}</span>
+                <span class="text-[7.5px] sm:text-[8px] text-slate-400 block">${s.sub}</span>
+              </div>
+            </div>
+            <span class="text-[8px] sm:text-[8.5px] text-emerald-400/90 font-medium flex-shrink-0">ฟรี (+฿0)</span>
+          </div>
+        `).join('');
+      }
+
+      // ---------------------------------------------------------------------
+      // 4. COLUMN 3: INGREDIENTS / ADD-ONS (แนวตั้ง เลื่อนดูเพิ่มได้ ไม่มี scrollbar)
+      // ---------------------------------------------------------------------
+      const toppingsGrid = document.getElementById('idleToppingsGrid');
+      if (toppingsGrid) {
+        let toppingsList = [
+          { name: 'น้ำผึ้งแท้เดือน 5 (Honey)', sub: 'น้ำผึ้งป่าธรรมชาติ 100%', price: 15 },
+          { name: 'ช็อกโกแลตซอสเข้มข้น (Rich Chocolate)', sub: 'ดาร์กช็อกโกแลตเข้มข้น หอมมัน', price: 15 },
+          { name: 'ซอสสตรอเบอร์รี่ (Strawberry Sauce)', sub: 'สตรอเบอร์รี่ หวานอมเปรี้ยว', price: 15 },
+          { name: 'เลมอนสดสไลซ์ (Fresh Lemon)', sub: 'หอมสดชื่น เปรี้ยวฉ่ำ', price: 10 },
+          { name: 'คาราเมลซอส (Caramel)', sub: 'หอมเนย หวานละมุน', price: 10 },
+          { name: 'ช็อตมัทฉะแท้ (Matcha Shot)', sub: 'ชาเขียวมัทฉะแท้เข้มข้น', price: 20 },
+          { name: 'เพิ่มช็อตกาแฟ (Extra Shot)', sub: 'เอสเพรสโซ่ช็อต เข้มสะใจ', price: 15 },
+          { name: 'วิปครีมสด (Whipped Cream)', sub: 'วิปครีมนุ่มฟู ละลายในปาก', price: 15 },
+          { name: 'บุกน้ำผึ้ง / ไข่มุก (Boba)', sub: 'หนึบหนับ เคี้ยวเพลิน', price: 10 }
+        ];
+
+        try {
+          const stored = localStorage.getItem('coffeeshop_option_groups');
+          if (stored) {
+            const groups = JSON.parse(stored);
+            const tGroup = groups.find(g => g.id === 'optgrp-toppings' || (g.name && (g.name.includes('ท็อป') || g.name.includes('ส่วนผสม'))));
+            if (tGroup && tGroup.options && tGroup.options.length > 0) {
+              toppingsList = tGroup.options.map(o => {
+                let sub = 'เพิ่มรสชาติความอร่อย';
+                const n = o.name.toLowerCase();
+                let cleanName = o.name || '';
+                if (cleanName.includes('สตรอเบอร์รี่สด')) {
+                  cleanName = cleanName.replace('สตรอเบอร์รี่สด', 'ซอสสตรอเบอร์รี่').replace('ซอสซอส', 'ซอส');
+                }
+                if (cleanName.includes('Fresh Strawberry')) {
+                  cleanName = cleanName.replace('Fresh Strawberry', 'Strawberry');
+                }
+                if (n.includes('น้ำผึ้ง')) sub = 'น้ำผึ้งป่าธรรมชาติ 100%';
+                else if (n.includes('ช็อก') || n.includes('ช็อค') || n.includes('choco')) sub = 'ดาร์กช็อกโกแลตเข้มข้น หอมมัน';
+                else if (n.includes('สตรอ') || n.includes('straw') || n.includes('berry')) sub = 'สตรอเบอร์รี่ หวานอมเปรี้ยว';
+                else if (n.includes('มะนาว') || n.includes('lemon') || n.includes('เลมอน')) sub = 'หอมสดชื่น เปรี้ยวฉ่ำ';
+                else if (n.includes('คาราเมล')) sub = 'หอมเนย หวานละมุน';
+                else if (n.includes('มัทฉะ')) sub = 'ชาเขียวมัทฉะแท้เข้มข้น';
+                else if (n.includes('ช็อต')) sub = 'เอสเพรสโซ่ช็อต เข้มสะใจ';
+                else if (n.includes('วิป')) sub = 'วิปครีมนุ่มฟู ละลายในปาก';
+                else if (n.includes('มุก') || n.includes('บุก')) sub = 'หนึบหนับ เคี้ยวเพลิน';
+                return { name: cleanName, sub: sub, price: o.price || 0 };
+              });
+            }
+          }
+        } catch (e) {}
+
+        toppingsGrid.innerHTML = toppingsList.map(t => `
+          <div class="bg-slate-950/75 border border-slate-800/90 hover:border-amber-500/40 rounded-lg px-2 py-0.5 sm:py-1 flex items-center justify-between transition-all duration-200 shadow-sm hover:shadow-amber-500/10 group select-none">
+            <div class="flex items-center gap-1.5 min-w-0 flex-1 pr-1">
+              ${getOptionVisualIcon(t.name, 'ท็อปปิ้ง', 'multiple', true)}
+              <div class="min-w-0 flex-1">
+                <h5 class="text-[10.5px] sm:text-[11px] font-bold text-white truncate group-hover:text-amber-300 transition-colors">${t.name}</h5>
+                <p class="text-[8px] sm:text-[8.5px] text-slate-400 truncate mt-0.5">${t.sub}</p>
+              </div>
+            </div>
+            <span class="text-[10px] sm:text-[11px] font-black text-amber-400 flex-shrink-0">+฿${t.price}</span>
+          </div>
+        `).join('');
+
+        const scrollEl = document.getElementById('idleToppingsScroll');
+        if (scrollEl) {
+          scrollEl.onscroll = () => {
+            updateIdleToppingsScrollBtn();
+          };
+          setTimeout(updateIdleToppingsScrollBtn, 150);
+        }
+      }
+    }
+
+    const GUARANTEED_BEANS_GROUP = {
+      id: 'optgrp-beans',
+      name: 'ตัวเลือกเมล็ดกาแฟ (Coffee Beans)',
+      type: 'single',
+      required: true,
+      options: [
+        { id: 'opt-b-dark', name: 'คั่วเข้ม (Dark Roast)', price: 0 },
+        { id: 'opt-b-med', name: 'คั่วกลาง (Medium Roast)', price: 0 },
+        { id: 'opt-b-light', name: 'คั่วอ่อน (Light Roast)', price: 10 },
+        { id: 'opt-b-spec', name: 'เมล็ดพิเศษ (Specialty Single Origin)', price: 20 }
+      ]
+    };
+
+    const GUARANTEED_SWEET_GROUP = {
+      id: 'optgrp-sweet',
+      name: 'ระดับความหวาน (Sweetness Level)',
+      type: 'single',
+      required: false,
+      options: [
+        { id: 'opt-s-0', name: 'หวานมาก (125%)', price: 0 },
+        { id: 'opt-s-1', name: 'หวานปกติ (100%)', price: 0 },
+        { id: 'opt-s-75', name: 'หวานกำลังดี (75%)', price: 0 },
+        { id: 'opt-s-2', name: 'หวานน้อย (50%)', price: 0 },
+        { id: 'opt-s-3', name: 'หวานน้อยมาก (25%)', price: 0 },
+        { id: 'opt-s-4', name: 'ไม่หวาน (0%)', price: 0 }
+      ]
+    };
+
+    const GUARANTEED_TOPPINGS_GROUP = {
+      id: 'optgrp-toppings',
+      name: 'ส่วนผสมเพิ่มเติม & ท็อปปิ้ง (Extras)',
+      type: 'multiple',
+      required: false,
+      options: [
+        { id: 'opt-top-honey', name: 'น้ำผึ้งแท้เดือน 5 (Honey)', price: 15 },
+        { id: 'opt-top-choco', name: 'ช็อกโกแลตซอสเข้มข้น (Rich Chocolate Sauce)', price: 15 },
+        { id: 'opt-top-straw', name: 'ซอสสตรอเบอร์รี่ (Strawberry Sauce)', price: 15 },
+        { id: 'opt-top-lemon', name: 'เลมอนสดสไลซ์ (Fresh Lemon)', price: 10 },
+        { id: 'opt-top-caramel', name: 'คาราเมลซอส (Caramel)', price: 10 },
+        { id: 'opt-top-matcha', name: 'ช็อตมัทฉะแท้ (Matcha Shot)', price: 20 },
+        { id: 'opt-top-shot', name: 'เพิ่มช็อตกาแฟ (Extra Shot)', price: 15 },
+        { id: 'opt-top-whip', name: 'วิปครีม (Whipped Cream)', price: 15 },
+        { id: 'opt-top-boba', name: 'บุกน้ำผึ้ง / ไข่มุก (Honey Jelly / Boba)', price: 10 }
+      ]
+    };
+
+    function getResolvedCustomerGroups(linkedGroups, product) {
+      let rawGroups = Array.isArray(linkedGroups) ? [...linkedGroups] : [];
+      const prod = product || (activeCustomerCustomization ? activeCustomerCustomization.product : null);
+
+      // Fallback ONLY for legacy items without optionGroupIds array
+      if (rawGroups.length === 0 && prod && !Array.isArray(prod.optionGroupIds)) {
+        const isCoffee = (prod.category === 'กาแฟ') || 
+                         /coffee|americano|latte|espresso|cappuccino|mocha|dirty|cold\s*brew|กาแฟ|อเมริกาโน่|ลาเต้|เอสเพรสโซ่|คาปูชิโน่|มอคค่า/i.test(prod.name || '');
+        if (isCoffee) rawGroups.push(GUARANTEED_BEANS_GROUP);
+        if (prod.hasSweetness) rawGroups.push(GUARANTEED_SWEET_GROUP);
+        if (prod.hasExtras) rawGroups.push(GUARANTEED_TOPPINGS_GROUP);
+      }
+
+      const result = [];
+
+      rawGroups.forEach(group => {
+        if (!group) return;
+        const id = (group.id || '').toLowerCase();
+        const name = (group.name || '').toLowerCase();
+        const isSweet = id.includes('sweet') || name.includes('หวาน');
+
+        if (isSweet) {
+          // Normalize Sweetness Group to 6 standard levels: 125%, 100%, 75%, 50%, 25%, 0%
+          const desiredOrder = ['125%', '100%', '75%', '50%', '25%', '0%'];
+          const existingOptions = group.options || [];
+          const seenPcts = new Set();
+          const normalizedOptions = [];
+
+          // Collect existing options, avoiding duplicate percentages
+          existingOptions.forEach(opt => {
+            const info = parseSweetnessOption(opt.name);
+            if (!seenPcts.has(info.pct)) {
+              seenPcts.add(info.pct);
+              normalizedOptions.push({
+                id: opt.id || `opt-s-${info.pct.replace('%', '')}`,
+                name: opt.name,
+                price: opt.price || 0
+              });
+            }
+          });
+
+          // Ensure all 6 standard percentages are present
+          GUARANTEED_SWEET_GROUP.options.forEach(stdOpt => {
+            const stdInfo = parseSweetnessOption(stdOpt.name);
+            if (!seenPcts.has(stdInfo.pct)) {
+              seenPcts.add(stdInfo.pct);
+              normalizedOptions.push(stdOpt);
+            }
+          });
+
+          // Sort strictly in order: 125% -> 100% -> 75% -> 50% -> 25% -> 0%
+          normalizedOptions.sort((a, b) => {
+            const idxA = desiredOrder.indexOf(parseSweetnessOption(a.name).pct);
+            const idxB = desiredOrder.indexOf(parseSweetnessOption(b.name).pct);
+            return (idxA !== -1 ? idxA : 99) - (idxB !== -1 ? idxB : 99);
+          });
+
+          result.push({
+            ...group,
+            options: normalizedOptions
+          });
+        } else {
+          // Keep other groups (Beans, Toppings, Temp, Milk, etc.) as linked
+          result.push(group);
+        }
+      });
+
+      return result;
+    }
+
+    function isOptionSelected(group, opt, selectedOptions, selectedOptionsMap) {
+      if (!selectedOptions && !selectedOptionsMap) return false;
+
+      // 1. Check if selectedOptions is an array
+      if (Array.isArray(selectedOptions)) {
+        for (const s of selectedOptions) {
+          if (!s) continue;
+          if (typeof s === 'string' && (s === opt.id || s === opt.name)) return true;
+          if (s.optId && s.optId === opt.id) return true;
+          if (s.id && s.id === opt.id) return true;
+          if (s.optName && (s.optName === opt.name || s.optName.includes(opt.name) || opt.name.includes(s.optName))) return true;
+          if (s.name && (s.name === opt.name || s.name.includes(opt.name) || opt.name.includes(s.name))) return true;
+        }
+      }
+
+      // 2. Check map/object: { [groupId]: optId | [optIds] }
+      const map = selectedOptionsMap || (typeof selectedOptions === 'object' && !Array.isArray(selectedOptions) ? selectedOptions : null);
+      if (map) {
+        const directVal = map[group.id];
+        if (directVal === opt.id) return true;
+        if (Array.isArray(directVal) && directVal.includes(opt.id)) return true;
+        if (typeof directVal === 'string' && (directVal === opt.name || opt.name.includes(directVal))) return true;
+
+        for (const key of Object.keys(map)) {
+          const val = map[key];
+          if (val === opt.id) return true;
+          if (Array.isArray(val) && val.includes(opt.id)) return true;
+          if (typeof val === 'string' && (val === opt.name || opt.name.includes(val))) return true;
+          if (Array.isArray(val) && val.some(v => typeof v === 'string' && (v === opt.name || opt.name.includes(v)))) return true;
+        }
+      }
+
+      return false;
+    }
+
+    function updateSweetnessDisplay(selectedOptions, selectedOptionsMap, linkedGroups) {
+      const liveSweetBadge = document.getElementById('custLiveSweetBadge');
+      const cupTag = document.getElementById('custCupSweetTag');
+
+      const targetGroups = getResolvedCustomerGroups(linkedGroups);
+      const sweetGroup = targetGroups.find(g => {
+        const id = (g.id || '').toLowerCase();
+        const name = (g.name || '').toLowerCase();
+        return id.includes('sweet') || name.includes('หวาน');
+      });
+
+      if (!sweetGroup) {
+        // Hide sweetness badge if product does not have sweetness option
+        if (liveSweetBadge) liveSweetBadge.classList.add('hidden');
+        if (cupTag) cupTag.classList.add('hidden');
+        return;
+      }
+
+      if (liveSweetBadge) liveSweetBadge.classList.remove('hidden');
+
+      let sweetText = 'หวานปกติ 100%';
+      let dotColor = 'bg-amber-400';
+      let badgeClass = 'bg-amber-500/20 text-amber-300 border-amber-500/40';
+      let icon = '🍬';
+
+      // 1. Check array format
+      let sweetFoundName = '';
+      if (Array.isArray(selectedOptions)) {
+        const found = selectedOptions.find(s => {
+          if (!s) return false;
+          const gid = (s.groupId || '').toLowerCase();
+          const gname = (s.groupName || '').toLowerCase();
+          const oname = (s.optName || s.name || '').toLowerCase();
+          return gid.includes('sweet') || gname.includes('หวาน') || oname.includes('หวาน') || oname.includes('%');
+        });
+        if (found) {
+          sweetFoundName = (found.optName || found.name || '').split(' (+')[0].trim();
+        }
+      }
+
+      // 2. Check map format
+      if (!sweetFoundName) {
+        const map = selectedOptionsMap || (typeof selectedOptions === 'object' && !Array.isArray(selectedOptions) ? selectedOptions : null);
+        if (map) {
+          const matchedOpt = (sweetGroup.options || []).find(opt => isOptionSelected(sweetGroup, opt, selectedOptions, selectedOptionsMap));
+          if (matchedOpt) {
+            sweetFoundName = matchedOpt.name;
+          }
+        }
+      }
+
+      if (!sweetFoundName) {
+        sweetFoundName = 'หวานปกติ (100%)';
+      }
+
+      // Format clean display text and styling
+      const sw = parseSweetnessOption(sweetFoundName);
+      icon = sw.icon;
+      sweetText = sw.fullLabel;
+      dotColor = sw.dot;
+      badgeClass = sw.badgeColor;
+
+      // Update Tag on Cup
+      const cupText = document.getElementById('custCupSweetText');
+      const cupDot = document.getElementById('custCupSweetDot');
+      if (cupText) cupText.textContent = sweetText;
+      if (cupDot) {
+        cupDot.className = `w-2 h-2 rounded-full ${dotColor} animate-pulse`;
+      }
+      if (cupTag) {
+        cupTag.classList.remove('scale-100');
+        cupTag.classList.add('scale-110');
+        setTimeout(() => {
+          cupTag.classList.remove('scale-110');
+          cupTag.classList.add('scale-100');
+        }, 200);
+      }
+
+      // Update Badge below drink name
+      if (liveSweetBadge) {
+        liveSweetBadge.className = `inline-flex items-center gap-1 text-[10px] font-bold px-2.5 py-0.5 rounded-full ${badgeClass} shadow-sm transition-all duration-300`;
+        liveSweetBadge.innerHTML = `${icon} ความหวาน: ${sweetText}`;
+      }
+    }
+
+    function renderOptionGroupsShowcase(linkedGroups, selectedOptions, selectedOptionsMap, product) {
+      const container = document.getElementById('custOptionGroupsList');
+      if (!container) return;
+      container.innerHTML = '';
+
+      const targetGroups = getResolvedCustomerGroups(linkedGroups, product);
+
+      if (targetGroups.length === 0) {
+        container.innerHTML = `
+          <div class="py-10 text-center text-slate-400">
+            <span class="text-3xl block mb-2">☕</span>
+            <p class="text-xs font-semibold text-slate-300">เมนูนี้ไม่มีตัวเลือกเพิ่มเติม</p>
+            <p class="text-[10px] text-slate-500 mt-1">บาริสต้าจะจัดเตรียมสูตรพิเศษตามมาตรฐานของร้าน</p>
+          </div>
+        `;
+        return;
+      }
+
+      targetGroups.forEach(group => {
+        const groupCard = document.createElement('div');
+        groupCard.className = 'bg-slate-950/60 border border-slate-800/80 rounded-2xl p-2.5 sm:p-3 space-y-2';
+
+        const isSingle = group.type === 'single';
+        const typeBadge = isSingle 
+          ? `<span class="text-[9px] px-2 py-0.5 rounded-full bg-slate-800/90 text-slate-400 border border-slate-700 font-medium">เลือก 1 อย่าง</span>`
+          : `<span class="text-[9px] px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-300 border border-amber-500/30 font-medium">เลือกได้หลายอย่าง</span>`;
+
+        let headerIcon = '✨';
+        const gNameLower = (group.name || '').toLowerCase();
+        const isSweet = gNameLower.includes('หวาน') || gNameLower.includes('sweet');
+        const isBean = gNameLower.includes('เมล็ด') || gNameLower.includes('bean');
+        if (isBean) headerIcon = '🫘';
+        else if (isSweet) headerIcon = '🍬';
+        else if (gNameLower.includes('อุณหภูมิ') || gNameLower.includes('ประเภท') || gNameLower.includes('temp')) headerIcon = '🌡️';
+        else if (gNameLower.includes('ท็อป') || gNameLower.includes('ส่วนผสม') || gNameLower.includes('extra') || gNameLower.includes('topping')) headerIcon = '🍨';
+        else if (gNameLower.includes('ไซรัป') || gNameLower.includes('ซอส') || gNameLower.includes('รสชาติ') || gNameLower.includes('flavor') || gNameLower.includes('syrup')) headerIcon = '🍓';
+        else if (gNameLower.includes('นม') || gNameLower.includes('milk')) headerIcon = '🥛';
+        else headerIcon = '✨';
+
+        let gridColsClass = 'grid grid-cols-1 sm:grid-cols-2 gap-1.5';
+        if (isSweet) {
+          const optCount = (group.options || []).length;
+          if (optCount >= 6) {
+            gridColsClass = 'grid grid-cols-3 gap-1.5 sm:gap-2';
+          } else {
+            gridColsClass = 'grid grid-cols-3 sm:grid-cols-5 gap-1 sm:gap-1.5';
+          }
+        }
+
+        groupCard.innerHTML = `
+          <div class="flex items-center justify-between pb-1 border-b border-slate-800/60">
+            <div class="flex items-center gap-1.5">
+              <span class="text-sm">${headerIcon}</span>
+              <h5 class="text-xs font-bold text-slate-200 tracking-wide">${group.name}</h5>
+              ${group.required ? '<span class="text-[9px] text-amber-400 font-bold">*จำเป็น</span>' : ''}
+            </div>
+            ${typeBadge}
+          </div>
+          <div class="${gridColsClass}" id="group-options-${group.id}">
+          </div>
+        `;
+
+        const optionsGrid = groupCard.querySelector(`#group-options-${group.id}`);
+
+        (group.options || []).forEach(opt => {
+          const isSelected = isOptionSelected(group, opt, selectedOptions, selectedOptionsMap);
+          const optCard = document.createElement('div');
+          optCard.id = `cust-opt-${group.id}-${opt.id}`;
+          
+          const activeClasses = isSelected
+            ? 'border-amber-400 bg-amber-500/20 ring-1 ring-amber-400/80 shadow-md shadow-amber-500/10 text-white'
+            : 'border-slate-800/80 bg-slate-900/60 hover:border-slate-700 text-slate-300';
+
+          const cardPadding = isSweet ? 'py-1.5 px-2 sm:px-2.5' : 'py-1.5 px-2.5';
+          optCard.className = `${cardPadding} rounded-xl border transition-all duration-200 flex items-center justify-between gap-1 ${activeClasses}`;
+
+          const iconHtml = getOptionVisualIcon(opt.name, group.name, group.type);
+          
+          let priceBadge = '';
+          if (opt.price > 0) {
+            priceBadge = `<span class="text-[10px] font-bold text-amber-400">+฿${opt.price}</span>`;
+          } else if (!isSweet) {
+            priceBadge = `<span class="text-[9px] text-emerald-400/90 font-medium">ฟรี (+฿0)</span>`;
+          }
+
+          const checkSize = isSweet ? 'w-3.5 h-3.5 text-[9px]' : 'w-4 h-4 text-[10px]';
+          const checkmarkHtml = isSelected
+            ? `<div class="${checkSize} rounded-full bg-amber-400 text-slate-950 flex items-center justify-center font-black shadow-sm flex-shrink-0">✓</div>`
+            : `<div class="${isSweet ? 'w-3.5 h-3.5' : 'w-4 h-4'} rounded-full border border-slate-700 bg-slate-900/80 flex items-center justify-center flex-shrink-0"></div>`;
+
+          if (isSweet) {
+            const sw = parseSweetnessOption(opt.name);
+
+            optCard.innerHTML = `
+              <div class="flex items-center justify-between w-full min-w-0 gap-1 sm:gap-1.5">
+                <div class="flex items-center gap-1 sm:gap-1.5 min-w-0">
+                  <span class="text-xs sm:text-sm font-black ${sw.color} flex-shrink-0">${sw.pct}</span>
+                  <span class="text-[10px] sm:text-[11px] font-bold text-slate-200 truncate leading-tight">${sw.label}</span>
+                </div>
+                <div class="cust-opt-check flex-shrink-0">
+                  ${checkmarkHtml}
+                </div>
+              </div>
+            `;
+          } else {
+            let displayName = opt.name;
+            if (isBean) {
+              displayName = opt.name;
+            } else {
+              displayName = opt.name.replace(/\s*\([^)]*\)/g, '').trim();
+            }
+
+            optCard.innerHTML = `
+              <div class="flex items-center gap-2 min-w-0">
+                ${iconHtml}
+                <div class="min-w-0">
+                  <p class="text-xs font-semibold truncate leading-tight">${displayName}</p>
+                  ${priceBadge ? `<div class="mt-0.5">${priceBadge}</div>` : ''}
+                </div>
+              </div>
+              <div class="cust-opt-check flex-shrink-0">
+                ${checkmarkHtml}
+              </div>
+            `;
+          }
+
+          optionsGrid.appendChild(optCard);
+        });
+
+        container.appendChild(groupCard);
+      });
+    }
+
+    function updateLiveSummaryText(linkedGroups, selectedOptions, selectedOptionsMap) {
+      const summaryEl = document.getElementById('custLiveSummaryPill');
+      if (!summaryEl) return;
+
+      const selectedNames = [];
+      if (Array.isArray(selectedOptions)) {
+        selectedOptions.forEach(s => {
+          if (!s) return;
+          const n = s.optName || s.name;
+          if (n) {
+            const clean = n.split(' (+')[0].trim();
+            if (!selectedNames.includes(clean)) selectedNames.push(clean);
+          }
+        });
+      }
+
+      const map = selectedOptionsMap || (typeof selectedOptions === 'object' && !Array.isArray(selectedOptions) ? selectedOptions : null);
+      if (map) {
+        const targetGroups = getResolvedCustomerGroups(linkedGroups);
+        targetGroups.forEach(g => {
+          (g.options || []).forEach(opt => {
+            if (isOptionSelected(g, opt, selectedOptions, selectedOptionsMap)) {
+              const clean = opt.name.split(' (')[0].trim();
+              if (!selectedNames.includes(clean) && !selectedNames.some(sn => sn.includes(clean))) {
+                selectedNames.push(clean);
+              }
+            }
+          });
+        });
+      }
+
+      if (selectedNames.length === 0) {
+        summaryEl.textContent = '✨ ปรับแต่งความหวานและส่วนผสมตามชอบได้เลยค่ะ';
+        return;
+      }
+
+      summaryEl.textContent = selectedNames.join(' • ');
+    }
+
+    function showCustomerCustomizing(payload) {
+      if (!payload || !payload.product) return;
+      activeCustomerCustomization = payload;
+
+      const idleView = document.getElementById('customerIdleView');
+      const customizingView = document.getElementById('customerCustomizingView');
+
+      if (idleView) idleView.classList.add('hidden');
+      if (customizingView) customizingView.classList.remove('hidden');
+      if (coffeeAutoRotateTimer) { clearInterval(coffeeAutoRotateTimer); coffeeAutoRotateTimer = null; }
+      if (idleToppingsAutoScrollTimer) { clearInterval(idleToppingsAutoScrollTimer); idleToppingsAutoScrollTimer = null; }
+
+      // Set product info
+      const prod = payload.product;
+      const nameEl = document.getElementById('custDrinkName');
+      if (nameEl) nameEl.textContent = prod.name;
+      
+      const basePriceEl = document.getElementById('custDrinkBasePrice');
+      if (basePriceEl) basePriceEl.textContent = `ราคาเริ่มต้น ฿${(prod.basePrice || 0).toFixed(2)}`;
+      
+      const totalPrice = payload.totalPrice || payload.pricePerItem || prod.basePrice;
+      const priceEl = document.getElementById('custLivePriceDisplay');
+      if (priceEl) priceEl.textContent = `฿${totalPrice.toFixed(2)}`;
+      
+      const qtyBadge = document.getElementById('custQtyBadge');
+      if (qtyBadge) qtyBadge.textContent = `จำนวน: ${payload.qty || 1} แก้ว`;
+
+      // Update cup vector visual & colors
+      updateCupVisual(prod.name, prod.category, payload.selectedOptions);
+
+      // Update floating sweetness tag and live sweetness badge
+      updateSweetnessDisplay(payload.selectedOptions, payload.selectedOptionsMap, payload.linkedGroups);
+
+      // Render option groups (Guaranteed Coffee Beans + Sweetness + Toppings)
+      renderOptionGroupsShowcase(payload.linkedGroups, payload.selectedOptions, payload.selectedOptionsMap, prod);
+
+      // Update summary pill
+      updateLiveSummaryText(payload.linkedGroups, payload.selectedOptions, payload.selectedOptionsMap);
+    }
+
+    function updateCustomerCustomizing(payload) {
+      if (!payload) return;
+      activeCustomerCustomization = payload;
+
+      // Update live price
+      const totalPrice = payload.totalPrice || payload.pricePerItem || 0;
+      const priceEl = document.getElementById('custLivePriceDisplay');
+      if (priceEl) {
+        priceEl.textContent = `฿${totalPrice.toFixed(2)}`;
+        priceEl.classList.add('scale-105', 'text-amber-300');
+        setTimeout(() => {
+          priceEl.classList.remove('scale-105', 'text-amber-300');
+        }, 200);
+      }
+
+      // Update qty badge
+      const qtyEl = document.getElementById('custQtyBadge');
+      if (qtyEl) {
+        qtyEl.textContent = `จำนวน: ${payload.qty || 1} แก้ว`;
+      }
+
+      // Update cup visual (e.g. steam if hot selected)
+      if (payload.product) {
+        updateCupVisual(payload.product.name, payload.product.category, payload.selectedOptions);
+      }
+
+      // Update floating sweetness tag and live sweetness badge
+      updateSweetnessDisplay(payload.selectedOptions, payload.selectedOptionsMap, payload.linkedGroups);
+
+      // Ensure groups are rendered
+      const container = document.getElementById('custOptionGroupsList');
+      if (container && container.children.length === 0) {
+        renderOptionGroupsShowcase(payload.linkedGroups, payload.selectedOptions, payload.selectedOptionsMap, payload.product);
+        updateLiveSummaryText(payload.linkedGroups, payload.selectedOptions, payload.selectedOptionsMap);
+        return;
+      }
+
+      // Update options selection checkmarks and highlights
+      const targetGroups = getResolvedCustomerGroups(payload.linkedGroups, payload.product);
+
+      targetGroups.forEach(group => {
+        (group.options || []).forEach(opt => {
+          const card = document.getElementById(`cust-opt-${group.id}-${opt.id}`);
+          if (!card) return;
+
+          const isSelected = isOptionSelected(group, opt, payload.selectedOptions, payload.selectedOptionsMap);
+          const checkEl = card.querySelector('.cust-opt-check');
+
+          const isSweetGroup = (group.name || '').toLowerCase().includes('หวาน') || (group.id || '').includes('sweet');
+          const cardPadding = isSweetGroup ? 'py-1.5 px-2 sm:px-2.5' : 'py-1.5 px-2.5';
+          const checkSize = isSweetGroup ? 'w-3.5 h-3.5 text-[9px]' : 'w-4 h-4 text-[10px]';
+
+          if (isSelected) {
+            card.className = `${cardPadding} rounded-xl border transition-all duration-200 flex items-center justify-between gap-1 border-amber-400 bg-amber-500/20 ring-1 ring-amber-400/80 shadow-md shadow-amber-500/10 text-white`;
+            if (checkEl) {
+              checkEl.innerHTML = `<div class="${checkSize} rounded-full bg-amber-400 text-slate-950 flex items-center justify-center font-black shadow-sm flex-shrink-0">✓</div>`;
+            }
+          } else {
+            card.className = `${cardPadding} rounded-xl border transition-all duration-200 flex items-center justify-between gap-1 border-slate-800/80 bg-slate-900/60 hover:border-slate-700 text-slate-300`;
+            if (checkEl) {
+              checkEl.innerHTML = `<div class="${isSweetGroup ? 'w-3.5 h-3.5' : 'w-4 h-4'} rounded-full border border-slate-700 bg-slate-900/80 flex items-center justify-center flex-shrink-0"></div>`;
+            }
+          }
+        });
+      });
+
+      // Update summary text
+      updateLiveSummaryText(payload.linkedGroups, payload.selectedOptions, payload.selectedOptionsMap);
+    }
+
+    function completeCustomerCustomizing() {
+      if (!activeCustomerCustomization) return;
+
+      const cupSvg = document.getElementById('liveCupSvg');
+      const priceEl = document.getElementById('custLivePriceDisplay');
+
+      // Celebration effect: flash emerald border & green check
+      if (cupSvg) {
+        cupSvg.classList.add('scale-105');
+      }
+      if (priceEl) {
+        priceEl.classList.add('text-emerald-400');
+      }
+
+      setTimeout(() => {
+        if (cupSvg) cupSvg.classList.remove('scale-105');
+        if (priceEl) priceEl.classList.remove('text-emerald-400');
+        hideCustomerCustomizing();
+      }, 550);
+    }
+
+    function hideCustomerCustomizing() {
+      activeCustomerCustomization = null;
+      const idleView = document.getElementById('customerIdleView');
+      const customizingView = document.getElementById('customerCustomizingView');
+      if (customizingView) customizingView.classList.add('hidden');
+      if (idleView) idleView.classList.remove('hidden');
+      renderCustomerIdleShowcase();
+      restartCoffeeAutoRotate();
+      restartToppingsAutoScroll();
+    }
+
+    // -----------------------------------------------------------------------
+    // BROADCAST CHANNEL & STORAGE EVENT LISTENER
+    // -----------------------------------------------------------------------
+    const channel = new BroadcastChannel('tantawan-pos-customer-display');
+
+    function handleDisplayEvent(eventData) {
+      if (!eventData || !eventData.type) return;
+
+      switch (eventData.type) {
+        case 'CUSTOMIZE_START':
+          showCustomerCustomizing(eventData.payload);
+          break;
+
+        case 'CUSTOMIZE_UPDATE':
+          updateCustomerCustomizing(eventData.payload);
+          break;
+
+        case 'CUSTOMIZE_END':
+          completeCustomerCustomizing();
+          break;
+
+        case 'CUSTOMIZE_CANCEL':
+          hideCustomerCustomizing();
+          break;
+
+        case 'CART_UPDATE':
+          hideCustomerQr();
+          if (activeCustomerCustomization) {
+            completeCustomerCustomizing();
+          }
+          renderCustomerOrder(eventData);
+          break;
+
+        case 'SHOW_QR':
+          showCustomerQr(eventData.qrData);
+          break;
+
+        case 'HIDE_QR':
+          hideCustomerQr();
+          break;
+
+        case 'PAYMENT_SUCCESS':
+          hideCustomerCustomizing();
+          showPaymentSuccess(eventData.total || 0, eventData.voiceGender || 'female');
+          renderCustomerOrder({ cart: [], subtotal: 0, discount: 0, total: 0 });
+          break;
+
+        case 'CLEAR_CART':
+          hideCustomerQr();
+          hideCustomerCustomizing();
+          renderCustomerOrder({ cart: [], subtotal: 0, discount: 0, total: 0 });
+          break;
+      }
+    }
+
+    channel.onmessage = (e) => {
+      handleDisplayEvent(e.data);
+    };
+
+    // Storage fallback for cross-window syncing
+    window.addEventListener('storage', (e) => {
+      if (e.key === 'tantawan_customer_display_event' && e.newValue) {
+        try {
+          const data = JSON.parse(e.newValue);
+          handleDisplayEvent(data);
+        } catch (err) {
+          console.error('Storage sync error:', err);
+        }
+      } else if (e.key === 'coffeeshop_option_groups') {
+        renderCustomerIdleShowcase();
+      }
+    });
+
+    // Initialize Idle Showcase Board
+    renderCustomerIdleShowcase();
+    restartCoffeeAutoRotate();
+    restartToppingsAutoScroll();
+
+    // Expose handleDisplayEvent globally so Supabase Realtime can call it from any device
+    window.handleDisplayEvent = handleDisplayEvent;
+
+    // Request initial state upon opening
+    channel.postMessage({ type: 'REQUEST_INITIAL_STATE' });
+  </script>
+</body>
+</html>

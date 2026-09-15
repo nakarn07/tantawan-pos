@@ -1,0 +1,2345 @@
+<!DOCTYPE html>
+<html lang="th" class="h-full bg-slate-950 dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="theme-color" content="#020617">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="ทานตะวัน POS">
+  <link rel="icon" type="image/png" href="logo.png">
+  <link rel="apple-touch-icon" href="logo.png">
+  <title>ร้านทานตะวัน POS | TANTAWAN COFFEE &amp; CAFÉ</title>
+  <!-- Load Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            coffee: {
+              50: '#fffbeb',
+              100: '#fef3c7',
+              200: '#fde68a',
+              300: '#fcd34d',
+              400: '#fbbf24',
+              500: '#f59e0b',
+              600: '#d97706',
+              700: '#b45309',
+              800: '#92400e',
+              900: '#78350f',
+              950: '#451a03',
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <!-- Font integration -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+  <!-- Load Local QRious Library for Offline QR Code Generation -->
+  <script src="qrious.min.js"></script>
+</head>
+<body class="h-full font-['Prompt',sans-serif] text-slate-800 dark:text-slate-100 bg-slate-50 dark:bg-slate-950 flex flex-col antialiased">
+
+  <!-- ==========================================
+       MAIN APP HEADER & NAVIGATION
+       ========================================== -->
+  <header class="bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 flex-shrink-0 shadow-sm print:hidden transition-colors">
+    <div class="w-full px-3 sm:px-6 lg:px-8">
+      <div class="flex justify-between h-16 items-center gap-2">
+        <div class="flex items-center space-x-2.5 sm:space-x-3 flex-shrink-0">
+          <img src="logo.png" alt="โลโก้ร้านทานตะวัน" class="w-10 h-10 sm:w-11 sm:h-11 object-contain rounded-2xl shadow-sm bg-white dark:bg-slate-800 p-1 border border-amber-200 dark:border-amber-900/50 flex-shrink-0">
+          <div class="flex flex-col justify-center flex-shrink-0 min-w-0">
+            <h1 class="text-sm sm:text-base font-bold text-slate-900 dark:text-white leading-tight whitespace-nowrap" id="headerShopName">ร้านทานตะวัน</h1>
+            <p class="text-[10px] sm:text-xs text-amber-700 dark:text-amber-400 font-semibold tracking-wide whitespace-nowrap" id="headerShopSubtitle">TANTAWAN COFFEE &amp; CAFÉ</p>
+          </div>
+        </div>
+
+        <!-- Tab Controls & Theme Toggle -->
+        <div class="flex items-center space-x-2">
+          <nav class="flex space-x-1 bg-slate-100 dark:bg-slate-800 p-1 rounded-xl overflow-x-auto no-scrollbar max-w-[calc(100vw-130px)] sm:max-w-none" aria-label="Tabs">
+            <button id="tab-cashier" onclick="switchTab('cashier')" class="tab-btn px-2.5 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm font-medium rounded-lg bg-white dark:bg-slate-700 text-coffee-700 dark:text-amber-400 shadow-sm transition flex items-center space-x-1.5 sm:space-x-2 whitespace-nowrap flex-shrink-0">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+              </svg>
+              <span>รับออเดอร์</span>
+            </button>
+            
+            <button id="tab-reports" onclick="switchTab('reports')" class="tab-btn px-2.5 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm font-medium rounded-lg text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition flex items-center space-x-1.5 sm:space-x-2 whitespace-nowrap flex-shrink-0">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+              </svg>
+              <span>ยอดขาย & บัญชี</span>
+            </button>
+
+            <button id="tab-menu" onclick="switchTab('menu')" class="tab-btn px-2.5 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm font-medium rounded-lg text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition flex items-center space-x-1.5 sm:space-x-2 whitespace-nowrap flex-shrink-0">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
+              </svg>
+              <span>จัดการเมนู</span>
+            </button>
+
+            <button id="tab-promotions" onclick="switchTab('promotions')" class="tab-btn px-2.5 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm font-medium rounded-lg text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition flex items-center space-x-1.5 sm:space-x-2 whitespace-nowrap flex-shrink-0">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
+              </svg>
+              <span>โปรโมชั่น</span>
+            </button>
+
+            <button id="tab-settings" onclick="switchTab('settings')" class="tab-btn px-2.5 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm font-medium rounded-lg text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition flex items-center space-x-1.5 sm:space-x-2 whitespace-nowrap flex-shrink-0">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+              </svg>
+              <span>ตั้งค่าระบบ</span>
+            </button>
+          </nav>
+
+          <!-- Cloud Sync Status Badge -->
+          <div id="cloudSyncBadge" title="สถานะเชื่อมต่อ Supabase Cloud" class="px-2 sm:px-2.5 py-1.5 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 text-xs font-medium flex items-center gap-1.5 whitespace-nowrap">
+            <span class="inline-block w-2 h-2 rounded-full bg-emerald-500 animate-pulse" id="cloudSyncDot"></span>
+            <span class="hidden lg:inline text-[11px]" id="cloudSyncText">คลาวด์เชื่อมต่อ</span>
+          </div>
+
+          <!-- Customer Display Button -->
+          <button id="btnCustomerDisplay" onclick="openCustomerDisplayWindow()" title="เปิดหน้าจอฝั่งลูกค้า (Customer Display)" class="px-2.5 sm:px-3 py-1.5 sm:py-2 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 text-amber-700 dark:text-amber-400 border border-amber-500/30 shadow-sm transition flex items-center gap-1.5 text-xs font-semibold whitespace-nowrap">
+            <span>🖥️</span>
+            <span class="hidden md:inline">เปิดจอลูกค้า</span>
+          </button>
+
+          <!-- Theme Toggle Button -->
+          <button id="btnThemeToggle" onclick="toggleTheme()" title="สลับโหมดมืด / โหมดสว่าง" class="p-2 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-amber-400 border border-slate-200 dark:border-slate-700 shadow-sm transition flex items-center justify-center">
+            <span id="themeToggleIcon" class="text-base">🌙</span>
+          </button>
+
+          <!-- Quick Screen Lock Button -->
+          <button id="btnQuickLock" onclick="lockScreen()" title="ล็อคหน้าจอ POS ทันที" class="p-2 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-amber-500/10 hover:text-amber-600 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 shadow-sm transition flex items-center justify-center">
+            <span class="text-sm">🔒</span>
+          </button>
+
+          <!-- Current User Profile & Fast Switch Dropdown -->
+          <div class="relative">
+            <button id="currentUserBadgeBtn" onclick="toggleUserDropdown()" class="flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-750 transition text-xs shadow-xs">
+              <span id="currentUserRoleIcon" class="text-sm">👑</span>
+              <div class="text-left leading-tight hidden lg:block">
+                <div id="currentUserNameDisplay" class="font-bold text-slate-800 dark:text-slate-200 truncate max-w-[100px]">เจ้าของร้าน</div>
+                <div id="currentUserRoleBadge" class="text-[10px] text-amber-600 dark:text-amber-400 font-semibold">เจ้าของร้าน (Owner)</div>
+              </div>
+              <svg class="w-3.5 h-3.5 text-slate-400 ml-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+            </button>
+
+            <!-- Dropdown Menu -->
+            <div id="userQuickDropdown" class="hidden absolute right-0 mt-1.5 w-52 bg-white dark:bg-slate-900 rounded-2xl shadow-xl border border-slate-200 dark:border-slate-800 py-2 z-50 text-xs">
+              <div class="px-3.5 py-2 border-b border-slate-100 dark:border-slate-800 mb-1">
+                <div class="text-[10px] text-slate-400">เข้าสู่ระบบในชื่อ:</div>
+                <div id="dropdownUserName" class="font-bold text-slate-800 dark:text-slate-100 text-sm truncate">เจ้าของร้าน (Owner)</div>
+              </div>
+              <button type="button" onclick="switchUserPrompt()" class="w-full text-left px-3.5 py-2 hover:bg-slate-50 dark:hover:bg-slate-800 flex items-center gap-2.5 text-slate-700 dark:text-slate-200 font-medium">
+                <span class="text-base">👥</span>
+                <span>สลับผู้ใช้งาน (Switch User)</span>
+              </button>
+              <button type="button" onclick="lockScreen()" class="w-full text-left px-3.5 py-2 hover:bg-amber-50/50 dark:hover:bg-amber-950/30 flex items-center gap-2.5 text-amber-600 dark:text-amber-400 font-semibold">
+                <span class="text-base">🔒</span>
+                <span>ล็อคหน้าจอ (Lock Screen)</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- ==========================================
+       MAIN CONTENT PANEL
+       ========================================== -->
+  <main class="flex-1 overflow-hidden print:hidden">
+
+    <!-- TAB 1: CASHIER SCREEN (ORDERING) -->
+    <div id="content-cashier" class="h-full flex flex-col md:flex-row overflow-y-auto md:overflow-hidden">
+      <!-- Left side: Products Grid and Categories -->
+      <div class="flex-1 flex flex-col min-h-[58vh] md:min-h-0 md:h-full bg-slate-50 dark:bg-slate-950 border-r border-slate-200 dark:border-slate-800 overflow-hidden">
+        <!-- Search and Category Filters -->
+        <div class="p-3 sm:p-4 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 space-y-2.5 sm:space-y-3 flex-shrink-0">
+          <div class="flex flex-wrap sm:flex-nowrap gap-2">
+            <div class="relative flex-1 min-w-[140px]">
+              <input type="text" id="searchProducts" placeholder="ค้นหาเมนู..." oninput="filterProducts()" class="w-full pl-9 sm:pl-10 pr-3 sm:pr-4 py-1.5 sm:py-2 border border-slate-300 dark:border-slate-700 rounded-lg text-xs sm:text-sm bg-white dark:bg-slate-800 text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-coffee-500 focus:border-coffee-500">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 sm:h-5 sm:w-5 absolute left-2.5 sm:left-3 top-2 sm:top-2.5 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
+            </div>
+            <select id="productSortMode" onchange="filterProducts()" class="border border-slate-300 dark:border-slate-700 rounded-lg px-2 sm:px-2.5 py-1.5 sm:py-2 text-[11px] sm:text-xs font-semibold bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-coffee-500 flex-shrink-0 cursor-pointer shadow-xs" title="จัดเรียงลำดับเมนู">
+              <option value="custom">📌 ตามลำดับที่จัดไว้</option>
+              <option value="best-seller">🔥 เมนูขายดี</option>
+              <option value="price-asc">💰 ราคา: ต่ำ-สูง</option>
+              <option value="price-desc">💎 ราคา: สูง-ต่ำ</option>
+              <option value="name-asc">🔤 ชื่อ: ก-ฮ</option>
+            </select>
+            <button type="button" onclick="openCustomItemModal()" class="px-2.5 sm:px-3 py-1.5 sm:py-2 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white rounded-lg text-xs sm:text-sm font-bold shadow-sm transition flex items-center gap-1.5 flex-shrink-0 whitespace-nowrap active:scale-95" title="คีย์เมนูพิเศษ / สินค้าตามสั่ง / คีย์ราคาเองตั้งแต่ ฿0">
+              <span>✨</span>
+              <span>+ เมนูพิเศษ / คีย์ราคาเอง</span>
+            </button>
+          </div>
+          <!-- Category Pills -->
+          <div class="flex space-x-1.5 sm:space-x-2 overflow-x-auto pb-1 no-scrollbar" id="categoryContainer">
+            <!-- Dynamic categories -->
+          </div>
+        </div>
+
+        <!-- Products Scrollable Grid -->
+        <div class="flex-1 overflow-y-auto p-2 sm:p-3.5 bg-slate-50 dark:bg-slate-950">
+          <div id="productGrid" class="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-8 gap-1.5 sm:gap-2.5">
+            <!-- Dynamic products -->
+          </div>
+        </div>
+      </div>
+
+      <!-- Right side: Shopping Cart -->
+      <div class="w-full md:w-96 bg-white dark:bg-slate-900 flex flex-col min-h-[42vh] md:min-h-0 md:h-full shadow-lg relative flex-shrink-0 border-t md:border-t-0 md:border-l border-slate-200 dark:border-slate-800">
+        <!-- Cart Header -->
+        <div class="p-4 border-b border-slate-200 dark:border-slate-800 flex justify-between items-center bg-slate-50 dark:bg-slate-900/80">
+          <div class="flex items-center space-x-1.5 flex-shrink-0">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-coffee-600 dark:text-amber-400 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
+            </svg>
+            <div class="leading-tight font-bold text-slate-900 dark:text-white text-xs whitespace-nowrap">
+              <div>รายการ</div>
+              <div>สั่งซื้อ</div>
+            </div>
+          </div>
+          <div class="flex items-center space-x-1.5 flex-shrink-0">
+            <!-- Quick Add Custom Item button in Cart -->
+            <button type="button" onclick="openCustomItemModal()" class="px-2 py-1 text-[11px] font-bold rounded-lg bg-amber-500/15 hover:bg-amber-500/25 text-amber-700 dark:text-amber-300 border border-amber-500/30 transition flex items-center gap-1 shadow-xs" title="เพิ่มเมนูพิเศษ/คีย์ราคาเอง">
+              <span>✨</span>
+              <span class="hidden sm:inline">+ เมนูพิเศษ</span>
+            </button>
+            <!-- Held Bills Queue Button with Count Badge -->
+            <button type="button" id="btnHeldBills" onclick="openHeldBillsModal()" class="relative px-2 py-1 text-xs font-semibold rounded-lg bg-amber-50 dark:bg-amber-950/50 hover:bg-amber-100 dark:hover:bg-amber-900/60 text-amber-900 dark:text-amber-300 border border-amber-300/80 dark:border-amber-800/80 transition flex items-center gap-1 shadow-sm whitespace-nowrap flex-shrink-0" title="ดูรายการบิลที่พักไว้">
+              <span>⏸️</span>
+              <span class="whitespace-nowrap">บิลพัก</span>
+              <span id="heldBillsBadge" class="hidden min-w-[18px] h-[18px] px-1 bg-amber-500 text-white text-[10px] font-bold rounded-full items-center justify-center shadow-sm">0</span>
+            </button>
+            <button type="button" onclick="openCustomerDisplayWindow()" class="text-xs text-amber-600 dark:text-amber-400 hover:text-amber-700 dark:hover:text-amber-300 font-semibold flex items-center gap-1 transition p-1" title="เปิดหน้าจอแสดงผลลูกค้า (Dual Screen)">
+              <span>🖥️</span>
+            </button>
+            <button type="button" onclick="clearCart()" class="text-xs text-red-500 hover:text-red-400 dark:hover:text-red-300 font-medium p-1">ล้าง</button>
+          </div>
+        </div>
+
+        <!-- Cart Items List (Scrollable) -->
+        <div id="cartItemsList" class="flex-1 overflow-y-auto p-4 space-y-4 divide-y divide-slate-100 dark:divide-slate-800">
+          <!-- Dynamic cart items -->
+        </div>
+
+        <!-- Cart Summary & Actions -->
+        <div class="p-4 border-t border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/90 space-y-4">
+          <div class="space-y-1.5 text-sm">
+            <div class="flex justify-between text-slate-600 dark:text-slate-400">
+              <span>ราคารวม</span>
+              <span id="cartSubtotal" class="dark:text-slate-200">฿0.00</span>
+            </div>
+            <div class="flex justify-between items-center text-slate-600 dark:text-slate-400">
+              <div class="flex items-center space-x-1.5">
+                <span>ส่วนลด</span>
+                <span id="cartDiscountTag" class="text-[11px] text-amber-900 dark:text-amber-300 bg-amber-100 dark:bg-amber-950/60 border border-amber-300 dark:border-amber-800 px-1.5 py-0.5 rounded font-medium hidden">-</span>
+              </div>
+              <div class="flex items-center space-x-1.5">
+                <span id="cartDiscountAmountDisplay" class="font-bold text-red-500 text-sm">฿0.00</span>
+                <button type="button" onclick="openQuickDiscountModal()" class="text-xs bg-amber-100 dark:bg-amber-950/60 hover:bg-amber-200 dark:hover:bg-amber-900/80 text-amber-900 dark:text-amber-300 border border-amber-300 dark:border-amber-800 font-semibold px-2 py-1 rounded-lg transition flex items-center gap-1 shadow-sm">
+                  🏷️ <span>ใส่ส่วนลด</span>
+                </button>
+              </div>
+            </div>
+            <div class="flex justify-between text-base font-bold text-slate-900 dark:text-white pt-2 border-t border-dashed border-slate-300 dark:border-slate-700">
+              <span>ยอดชำระเงิน</span>
+              <span class="text-coffee-700 dark:text-amber-400 text-lg" id="cartTotal">฿0.00</span>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-3 gap-2">
+            <button type="button" id="btnHoldBill" onclick="openHoldBillPromptModal()" disabled class="col-span-1 bg-amber-50 hover:bg-amber-100 dark:bg-amber-950/50 dark:hover:bg-amber-900/60 text-amber-900 dark:text-amber-300 border border-amber-300 dark:border-amber-700/80 font-bold py-3 px-2 rounded-xl transition flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-1.5 text-xs sm:text-sm disabled:opacity-40 disabled:cursor-not-allowed shadow-sm" title="พักบิลนี้ไว้ชั่วคราว เพื่อรับออเดอร์ลูกค้าท่านอื่น">
+              <span class="text-base leading-none">⏸️</span>
+              <span>พักบิล</span>
+            </button>
+            <button type="button" id="btnCheckout" onclick="openCheckoutModal()" disabled class="col-span-2 bg-coffee-600 hover:bg-coffee-700 text-white font-bold py-3 px-4 rounded-xl shadow-lg transition flex justify-center items-center space-x-2 disabled:opacity-40 disabled:cursor-not-allowed">
+              <span>ชำระเงิน</span>
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
+              </svg>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB 2: REPORTS & ACCOUNTING (ยอดขายและบัญชี) -->
+    <div id="content-reports" class="h-full overflow-y-auto bg-slate-50 dark:bg-slate-950 p-6 hidden">
+      <div class="max-w-7xl mx-auto space-y-6">
+        <!-- Date Selector & Header -->
+        <div class="flex flex-col gap-3.5 bg-white dark:bg-slate-900 p-4 sm:p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm">
+          <div class="flex flex-col xl:flex-row justify-between items-start xl:items-center gap-4">
+            <div>
+              <h2 class="text-lg sm:text-xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-coffee-600 dark:text-amber-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                </svg>
+                <span>รายงานยอดขาย & บัญชีร้านทานตะวัน</span>
+              </h2>
+              <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">เลือกดูรายวัน รายสัปดาห์ รายเดือน และกดแยกดูยอดเงินสด vs ยอดโอน/QR code ได้ทันที</p>
+            </div>
+            
+            <div class="flex flex-wrap items-center gap-2 w-full xl:w-auto">
+            <!-- Group 1: รายวัน (วันนี้ always visible, เมื่อวาน hidden for staff) -->
+            <div class="inline-flex rounded-xl bg-slate-100 dark:bg-slate-800 p-1 border border-slate-200 dark:border-slate-700">
+              <button onclick="setDateRange('today')" id="btn-date-today" class="px-2.5 py-1.5 text-xs font-semibold rounded-lg bg-coffee-600 text-white shadow-sm transition">วันนี้</button>
+              <button onclick="setDateRange('yesterday')" id="btn-date-yesterday" class="historical-date-ctrl px-2.5 py-1.5 text-xs font-semibold rounded-lg text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white transition">เมื่อวาน</button>
+            </div>
+
+            <!-- Group 2: รายสัปดาห์ (hidden for staff) -->
+            <div class="historical-date-ctrl inline-flex rounded-xl bg-slate-100 dark:bg-slate-800 p-1 border border-slate-200 dark:border-slate-700">
+              <button onclick="setDateRange('thisWeek')" id="btn-date-thisWeek" class="px-2.5 py-1.5 text-xs font-semibold rounded-lg text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white transition">สัปดาห์นี้</button>
+              <button onclick="setDateRange('week')" id="btn-date-week" class="px-2.5 py-1.5 text-xs font-semibold rounded-lg text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white transition">7 วันล่าสุด</button>
+            </div>
+
+            <!-- Group 3: รายเดือน (hidden for staff) -->
+            <div class="historical-date-ctrl inline-flex rounded-xl bg-slate-100 dark:bg-slate-800 p-1 border border-slate-200 dark:border-slate-700">
+              <button onclick="setDateRange('month')" id="btn-date-month" class="px-2.5 py-1.5 text-xs font-semibold rounded-lg text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white transition">เดือนนี้</button>
+              <button onclick="setDateRange('lastMonth')" id="btn-date-lastMonth" class="px-2.5 py-1.5 text-xs font-semibold rounded-lg text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white transition">เดือนที่แล้ว</button>
+            </div>
+
+            <!-- Group 4: กำหนดเอง (hidden for staff) -->
+            <div id="reportsCustomDateWrapper" class="historical-date-ctrl flex items-center bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 rounded-xl px-2 py-1">
+              <span class="text-xs text-slate-400 mr-1">📅</span>
+              <input type="date" id="reportStartDate" onchange="customDateChanged()" class="border-0 bg-transparent text-xs p-0.5 focus:ring-0 focus:outline-none text-slate-700 dark:text-slate-200 font-medium">
+              <span class="text-slate-400 px-1 text-xs">-</span>
+              <input type="date" id="reportEndDate" onchange="customDateChanged()" class="border-0 bg-transparent text-xs p-0.5 focus:ring-0 focus:outline-none text-slate-700 dark:text-slate-200 font-medium">
+            </div>
+
+            <!-- Export Button (hidden for staff) -->
+            <button id="btnExportReport" onclick="exportToCSV()" class="historical-date-ctrl bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-1.5 text-xs font-semibold rounded-xl shadow-sm flex items-center space-x-1.5 transition ml-auto xl:ml-0">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
+            </button>
+          </div>
+        </div>
+
+        <!-- Staff Mode Notice Banner (Visible only for staff) -->
+        <div id="staffReportNotice" class="hidden w-full bg-amber-500/10 dark:bg-amber-400/10 border border-amber-500/30 rounded-xl p-3 text-xs text-amber-800 dark:text-amber-300 flex items-center gap-2.5">
+          <span class="text-base flex-shrink-0">🔒</span>
+          <div class="leading-relaxed">
+            <strong class="font-bold">โหมดพนักงาน (Staff View):</strong> ระบบจำกัดการแสดงผลเฉพาะยอดขายและรายการเงินสดสำหรับกะ <strong>"วันนี้"</strong> เพื่อใช้ตรวจสอบเงินสดในลิ้นชักและปิดกะเงินสด
+          </div>
+        </div>
+      </div>
+
+        <!-- Primary Financial Cards: Cash vs. QR Breakdown -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <!-- Card 1: ยอดขายรวมทั้งหมด -->
+          <div onclick="setPaymentLedgerFilter('all')" id="card-filter-all" class="cursor-pointer bg-white dark:bg-slate-900 p-5 rounded-2xl shadow-sm border-2 border-coffee-600 dark:border-amber-500/80 ring-4 ring-coffee-100 dark:ring-amber-950/40 transition-all group relative">
+            <div class="flex justify-between items-start">
+              <div>
+                <span class="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider block">ยอดขายรวมทั้งหมด</span>
+                <span class="text-[10px] text-slate-400 dark:text-slate-500">ทุกช่องทางชำระเงิน</span>
+              </div>
+              <span id="badgeTotalAllOrders" class="bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-[10px] font-bold px-2.5 py-0.5 rounded-full border border-slate-200 dark:border-slate-700">
+                0 ออเดอร์
+              </span>
+            </div>
+            <div class="mt-3">
+              <div class="text-3xl font-black text-slate-900 dark:text-white" id="metricTotalSales">฿0.00</div>
+            </div>
+            <div class="mt-3 pt-3 border-t border-slate-100 dark:border-slate-800 flex justify-between items-center text-xs">
+              <span class="text-slate-500 dark:text-slate-400" id="metricTotalSalesCount">0 รายการสำเร็จ</span>
+              <span class="font-semibold text-coffee-700 dark:text-amber-400" id="metricAvgTicket">เฉลี่ย ฿0.00/บิล</span>
+            </div>
+          </div>
+
+          <!-- Card 2: รายรับเงินสด (Cash) -->
+          <div onclick="setPaymentLedgerFilter('cash')" id="card-filter-cash" class="cursor-pointer bg-amber-50/50 dark:bg-amber-950/20 hover:bg-amber-50 dark:hover:bg-amber-950/30 p-5 rounded-2xl shadow-sm border-2 border-amber-200 dark:border-amber-800/60 hover:border-amber-400 dark:hover:border-amber-600 transition-all group relative overflow-hidden">
+            <div class="flex justify-between items-start">
+              <div class="flex items-center space-x-2">
+                <div class="w-8 h-8 rounded-xl bg-amber-500 text-white flex items-center justify-center font-bold text-sm shadow-sm">
+                  💵
+                </div>
+                <div>
+                  <span class="text-xs font-bold text-amber-950 dark:text-amber-200 uppercase tracking-wider block">รายรับเงินสด</span>
+                  <span class="text-[10px] text-amber-700 dark:text-amber-400 font-medium">เงินสดในลิ้นชัก</span>
+                </div>
+              </div>
+              <span id="badgeCashShare" class="bg-amber-100 dark:bg-amber-900/60 text-amber-900 dark:text-amber-200 text-[10px] font-bold px-2.5 py-0.5 rounded-full border border-amber-300 dark:border-amber-700">
+                0% ของยอดขาย
+              </span>
+            </div>
+            <div class="mt-3">
+              <div class="text-3xl font-black text-amber-950 dark:text-amber-300" id="metricCashSales">฿0.00</div>
+            </div>
+            <div class="mt-3 pt-3 border-t border-amber-100 dark:border-amber-900/40 flex justify-between items-center text-xs">
+              <span id="metricCashOrdersCount" class="font-bold text-amber-900 dark:text-amber-200">0 บิลเงินสด</span>
+              <span class="text-[11px] font-semibold text-amber-700 dark:text-amber-400 group-hover:text-amber-900 dark:group-hover:text-amber-200 flex items-center gap-1">
+                คลิกดูเฉพาะเงินสด ➔
+              </span>
+            </div>
+          </div>
+
+          <!-- Card 3: รายรับโอนเงิน / QR Code (Bank Transfer & QR) -->
+          <div onclick="setPaymentLedgerFilter('transfer')" id="card-filter-transfer" class="cursor-pointer bg-emerald-50/50 dark:bg-emerald-950/20 hover:bg-emerald-50 dark:hover:bg-emerald-950/30 p-5 rounded-2xl shadow-sm border-2 border-emerald-200 dark:border-emerald-800/60 hover:border-emerald-400 dark:hover:border-emerald-600 transition-all group relative overflow-hidden">
+            <div class="flex justify-between items-start">
+              <div class="flex items-center space-x-2">
+                <div class="w-8 h-8 rounded-xl bg-emerald-600 text-white flex items-center justify-center font-bold text-sm shadow-sm">
+                  📱
+                </div>
+                <div>
+                  <span class="text-xs font-bold text-emerald-950 dark:text-emerald-200 uppercase tracking-wider block">รายรับโอนเงิน / QR Code</span>
+                  <span class="text-[10px] text-emerald-700 dark:text-emerald-400 font-medium">เข้าบัญชีธนาคาร</span>
+                </div>
+              </div>
+              <span id="badgeTransferShare" class="bg-emerald-100 dark:bg-emerald-900/60 text-emerald-900 dark:text-emerald-200 text-[10px] font-bold px-2.5 py-0.5 rounded-full border border-emerald-300 dark:border-emerald-700">
+                0% ของยอดขาย
+              </span>
+            </div>
+            <div class="mt-3">
+              <div class="text-3xl font-black text-emerald-950 dark:text-emerald-300" id="metricPromptPaySales">฿0.00</div>
+            </div>
+            <div class="mt-3 pt-3 border-t border-emerald-100 dark:border-emerald-900/40 flex justify-between items-center text-xs">
+              <span id="metricTransferOrdersCount" class="font-bold text-emerald-900 dark:text-emerald-200">0 บิลโอนเงิน/QR</span>
+              <span class="text-[11px] font-semibold text-emerald-700 dark:text-emerald-400 group-hover:text-emerald-900 dark:group-hover:text-emerald-200 flex items-center gap-1">
+                คลิกดูเฉพาะโอนเงิน ➔
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <!-- สัดส่วนรายรับเงินสด vs โอนเงิน (Visual Ratio Split Bar) -->
+        <div class="bg-white dark:bg-slate-900 p-4 sm:p-5 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 space-y-2">
+          <div class="flex flex-col sm:flex-row justify-between sm:items-center gap-1 text-xs">
+            <div class="flex items-center space-x-2 text-amber-950 dark:text-amber-300 font-semibold">
+              <span class="w-3 h-3 rounded-full bg-amber-500 inline-block shadow-sm"></span>
+              <span>เงินสด: <strong id="ratioCashAmount" class="font-bold">฿0.00</strong> (<span id="ratioCashPct">0%</span>)</span>
+            </div>
+            <div class="text-slate-400 dark:text-slate-500 text-[11px] font-medium text-center hidden sm:block">สัดส่วนช่องทางชำระเงินตามช่วงเวลา</div>
+            <div class="flex items-center space-x-2 text-emerald-950 dark:text-emerald-300 font-semibold">
+              <span>โอนเงิน / QR Code: <strong id="ratioTransferAmount" class="font-bold">฿0.00</strong> (<span id="ratioTransferPct">0%</span>)</span>
+              <span class="w-3 h-3 rounded-full bg-emerald-600 inline-block shadow-sm"></span>
+            </div>
+          </div>
+          <div class="w-full bg-slate-100 dark:bg-slate-800 h-3.5 rounded-full overflow-hidden flex p-0.5 border border-slate-200 dark:border-slate-700">
+            <div id="ratioBarCash" class="bg-amber-500 h-full rounded-l-full transition-all duration-500" style="width: 50%" title="เงินสด"></div>
+            <div id="ratioBarTransfer" class="bg-emerald-600 h-full rounded-r-full transition-all duration-500" style="width: 50%" title="โอน/QR"></div>
+          </div>
+        </div>
+
+        <!-- Charts and Rankings -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <!-- Sales Trend SVG Chart -->
+          <div class="bg-white dark:bg-slate-900 p-6 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 lg:col-span-2">
+            <div class="flex justify-between items-center mb-4">
+              <h3 class="font-bold text-slate-900 dark:text-white text-sm">แนวโน้มยอดขาย</h3>
+              <span class="text-[11px] text-slate-400 dark:text-slate-500" id="chartPeriodLabel">ยอดขายตามช่วงเวลา</span>
+            </div>
+            <div id="chartContainer" class="w-full h-64 flex items-center justify-center bg-slate-50 dark:bg-slate-950 rounded-xl overflow-hidden">
+              <!-- Inline SVG graph injected dynamically by app.js -->
+            </div>
+          </div>
+
+          <!-- Top-Selling Items by Category -->
+          <div class="bg-white dark:bg-slate-900 p-6 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4 pb-3 border-b border-slate-100 dark:border-slate-800">
+              <div>
+                <h3 class="font-bold text-slate-900 dark:text-white text-sm flex items-center gap-1.5">
+                  <span>🏆 อันดับเมนูขายดี</span>
+                  <span class="text-[10px] font-bold text-amber-800 dark:text-amber-300 bg-amber-100 dark:bg-amber-900/60 px-2 py-0.5 rounded-full" id="bestSellerCategoryBadge">ทั้งหมด</span>
+                </h3>
+                <p class="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">กดเลือกหมวดหมู่เพื่อดูอันดับ 1, 2, 3 ของแต่ละหมวด</p>
+              </div>
+
+              <!-- Category Filter Tabs for Best Sellers -->
+              <div class="flex space-x-1 overflow-x-auto pb-1 max-w-full bg-slate-100 dark:bg-slate-800 p-1 rounded-xl" id="bestSellerCategoryTabs">
+                <!-- Dynamically rendered pills: ทั้งหมด, กาแฟ, ชา, เบเกอรี่... -->
+              </div>
+            </div>
+
+            <!-- List of Top Selling Items -->
+            <div class="space-y-3" id="topSellingList">
+              <!-- Dynamic ranked popular items -->
+            </div>
+          </div>
+        </div>
+
+        <!-- Cashier Sales Performance Section (สถิติยอดขายรายบุคคล / แคชเชียร์) -->
+        <div id="cashierPerformanceSection" class="bg-white dark:bg-slate-900 p-5 sm:p-6 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 space-y-4">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-slate-100 dark:border-slate-800">
+            <div>
+              <h3 class="font-bold text-slate-900 dark:text-white text-base flex items-center gap-2">
+                <span>👥</span>
+                <span>สรุปผลงาน &amp; สถิติยอดขายรายบุคคล (Sales by Cashier)</span>
+                <span class="text-[10px] font-bold text-coffee-800 dark:text-amber-300 bg-coffee-50 dark:bg-amber-950/60 px-2 py-0.5 rounded-full border border-coffee-200 dark:border-amber-800/60" id="cashierPeriodBadge">วันนี้</span>
+              </h3>
+              <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">ดูจำนวนบิล ยอดขายรวม และสัดส่วนผลงานของพนักงานแต่ละคน (คลิกที่การ์ดเพื่อกรองดูบิลเฉพาะคนได้ทันที)</p>
+            </div>
+            <div class="text-xs text-slate-400 dark:text-slate-500 flex items-center gap-1 font-medium">
+              <span>💡 คลิกที่การ์ดพนักงานเพื่อกรองตารางประวัติ</span>
+            </div>
+          </div>
+
+          <!-- Cards Grid for Cashiers -->
+          <div id="cashierCardsGrid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3.5">
+            <!-- Dynamic cashier cards rendered by app.js -->
+          </div>
+        </div>
+
+        <!-- Transactions Ledger Table -->
+        <div class="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 overflow-hidden">
+          <div class="px-6 py-4 border-b border-slate-200 dark:border-slate-800 flex flex-col xl:flex-row xl:items-center justify-between gap-4 bg-slate-50/70 dark:bg-slate-900/90">
+            <div>
+              <h3 class="font-bold text-slate-900 dark:text-white text-base">บันทึกบัญชี / ประวัติการขาย</h3>
+              <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">คลิกแยกดูเฉพาะบิลเงินสด, บิลโอนเงิน/QR หรือกรองดูเฉพาะพนักงานที่ขายได้ทันที</p>
+            </div>
+            
+            <div class="flex flex-wrap items-center gap-2">
+              <!-- Payment Filter Pills -->
+              <div class="inline-flex rounded-xl bg-slate-200/80 dark:bg-slate-800 p-1 text-xs font-semibold shadow-inner">
+                <button onclick="setPaymentLedgerFilter('all')" id="tab-filter-pay-all" class="px-3 py-1.5 rounded-lg bg-coffee-600 text-white shadow-sm transition">
+                  ทั้งหมด (<span id="countDisplayAll">0</span>)
+                </button>
+                <button onclick="setPaymentLedgerFilter('cash')" id="tab-filter-pay-cash" class="px-3 py-1.5 rounded-lg text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white transition flex items-center space-x-1">
+                  <span>💵 เงินสด (<span id="countDisplayCash">0</span>)</span>
+                </button>
+                <button onclick="setPaymentLedgerFilter('transfer')" id="tab-filter-pay-transfer" class="px-3 py-1.5 rounded-lg text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white transition flex items-center space-x-1">
+                  <span>📱 โอน/QR (<span id="countDisplayTransfer">0</span>)</span>
+                </button>
+              </div>
+
+              <!-- Cashier Filter Dropdown -->
+              <div class="flex items-center bg-slate-100 dark:bg-slate-800 px-2.5 py-1 rounded-xl border border-slate-200 dark:border-slate-700 text-xs font-medium">
+                <span class="text-slate-400 mr-1.5">👤 ผู้ขาย:</span>
+                <select id="selectLedgerCashierFilter" onchange="setCashierLedgerFilter(this.value)" class="bg-transparent border-0 text-slate-800 dark:text-slate-200 font-bold focus:ring-0 focus:outline-none cursor-pointer py-1">
+                  <option value="all">พนักงานทุกคน (All)</option>
+                  <!-- Populated dynamically -->
+                </select>
+              </div>
+
+              <span class="text-xs text-slate-500 dark:text-slate-400 font-medium pl-1 hidden sm:inline" id="ledgerCountDisplay">แสดง 0 ออเดอร์</span>
+            </div>
+          </div>
+          <div class="overflow-x-auto">
+            <table class="w-full text-left text-sm border-collapse">
+              <thead>
+                <tr class="bg-slate-50 dark:bg-slate-950 text-slate-500 dark:text-slate-400 border-b border-slate-200 dark:border-slate-800 text-xs uppercase font-semibold">
+                  <th class="px-5 py-3">วัน-เวลา</th>
+                  <th class="px-4 py-3">เลขที่ออเดอร์</th>
+                  <th class="px-4 py-3">ผู้ขาย / แคชเชียร์</th>
+                  <th class="px-5 py-3">รายการเมนู</th>
+                  <th class="px-4 py-3 text-right">ส่วนลด</th>
+                  <th class="px-4 py-3 text-right">ยอดสุทธิ</th>
+                  <th class="px-4 py-3 text-center">วิธีชำระ</th>
+                  <th class="px-4 py-3 text-center">สถานะ</th>
+                  <th class="px-4 py-3 text-center">จัดการ</th>
+                </tr>
+              </thead>
+              <tbody id="ledgerTableBody" class="divide-y divide-slate-100 dark:divide-slate-800">
+                <!-- Dynamic transaction rows -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB 3: MENU MANAGEMENT (จัดการเมนู) -->
+    <div id="content-menu" class="h-full overflow-y-auto bg-slate-50 dark:bg-slate-950 p-6 hidden">
+      <div class="max-w-7xl mx-auto space-y-6">
+        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+          <div>
+            <h2 class="text-xl font-bold text-slate-900 dark:text-white">จัดการรายการเมนู</h2>
+            <p class="text-sm text-slate-500 dark:text-slate-400">จัดการ เพิ่ม ลด แก้ไขราคา และหมวดหมู่สินค้าใน POS ของคุณ</p>
+          </div>
+          <div class="flex flex-wrap gap-2">
+            <button onclick="openOptionGroupsModal()" class="bg-amber-100 dark:bg-amber-950/60 hover:bg-amber-200 dark:hover:bg-amber-900/80 text-amber-900 dark:text-amber-300 border border-amber-300 dark:border-amber-800 font-semibold px-4 py-2 text-sm rounded-lg flex items-center space-x-1.5 transition shadow-sm">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-amber-700 dark:text-amber-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+              </svg>
+              <span>⚙️ จัดการกลุ่มตัวเลือก (Option Groups)</span>
+            </button>
+            <button onclick="openCategoryModal()" class="bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 font-semibold px-4 py-2 text-sm rounded-lg flex items-center space-x-1.5 transition">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+              </svg>
+              <span>จัดการหมวดหมู่</span>
+            </button>
+            <button onclick="openProductModal()" class="bg-coffee-600 hover:bg-coffee-700 text-white font-semibold px-4 py-2 text-sm rounded-lg flex items-center space-x-1.5 transition shadow-sm">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
+              </svg>
+              <span>เพิ่มสินค้าใหม่</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Manual Order Instruction Bar -->
+        <div class="bg-white dark:bg-slate-900 p-3 sm:p-4 rounded-2xl border border-slate-200 dark:border-slate-800 flex flex-wrap items-center justify-between gap-3 text-xs shadow-sm">
+          <div class="flex items-center gap-2.5 text-slate-700 dark:text-slate-300 font-bold">
+            <span class="text-base">↕️</span>
+            <span>จัดลำดับเมนูด้วยตนเอง (Manual Sort):</span>
+            <span class="text-slate-500 dark:text-slate-400 font-normal hidden sm:inline">คลิก 🔝 ย้ายไปบนสุด, 🔼/🔽 เลื่อนขึ้นลง หรือลาก ⠿ สลับแถวในตารางด้านล่างได้อิสระ</span>
+          </div>
+          <div class="flex items-center gap-2">
+            <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20">
+              <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+              <span>🔒 ลำดับคงที่ตามที่จัดไว้ (ไม่เรียงสลับอัตโนมัติ)</span>
+            </span>
+          </div>
+        </div>
+
+        <!-- Category Filter & Search Bar in Menu Management -->
+        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 bg-white dark:bg-slate-900 p-3 sm:p-3.5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm">
+          <div class="flex items-center space-x-1.5 overflow-x-auto pb-1 sm:pb-0 no-scrollbar flex-1 w-full sm:w-auto" id="menuConfigCategoryTabs">
+            <!-- Dynamic Category Pills with item counts -->
+          </div>
+          <div class="relative w-full sm:w-64 flex-shrink-0">
+            <input type="text" id="menuConfigSearchInput" oninput="renderMenuConfigTable()" placeholder="ค้นหาเมนูในร้าน..." class="w-full pl-8 pr-3 py-1.5 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-1 focus:ring-coffee-500 font-medium">
+            <svg class="h-3.5 w-3.5 text-slate-400 absolute left-2.5 top-2.5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+            </svg>
+          </div>
+        </div>
+
+        <!-- Categorized Menu Cards Container -->
+        <div id="menuConfigCategoriesContainer" class="space-y-6">
+          <!-- Dynamically rendered per category -->
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB 4: PROMOTIONS (โปรโมชั่น) -->
+    <div id="content-promotions" class="h-full overflow-y-auto bg-slate-50 dark:bg-slate-950 p-6 hidden">
+      <div class="max-w-7xl mx-auto space-y-6">
+        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm">
+          <div>
+            <h2 class="text-xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
+              <span class="text-2xl">🏷️</span>
+              <span>จัดการโปรโมชั่น & ส่วนลด</span>
+            </h2>
+            <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">สร้างรายการส่วนลด 2 รูปแบบ: ส่วนลดเป็นเปอร์เซ็นต์ (%) และ ส่วนลดบิลเป็นจำนวนเงิน (฿) เพื่อกดใช้กับบิลขายได้ทันที</p>
+          </div>
+          <div>
+            <button onclick="openPromotionModal()" class="bg-coffee-600 hover:bg-coffee-700 text-white font-semibold px-4 py-2 text-sm rounded-xl flex items-center space-x-1.5 transition shadow-sm">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
+              </svg>
+              <span>+ เพิ่มโปรโมชั่นใหม่</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <!-- 1. PERCENTAGE DISCOUNTS (%) -->
+          <div class="bg-white dark:bg-slate-900 p-6 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 space-y-4">
+            <div class="flex justify-between items-center border-b border-slate-100 dark:border-slate-800 pb-3">
+              <div class="flex items-center space-x-2">
+                <div class="w-8 h-8 rounded-xl bg-amber-100 dark:bg-amber-950/60 text-amber-900 dark:text-amber-300 font-bold flex items-center justify-center text-sm">
+                  %
+                </div>
+                <div>
+                  <h3 class="font-bold text-slate-900 dark:text-white text-base">ส่วนลดเป็นเปอร์เซ็นต์ (%)</h3>
+                  <p class="text-[11px] text-slate-500 dark:text-slate-400">คำนวณหักเปอร์เซ็นต์จากยอดรวมของออเดอร์</p>
+                </div>
+              </div>
+              <span class="bg-amber-50 dark:bg-amber-950/40 text-amber-900 dark:text-amber-300 border border-amber-200 dark:border-amber-800 text-xs px-2.5 py-0.5 rounded-full font-bold" id="badgePercentCount">0 รายการ</span>
+            </div>
+
+            <div id="promoListPercent" class="space-y-2.5">
+              <!-- Rendered dynamically -->
+            </div>
+          </div>
+
+          <!-- 2. FIXED AMOUNT DISCOUNTS (฿) -->
+          <div class="bg-white dark:bg-slate-900 p-6 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 space-y-4">
+            <div class="flex justify-between items-center border-b border-slate-100 dark:border-slate-800 pb-3">
+              <div class="flex items-center space-x-2">
+                <div class="w-8 h-8 rounded-xl bg-emerald-100 dark:bg-emerald-950/60 text-emerald-900 dark:text-emerald-300 font-bold flex items-center justify-center text-sm">
+                  ฿
+                </div>
+                <div>
+                  <h3 class="font-bold text-slate-900 dark:text-white text-base">ส่วนลดบิลเป็นจำนวนเงิน (฿)</h3>
+                  <p class="text-[11px] text-slate-500 dark:text-slate-400">หักยอดเงินคงที่ออกจากบิล เช่น นำแก้วมาเอง, สมาชิก</p>
+                </div>
+              </div>
+              <span class="bg-emerald-50 dark:bg-emerald-950/40 text-emerald-900 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 text-xs px-2.5 py-0.5 rounded-full font-bold" id="badgeFixedCount">0 รายการ</span>
+            </div>
+
+            <div id="promoListFixed" class="space-y-2.5">
+              <!-- Rendered dynamically -->
+            </div>
+          </div>
+        </div>
+
+        <!-- Quick Info Box -->
+        <div class="bg-amber-50/70 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800/50 p-4 rounded-2xl flex items-start space-x-3 text-xs text-amber-950 dark:text-amber-200">
+          <span class="text-xl leading-none">💡</span>
+          <div class="space-y-1">
+            <div class="font-bold">วิธีใช้ส่วนลดหน้าร้าน (Cashier):</div>
+            <p class="text-amber-900 dark:text-amber-300">ในหน้า **"รับออเดอร์"** ที่แถบตะกร้าด้านขวา คุณสามารถกดปุ่ม **"🏷️ ใส่ส่วนลด"** เพื่อเลือกโปรโมชั่นที่บันทึกไว้ หรือพิมพ์เปอร์เซ็นต์ / จำนวนเงินบาทได้เองอิสระตามต้องการในแต่ละบิล</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB 5: SETTINGS (ตั้งค่าระบบ) -->
+    <div id="content-settings" class="h-full overflow-y-auto bg-slate-50 dark:bg-slate-950 p-6 hidden">
+      <div class="max-w-3xl mx-auto space-y-6">
+        <div>
+          <h2 class="text-xl font-bold text-slate-900 dark:text-white">ตั้งค่าระบบ POS</h2>
+          <p class="text-sm text-slate-500 dark:text-slate-400">ตั้งค่าข้อมูลร้าน ข้อมูลชำระเงิน การพิมพ์ใบเสร็จ และการแสดงผลธีม</p>
+        </div>
+
+        <!-- Theme Settings Card -->
+        <div class="bg-white dark:bg-slate-900 p-6 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 space-y-4">
+          <h3 class="text-sm font-bold text-slate-900 dark:text-white uppercase tracking-wide border-b border-slate-100 dark:border-slate-800 pb-2 flex items-center space-x-2">
+            <span class="text-lg">🎨</span>
+            <span>ธีมและการแสดงผล (Theme Appearance)</span>
+          </h3>
+          <div>
+            <label class="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1">โหมดสีหน้าจอ</label>
+            <select id="settingsThemeMode" onchange="onThemeSettingChange(this.value)" class="w-full px-3 py-2 border border-slate-300 dark:border-slate-700 rounded-lg text-sm bg-white dark:bg-slate-800 text-slate-800 dark:text-white focus:ring-1 focus:ring-coffee-500 focus:outline-none font-medium">
+              <option value="dark">🌙 โหมดมืด (Dark Theme - ค่าเริ่มต้น)</option>
+              <option value="light">☀️ โหมดสว่าง (Light Theme)</option>
+            </select>
+            <p class="text-xs text-slate-400 dark:text-slate-500 mt-1">สามารถกดปุ่มสลับธีม 🌙/☀️ ได้ทุกเมื่อจากแถบด้านบนของหน้าจอ</p>
+          </div>
+        </div>
+
+        <!-- Shop Profile Settings -->
+        <div class="bg-white dark:bg-slate-900 p-6 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 space-y-4">
+          <h3 class="text-sm font-bold text-slate-900 dark:text-white uppercase tracking-wide border-b border-slate-100 dark:border-slate-800 pb-2 flex items-center space-x-2">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-coffee-600 dark:text-amber-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+            </svg>
+            <span>ข้อมูลร้านค้า (แสดงหัวใบเสร็จ)</span>
+          </h3>
+          
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label class="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1">ชื่อร้าน</label>
+              <input type="text" id="settingsShopName" class="w-full px-3 py-2 border border-slate-300 dark:border-slate-700 rounded-lg text-sm bg-white dark:bg-slate-800 text-slate-800 dark:text-white focus:ring-1 focus:ring-coffee-500 focus:outline-none">
+            </div>
+            <div>
+              <label class="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1">เบอร์โทรศัพท์</label>
+              <input type="text" id="settingsShopPhone" class="w-full px-3 py-2 border border-slate-300 dark:border-slate-700 rounded-lg text-sm bg-white dark:bg-slate-800 text-slate-800 dark:text-white focus:ring-1 focus:ring-coffee-500 focus:outline-none">
+            </div>
+            <div class="sm:col-span-2">
+              <label class="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1">ที่อยูร้านค้า</label>
+              <textarea id="settingsShopAddress" rows="2" class="w-full px-3 py-2 border border-slate-300 dark:border-slate-700 rounded-lg text-sm bg-white dark:bg-slate-800 text-slate-800 dark:text-white focus:ring-1 focus:ring-coffee-500 focus:outline-none"></textarea>
+            </div>
+            <div class="sm:col-span-2">
+              <label class="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1">ข้อความท้ายใบเสร็จ</label>
+              <input type="text" id="settingsReceiptFooter" class="w-full px-3 py-2 border border-slate-300 dark:border-slate-700 rounded-lg text-sm bg-white dark:bg-slate-800 text-slate-800 dark:text-white focus:ring-1 focus:ring-coffee-500 focus:outline-none">
+            </div>
+          </div>
+        </div>
+
+        <!-- Payment / QR Info Settings -->
+        <div class="bg-white dark:bg-slate-900 p-6 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 space-y-4">
+          <h3 class="text-sm font-bold text-slate-900 dark:text-white uppercase tracking-wide border-b border-slate-100 dark:border-slate-800 pb-2 flex items-center space-x-2">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-coffee-600 dark:text-amber-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h.01M16 12h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <span>ตั้งค่าช่องทางรับเงิน (QR Code โอนเงิน)</span>
+          </h3>
+
+          <div class="space-y-4">
+            <div>
+              <label class="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1">รูปแบบการรับเงิน</label>
+              <select id="settingsPromptPayType" onchange="togglePaymentSettingsFields()" class="w-full px-3 py-2 border border-slate-300 dark:border-slate-700 rounded-lg text-sm bg-white dark:bg-slate-800 text-slate-800 dark:text-white focus:ring-1 focus:ring-coffee-500 focus:outline-none font-medium">
+                <option value="mobile">📱 พร้อมเพย์ เบอร์โทรศัพท์มือถือ [แนะนำ - สแกนโอนได้ทุกธนาคาร 100%]</option>
+                <option value="natid">🪪 พร้อมเพย์ เลขบัตรประชาชน / เลขนิติบุคคล 13 หลัก</option>
+                <option value="image">🖼️ อัปโหลดรูปภาพ QR รับเงิน (จากแอป SCB EASY / แม่มณี / K SHOP)</option>
+                <option value="bank">🏦 โอนเข้าเลขบัญชีธนาคาร (แสดงเลขบัญชีให้ลูกค้าพิมพ์โอนเอง)</option>
+              </select>
+              <div class="mt-2.5 p-3 bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800/60 rounded-xl text-xs text-amber-850 dark:text-amber-300 space-y-1">
+                <div class="font-bold flex items-center gap-1 text-amber-900 dark:text-amber-200">
+                  <span>💡 เคล็ดลับการรับเงินผ่าน QR ธนาคารในไทย:</span>
+                </div>
+                <p class="leading-relaxed">
+                  ธนาคารในไทย (รวมถึง SCB) ไม่อนุญาตให้สร้าง QR สแกนโอนเข้า <em>"เลขบัญชีเดี่ยวๆ"</em> โดยตรง<br>
+                  เพื่อให้ลูกค้า <strong>สแกน QR แล้วโอนเงินได้สำเร็จ 100%</strong> แนะนำ 2 วิธี:
+                </p>
+                <ul class="list-disc list-inside space-y-0.5 pt-0.5 text-[11.5px]">
+                  <li><strong>วิธีที่ 1 (สะดวกที่สุด):</strong> เลือก <em>"พร้อมเพย์ เบอร์โทรศัพท์มือถือ"</em> ที่ผูกกับบัญชี SCB ของคุณ (ระบบจะสร้าง QR ยอดเงินพอดีเป๊ะ โอนได้ทุกธนาคาร)</li>
+                  <li><strong>วิธีที่ 2:</strong> เลือก <em>"อัปโหลดรูปภาพ QR รับเงิน"</em> โดยแคปรูป QR จากแอป <strong>SCB EASY</strong> หรือ <strong>แม่มณี</strong> มาใส่ได้เลยครับ</li>
+                </ul>
+              </div>
+            </div>
+
+            <!-- Fields for Bank Account -->
+            <div id="settingsBankFields" class="space-y-4 pt-1">
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label class="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1">ธนาคาร</label>
+                  <select id="settingsBankCode" class="w-full px-3 py-2 border border-slate-300 dark:border-slate-700 rounded-lg text-sm bg-white dark:bg-slate-800 text-slate-800 dark:text-white focus:ring-1 focus:ring-coffee-500 focus:outline-none font-medium">
+                    <option value="004">ธนาคารกสิกรไทย (KBANK)</option>
+                    <option value="014">ธนาคารไทยพาณิชย์ (SCB)</option>
+                    <option value="002">ธนาคารกรุงเทพ (BBL)</option>
+                    <option value="006">ธนาคารกรุงไทย (KTB)</option>
+                    <option value="025">ธนาคารกรุงศรีอยุธยา (BAY)</option>
+                    <option value="011">ธนาคารทหารไทยธนชาต (TTB)</option>
+                    <option value="030">ธนาคารออมสิน (GSB)</option>
+                    <option value="034">ธนาคารเพื่อการเกษตรฯ (ธ.ก.ส.)</option>
+                    <option value="024">ธนาคารยูโอบี (UOB)</option>
+                    <option value="069">ธนาคารเกียรตินาคินภัทร (KKP)</option>
+                    <option value="022">ธนาคารซีไอเอ็มบีไทย (CIMB)</option>
+                    <option value="073">ธนาคารแลนด์ แอนด์ เฮ้าส์ (LH Bank)</option>
+                    <option value="067">ธนาคารทิสโก้ (TISCO)</option>
+                  </select>
+                </div>
+                <div>
+                  <label class="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1">เลขที่บัญชีธนาคาร</label>
+                  <input type="text" id="settingsBankAccountNo" placeholder="เช่น 1234567890 (มีหรือไม่มีขีดก็ได้)" class="w-full px-3 py-2 border border-slate-300 dark:border-slate-700 rounded-lg text-sm bg-white dark:bg-slate-800 text-slate-800 dark:text-white focus:ring-1 focus:ring-coffee-500 focus:outline-none font-medium">
+                </div>
+              </div>
+              <div>
+                <label class="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1">ชื่อบัญชี (สำหรับให้ลูกค้าตรวจสอบก่อนโอน)</label>
+                <input type="text" id="settingsBankAccountName" placeholder="เช่น นายสมชาย ใจดี หรือ ร้าน คอฟฟี่คราฟต์" class="w-full px-3 py-2 border border-slate-300 dark:border-slate-700 rounded-lg text-sm bg-white dark:bg-slate-800 text-slate-800 dark:text-white focus:ring-1 focus:ring-coffee-500 focus:outline-none font-medium">
+              </div>
+            </div>
+
+            <!-- Fields for PromptPay Mobile / NatID -->
+            <div id="settingsPromptPayFields" class="hidden">
+              <label class="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1" id="settingsPromptPayLabel">เลขพร้อมเพย์</label>
+              <input type="text" id="settingsPromptPayNo" placeholder="เช่น 0812345678 หรือ 1100999888777" class="w-full px-3 py-2 border border-slate-300 dark:border-slate-700 rounded-lg text-sm bg-white dark:bg-slate-800 text-slate-800 dark:text-white focus:ring-1 focus:ring-coffee-500 focus:outline-none">
+              <p class="text-xs text-slate-400 dark:text-slate-500 mt-1">โปรดตรวจสอบตัวเลขให้ถูกต้องเพื่อป้องกันข้อผิดพลาดในการโอนเงิน</p>
+            </div>
+
+            <!-- Fields for Uploaded QR Image -->
+            <div id="settingsQrImageFields" class="hidden space-y-3">
+              <label class="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1">อัปโหลดรูปภาพ QR Code จากแอปธนาคารของคุณ</label>
+              <input type="file" id="settingsQrImageInput" accept="image/*" onchange="handleQrImageUpload(event)" class="block w-full text-xs text-slate-500 dark:text-slate-400 file:mr-3 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-coffee-50 dark:file:bg-slate-800 file:text-coffee-700 dark:file:text-amber-400 hover:file:bg-coffee-100 dark:hover:file:bg-slate-700 cursor-pointer">
+              <div id="settingsQrImagePreviewContainer" class="hidden items-center space-x-4 p-3 bg-slate-50 dark:bg-slate-800/80 rounded-xl border border-slate-200 dark:border-slate-700">
+                <img id="settingsQrImagePreview" src="" alt="QR Preview" class="w-24 h-24 object-contain rounded-lg border dark:border-slate-700 bg-white p-1 shadow-sm">
+                <div class="text-xs space-y-1">
+                  <span class="font-bold text-slate-700 dark:text-slate-300 block">รูป QR Code ปัจจุบัน</span>
+                  <button type="button" onclick="removeQrImage()" class="text-red-500 hover:text-red-400 font-semibold underline text-xs">ลบรูปภาพนี้</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Hardware Settings -->
+        <div class="bg-white dark:bg-slate-900 p-6 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 space-y-4">
+          <h3 class="text-sm font-bold text-slate-900 dark:text-white uppercase tracking-wide border-b border-slate-100 dark:border-slate-800 pb-2 flex items-center space-x-2">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-coffee-600 dark:text-amber-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
+            </svg>
+            <span>ตั้งค่าเครื่องพิมพ์ใบเสร็จ (Thermal POS Printer)</span>
+          </h3>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label class="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1">ความกว้างหน้ากระดาษ</label>
+              <select id="settingsPaperSize" class="w-full px-3 py-2 border border-slate-300 dark:border-slate-700 rounded-lg text-sm bg-white dark:bg-slate-800 text-slate-800 dark:text-white focus:ring-1 focus:ring-coffee-500 focus:outline-none">
+                <option value="80mm">80 mm (Vozy U9, Xprinter, Epson, มาตรฐานตั้งโต๊ะ)</option>
+                <option value="58mm">58 mm (เครื่องพิมพ์พกพา บลูทูธ)</option>
+              </select>
+            </div>
+
+            <div>
+              <label class="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1">การพิมพ์ QR Code บนสลิป</label>
+              <select id="settingsPrintQrMode" class="w-full px-3 py-2 border border-slate-300 dark:border-slate-700 rounded-lg text-sm bg-white dark:bg-slate-800 text-slate-800 dark:text-white focus:ring-1 focus:ring-coffee-500 focus:outline-none">
+                <option value="auto">อัตโนมัติ (แสดงเฉพาะบิลโอนเงิน/QR แบบกะทัดรัด)</option>
+                <option value="always">แสดงทุกบิล</option>
+                <option value="never">ไม่พิมพ์ QR Code (ประหยัดกระดาษ)</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label class="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1">การพิมพ์โลโก้ร้าน</label>
+              <select id="settingsPrintLogoMode" class="w-full px-3 py-2 border border-slate-300 dark:border-slate-700 rounded-lg text-sm bg-white dark:bg-slate-800 text-slate-800 dark:text-white focus:ring-1 focus:ring-coffee-500 focus:outline-none">
+                <option value="compact">พิมพ์โลโก้ขนาดกะทัดรัด (แนะนำสำหรับสลิปม้วน)</option>
+                <option value="normal">พิมพ์โลโก้ขนาดปกติ</option>
+                <option value="hide">ไม่พิมพ์โลโก้ (เน้นชื่อร้าน)</option>
+              </select>
+            </div>
+
+            <div class="flex items-center space-x-2 pt-2 sm:pt-5">
+              <input type="checkbox" id="settingsAutoCutFix" checked class="w-4 h-4 text-amber-600 rounded focus:ring-amber-500">
+              <label for="settingsAutoCutFix" class="text-xs font-semibold text-slate-700 dark:text-slate-300 cursor-pointer">
+                บังคับพิมพ์หน้าเดียวจบ (Anti-Page-Break ไม่ตัดกระดาษคั่นกลาง)
+              </label>
+            </div>
+          </div>
+
+          <!-- Thermal Printer Advice Box -->
+          <div class="bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800/70 p-3.5 rounded-xl text-xs space-y-2 text-amber-900 dark:text-amber-200">
+            <p class="font-bold flex items-center gap-1.5 text-amber-800 dark:text-amber-300">
+              <span>💡</span>
+              <span>การตั้งค่าหน้าพิมพ์ (Print Dialog) สำหรับเครื่อง Vozy U9:</span>
+            </p>
+            <ul class="list-disc list-inside space-y-1 text-[11px] text-amber-900/80 dark:text-amber-300/90 pl-1">
+              <li><strong>เครื่องพิมพ์ปลายทาง (Destination):</strong> เลือกชื่อเครื่องพิมพ์ที่เชื่อมต่อ (เช่น <strong>LABEL</strong> หรือ <strong>POS-80</strong>)</li>
+              <li><strong>ระยะขอบ (Margins):</strong> เลือก <strong>"ไม่มี" (None)</strong> เสมอ เพื่อไม่ให้เกิดระยะเว้นว่างหัว-ท้าย</li>
+              <li><strong>หัวกระดาษและท้ายกระดาษ (Headers and footers):</strong> <strong>เอาติ๊กถูกออก</strong> ป้องกันไม่ให้มี URL หรือวันที่มาเบียดพื้นที่</li>
+              <li><strong>ขนาดกระดาษ (Paper size):</strong> หากใช้ไดรเวอร์ฉลาก (LABEL) ให้เลือกขนาดสั้น เช่น <strong>"72mm x 100mm"</strong> (ห้ามเลือก 80x297 หรือ 100x150 เพราะเครื่องจะเลื่อนกระดาษยาวตามขนาดที่ตั้งไว้)</li>
+            </ul>
+            <div class="pt-1.5 border-t border-amber-200/60 dark:border-amber-800/50 text-[10.5px] text-red-600 dark:text-red-400">
+              ⚠️ <strong>เครื่องกระพริบไฟแดง + ปี๊บๆ:</strong> เกิดจากเซ็นเซอร์เครื่องกำลังอยู่ในโหมดตรวจหาสติ๊กเกอร์ (Label Gap) ให้เปลี่ยนชนิดกระดาษในตั้งค่าเครื่องพิมพ์ Windows เป็น Continuous (กระดาษต่อเนื่อง)
+            </div>
+          </div>
+
+          <!-- Quick Test Print Action -->
+          <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 pt-2 border-t border-slate-100 dark:border-slate-800">
+            <span class="text-xs text-slate-500 dark:text-slate-400">กดเพื่อทดสอบส่งคำสั่งพิมพ์สลิปไปยังเครื่องพิมพ์ Vozy U9 โดยตรง</span>
+            <button type="button" onclick="testThermalPrint()" class="px-3.5 py-1.5 bg-amber-500/10 hover:bg-amber-500/20 text-amber-700 dark:text-amber-400 border border-amber-500/30 rounded-lg text-xs font-bold transition flex items-center gap-1.5 shadow-xs">
+              <span>🖨️ ทดสอบพิมพ์สลิปสั้น (Test Print)</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Payment Sound & Voice Notification Settings -->
+        <div class="bg-white dark:bg-slate-900 p-6 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 space-y-4">
+          <div class="flex justify-between items-center border-b border-slate-100 dark:border-slate-800 pb-2">
+            <h3 class="text-sm font-bold text-slate-900 dark:text-white uppercase tracking-wide flex items-center space-x-2">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-amber-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
+              </svg>
+              <span>ระบบเสียงแจ้งเตือนเมื่อรับชำระเงิน (Audio &amp; Voice Alerts)</span>
+            </h3>
+            <span class="text-[11px] font-semibold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-200 dark:border-emerald-800/80 px-2.5 py-0.5 rounded-full">ฟรี ไม่มีค่าธรรมเนียม</span>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div class="space-y-1.5">
+              <div class="flex items-center space-x-2">
+                <input type="checkbox" id="settingsSoundEnabled" checked class="w-4 h-4 text-amber-600 rounded focus:ring-amber-500">
+                <label for="settingsSoundEnabled" class="text-xs font-bold text-slate-800 dark:text-slate-200 cursor-pointer">
+                  🔔 เสียงกระดิ่งแคชเชียร์ (Chime Sound)
+                </label>
+              </div>
+              <p class="text-[11px] text-slate-500 dark:text-slate-400 pl-6">
+                ส่งเสียง "ติ๊ง-ดอง!" ใสๆ สไตล์คาเฟ่ ทันทีที่ทีมงานกดยืนยันรับเงิน
+              </p>
+            </div>
+
+            <div class="space-y-2">
+              <div class="flex items-center space-x-2">
+                <input type="checkbox" id="settingsVoiceEnabled" checked class="w-4 h-4 text-amber-600 rounded focus:ring-amber-500">
+                <label for="settingsVoiceEnabled" class="text-xs font-bold text-slate-800 dark:text-slate-200 cursor-pointer">
+                  🗣️ เสียงพูดภาษาไทย (Thai Voice Announcement)
+                </label>
+              </div>
+              <div class="pl-6 space-y-1.5">
+                <div class="flex items-center gap-2">
+                  <label for="settingsVoiceGender" class="text-[11px] font-semibold text-slate-600 dark:text-slate-400">เลือกเพศเสียง:</label>
+                  <select id="settingsVoiceGender" onchange="testPaymentAudioAlert()" class="px-2 py-1 text-xs border border-slate-300 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-800 text-slate-800 dark:text-white focus:outline-none focus:ring-1 focus:ring-amber-500 font-medium">
+                    <option value="female" selected>👩 เสียงผู้หญิง (พูด "ค่ะ" - หวานสุภาพ) [แนะนำ]</option>
+                    <option value="male">👨 เสียงผู้ชาย (พูด "ครับ" - นุ่มสุภาพ)</option>
+                  </select>
+                </div>
+                <p class="text-[10.5px] text-slate-500 dark:text-slate-400">
+                  ระบบจะค้นหาเสียงพนักงานหญิง (Premwadee / Google / Kanya) และปรับโทนหวานใสให้อัตโนมัติ
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 pt-3 border-t border-slate-100 dark:border-slate-800">
+            <span class="text-xs text-slate-500 dark:text-slate-400">เสียงจะดังทั้งบนหน้าจอแคชเชียร์ และบนหน้าจอแสดงผลของลูกค้า (Dual Screen)</span>
+            <button type="button" onclick="testPaymentAudioAlert()" class="px-3.5 py-1.5 bg-amber-500/10 hover:bg-amber-500/20 text-amber-700 dark:text-amber-400 border border-amber-500/30 rounded-lg text-xs font-bold transition flex items-center gap-1.5 shadow-xs">
+              <span>🔊 ทดสอบฟังเสียงแจ้งเตือน</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Staff & Security Management Card (Owner Only) -->
+        <div id="settingsStaffCard" class="bg-white dark:bg-slate-900 p-6 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 space-y-4">
+          <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 border-b border-slate-100 dark:border-slate-800 pb-3">
+            <div>
+              <h3 class="text-sm font-bold text-slate-900 dark:text-white uppercase tracking-wide flex items-center space-x-2">
+                <span class="text-lg">👥</span>
+                <span>จัดการผู้ใช้งานและพนักงานร้าน (Staff & Security)</span>
+              </h3>
+              <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">เพิ่ม/ลบพนักงาน กำหนด PIN 4 หลัก และควบคุมสิทธิ์การเข้าถึงเมนูและรายงานบัญชี</p>
+            </div>
+            <button type="button" onclick="openStaffModal()" class="px-3.5 py-2 bg-coffee-600 hover:bg-coffee-700 text-white text-xs font-bold rounded-xl shadow-sm transition flex items-center gap-1.5 whitespace-nowrap">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+              <span>+ เพิ่มพนักงานใหม่</span>
+            </button>
+          </div>
+
+          <!-- Roles Explanation Banner -->
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+            <div class="p-3 rounded-xl bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800/50 text-amber-900 dark:text-amber-200">
+              <div class="font-bold flex items-center gap-1.5">
+                <span>👑 เจ้าของร้าน (Owner)</span>
+              </div>
+              <p class="mt-1 text-[11px] leading-relaxed text-amber-800 dark:text-amber-300">เข้าถึงได้ทุกส่วนของระบบ (ขายหน้าร้าน, ปรับราคา/เพิ่มเมนู, ดูบัญชีย้อนหลังทุกช่วงเวลา, ส่งออก Excel, จัดการพนักงาน)</p>
+            </div>
+            <div class="p-3 rounded-xl bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800/50 text-blue-900 dark:text-blue-200">
+              <div class="font-bold flex items-center gap-1.5">
+                <span>☕ พนักงานหน้าร้าน (Staff)</span>
+              </div>
+              <p class="mt-1 text-[11px] leading-relaxed text-blue-800 dark:text-blue-300">ขายของได้เต็มที่, ดูยอดขายเฉพาะ <strong>"วันนี้"</strong> เพื่อตรวจนับกะเงินสด, <strong>ไม่สามารถ</strong>แก้ราคา/เมนู และไม่เห็นบัญชีย้อนหลัง</p>
+            </div>
+          </div>
+
+          <!-- Staff Table Container -->
+          <div class="overflow-x-auto rounded-xl border border-slate-200 dark:border-slate-800">
+            <table class="w-full text-left text-xs">
+              <thead class="bg-slate-50 dark:bg-slate-800/60 text-slate-500 dark:text-slate-400 font-semibold border-b border-slate-200 dark:border-slate-700">
+                <tr>
+                  <th class="px-4 py-3">ผู้ใช้งาน</th>
+                  <th class="px-4 py-3">ตำแหน่ง / สิทธิ์</th>
+                  <th class="px-4 py-3 text-center">รหัส PIN</th>
+                  <th class="px-4 py-3 text-center">สถานะ</th>
+                  <th class="px-4 py-3 text-right">จัดการ</th>
+                </tr>
+              </thead>
+              <tbody id="staffListTableBody" class="divide-y divide-slate-100 dark:divide-slate-800 bg-white dark:bg-slate-900 font-medium">
+                <!-- Dynamic rows by renderStaffList() -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="flex justify-between items-center bg-slate-100 dark:bg-slate-800/80 p-4 rounded-2xl border border-slate-200 dark:border-slate-700">
+          <button onclick="resetToSampleData()" class="text-xs text-red-500 hover:text-red-400 font-semibold border border-red-200 dark:border-red-900/60 bg-white dark:bg-slate-800 px-3 py-2 rounded-lg transition">
+            ล้างข้อมูลทั้งหมด & โหลดข้อมูลทดลอง
+          </button>
+          
+          <button onclick="saveSystemSettings()" class="bg-coffee-600 hover:bg-coffee-700 text-white font-bold px-6 py-2.5 text-sm rounded-lg shadow-sm transition">
+            บันทึกการตั้งค่า
+          </button>
+        </div>
+      </div>
+    </div>
+  </main>
+
+
+  <!-- ==========================================
+       MODALS & OVERLAYS (HIDDEN BY DEFAULT)
+       ========================================== -->
+
+  <!-- 1. CUSTOMIZATION MODAL -->
+  <div id="customizationModal" class="fixed inset-0 bg-slate-950/70 backdrop-blur-sm z-50 flex items-center justify-center hidden p-4">
+    <div class="bg-white dark:bg-slate-900 w-full max-w-lg rounded-2xl shadow-xl overflow-hidden transform scale-95 transition-transform flex flex-col max-h-[90vh] border border-slate-200 dark:border-slate-800">
+      <!-- Modal Header -->
+      <div class="p-4 border-b border-slate-200 dark:border-slate-800 flex justify-between items-center bg-slate-50 dark:bg-slate-900/80">
+        <h3 id="customModalTitle" class="text-lg font-bold text-slate-900 dark:text-white">แต่งเครื่องดื่ม</h3>
+        <button onclick="closeCustomizationModal()" class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 focus:outline-none">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+      </div>
+
+      <!-- Modal Body (Scrollable options) -->
+      <div id="customModalBody" class="flex-1 overflow-y-auto p-6 space-y-6 bg-white dark:bg-slate-900">
+        <!-- Dynamically filled with options like: size, sweetness, toppings -->
+      </div>
+
+      <!-- Price Override & Redemption Section (ปรับราคาเอง / แลกแต้ม ฿0) -->
+      <div class="px-5 py-3 border-t border-slate-200 dark:border-slate-800 bg-amber-50/40 dark:bg-amber-950/20 space-y-2">
+        <div class="flex items-center justify-between">
+          <label class="text-xs font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1.5 cursor-pointer">
+            <input type="checkbox" id="toggleCustomPriceCheckbox" onchange="toggleModalCustomPrice(this.checked)" class="rounded text-amber-600 focus:ring-amber-500 w-4 h-4 cursor-pointer">
+            <span>🏷️ ปรับราคาเอง / โปรแลกแก้ว</span>
+          </label>
+          <div class="flex items-center gap-1.5">
+            <button type="button" onclick="setModalCustomPriceQuick(0, 'แลกแต้ม/ฟรี')" class="px-2.5 py-1 text-[11px] font-bold rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs transition flex items-center gap-1">
+              <span>🎁</span>
+              <span>ฟรี / แลกแต้ม (฿0)</span>
+            </button>
+            <button type="button" onclick="resetModalCustomPrice()" id="btnResetModalCustomPrice" class="hidden px-2 py-1 text-[11px] font-semibold text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 rounded-lg hover:bg-slate-200/60 dark:hover:bg-slate-800 transition">
+              ↺ คืนค่าปกติ
+            </button>
+          </div>
+        </div>
+
+        <div id="modalCustomPriceInputArea" class="hidden grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1">
+          <div class="relative">
+            <span class="absolute left-2.5 top-2 text-xs font-bold text-slate-400">฿</span>
+            <input type="number" id="modalCustomPriceInput" min="0" step="any" placeholder="0" oninput="onModalCustomPriceInput(this.value)" class="w-full pl-7 pr-3 py-1.5 border border-amber-300 dark:border-amber-700 rounded-lg text-xs font-bold bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-amber-500 focus:outline-none">
+          </div>
+          <input type="text" id="modalCustomPriceNote" placeholder="หมายเหตุ เช่น แลกแต้ม 10 แก้ว..." oninput="onModalCustomPriceNoteInput(this.value)" class="w-full px-3 py-1.5 border border-slate-300 dark:border-slate-700 rounded-lg text-xs bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-amber-500 focus:outline-none">
+        </div>
+      </div>
+
+      <!-- Modal Footer -->
+      <div class="p-4 border-t border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/80 flex items-center justify-between">
+        <!-- Quantity Selector -->
+        <div class="flex items-center space-x-3 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg p-1">
+          <button onclick="adjustModalQty(-1)" class="w-8 h-8 flex items-center justify-center text-slate-600 dark:text-slate-300 font-bold hover:bg-slate-100 dark:hover:bg-slate-700 rounded-md">-</button>
+          <span id="modalQtyDisplay" class="font-bold text-slate-900 dark:text-white w-6 text-center">1</span>
+          <button onclick="adjustModalQty(1)" class="w-8 h-8 flex items-center justify-center text-slate-600 dark:text-slate-300 font-bold hover:bg-slate-100 dark:hover:bg-slate-700 rounded-md">+</button>
+        </div>
+
+        <button onclick="addModalItemToCart()" class="bg-coffee-600 hover:bg-coffee-700 text-white font-bold py-2.5 px-6 rounded-xl shadow transition flex items-center space-x-2">
+          <span id="modalAddButtonText">ใส่ตะกร้า (฿0.00)</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 2. CHECKOUT MODAL -->
+  <div id="checkoutModal" class="fixed inset-0 bg-slate-950/70 backdrop-blur-sm z-50 flex items-center justify-center hidden p-4">
+    <div class="bg-white dark:bg-slate-900 w-full max-w-2xl rounded-2xl shadow-xl overflow-hidden transform scale-95 transition-transform flex flex-col md:flex-row h-auto md:max-h-[85vh] border border-slate-200 dark:border-slate-800">
+      <!-- Left side: Total and Payment Option Selection -->
+      <div class="flex-1 p-6 flex flex-col justify-between border-b md:border-b-0 md:border-r border-slate-200 dark:border-slate-800">
+        <div class="space-y-4">
+          <h3 class="text-lg font-bold text-slate-900 dark:text-white">ชำระเงิน</h3>
+          <div class="bg-slate-50 dark:bg-slate-800/80 p-4 rounded-xl border border-slate-200 dark:border-slate-700 text-center">
+            <span class="text-xs text-slate-500 dark:text-slate-400 font-semibold uppercase tracking-wider block">ยอดเงินชำระทั้งหมด</span>
+            <span id="checkoutTotalAmount" class="text-3xl font-black text-coffee-700 dark:text-amber-400 mt-1 block">฿0.00</span>
+          </div>
+
+          <!-- Zero Baht / Points Redemption Banner -->
+          <div id="zeroBahtCheckoutNotice" class="hidden bg-emerald-50 dark:bg-emerald-950/60 p-3 rounded-xl border border-emerald-300 dark:border-emerald-800/80 text-center space-y-1">
+            <div class="text-xs font-bold text-emerald-800 dark:text-emerald-300 flex items-center justify-center gap-1.5">
+              <span>🎁</span>
+              <span>บิลแลกแต้ม / โปรโมชั่นฟรี (ยอดชำระ ฿0.00)</span>
+            </div>
+            <p class="text-[10px] text-emerald-700 dark:text-emerald-400">ระบบจะตัดสต็อกและบันทึกสถิติแก้วตามปกติ โดยไม่มียอดเงินที่ต้องรับชำระ</p>
+          </div>
+
+          <div>
+            <label class="block text-xs font-bold text-slate-500 dark:text-slate-400 mb-2 uppercase tracking-wide">ช่องทางการชำระเงิน</label>
+            <div class="grid grid-cols-2 gap-3">
+              <button onclick="setCheckoutMethod('cash')" id="btn-method-cash" class="flex flex-col items-center justify-center p-4 border-2 border-coffee-600 dark:border-amber-500 bg-coffee-50/50 dark:bg-amber-950/30 text-coffee-700 dark:text-amber-300 rounded-xl font-bold transition">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
+                </svg>
+                <span>เงินสด</span>
+              </button>
+              <button onclick="setCheckoutMethod('promptpay')" id="btn-method-promptpay" class="flex flex-col items-center justify-center p-4 border border-slate-300 dark:border-slate-700 hover:border-slate-400 dark:hover:border-slate-600 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 rounded-xl font-bold transition">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mb-2 text-emerald-600 dark:text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h.01M16 12h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <span id="checkoutMethodQrLabel">สแกนจ่าย QR</span>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div class="space-y-2 pt-4">
+          <button type="button" onclick="openReceiptPreviewModal()" class="w-full bg-amber-50 dark:bg-amber-950/40 hover:bg-amber-100 dark:hover:bg-amber-900/60 text-amber-900 dark:text-amber-300 border-2 border-amber-600/40 dark:border-amber-700/60 font-bold py-2.5 px-4 rounded-xl transition flex items-center justify-center space-x-2 shadow-sm">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-amber-800 dark:text-amber-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+              <path stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+            </svg>
+            <span>🧾 ดูตัวอย่างใบเสร็จ (Preview)</span>
+          </button>
+
+          <div class="flex space-x-2">
+            <button type="button" onclick="closeCheckoutModal()" class="flex-1 border border-slate-300 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 font-bold py-2.5 px-3 rounded-xl transition text-xs font-medium">ยกเลิก</button>
+            <button type="button" onclick="completeOrder(false)" class="flex-1 bg-slate-800 dark:bg-slate-700 hover:bg-slate-900 dark:hover:bg-slate-600 text-white font-bold py-2.5 px-3 rounded-xl transition shadow text-xs">
+              💾 บันทึก
+            </button>
+            <button type="button" onclick="completeOrder(true)" class="flex-1 bg-coffee-600 hover:bg-coffee-700 text-white font-bold py-2.5 px-3 rounded-xl transition flex justify-center items-center space-x-1 shadow text-xs">
+              <span>🖨️ บันทึก & พิมพ์</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Right side: Payment Details (Cash changes / PromptPay / Bank QR) -->
+      <div class="flex-1 p-6 bg-slate-50 dark:bg-slate-900/60 flex flex-col justify-center min-h-[350px]">
+        <!-- Cash View -->
+        <div id="checkoutView-cash" class="space-y-4 h-full flex flex-col justify-between">
+          <div class="space-y-3">
+            <label class="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wide">คำนวณเงินทอน</label>
+            <div class="relative">
+              <span class="absolute left-3 top-2.5 text-slate-400 font-bold">฿</span>
+              <input type="number" id="cashReceivedInput" placeholder="รับเงินมา..." oninput="calculateCashChange()" class="w-full pl-8 pr-4 py-2 border border-slate-300 dark:border-slate-700 rounded-lg text-lg font-bold bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-coffee-500 focus:outline-none animate-pulse-once">
+            </div>
+
+            <!-- Quick Cash Buttons -->
+            <div class="grid grid-cols-4 gap-2" id="quickCashButtons">
+              <!-- Dynamically rendered -->
+            </div>
+          </div>
+
+          <div class="bg-amber-100 dark:bg-amber-950/60 p-4 rounded-xl border border-amber-200 dark:border-amber-800 text-center mt-4">
+            <span class="text-xs text-amber-800 dark:text-amber-300 font-semibold block uppercase tracking-wider">เงินทอน</span>
+            <span id="cashChangeDisplay" class="text-3xl font-black text-amber-900 dark:text-amber-200 mt-1 block">฿0.00</span>
+          </div>
+        </div>
+
+        <!-- QR View (PromptPay / Bank Account / Image) -->
+        <div id="checkoutView-promptpay" class="space-y-3 flex flex-col items-center justify-center hidden text-center">
+          <div class="bg-white dark:bg-slate-800 p-4 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm flex flex-col items-center justify-center w-full max-w-[280px]">
+            <!-- Dynamic Bank or PromptPay Header Badge -->
+            <div id="qrHeaderBadge" class="bg-emerald-700 text-white text-[11px] tracking-wider font-bold px-4 py-1 rounded-full mb-2.5 select-none flex items-center space-x-1 shadow-sm">
+              <span id="qrHeaderBadgeText">โอนผ่านบัญชีธนาคาร</span>
+            </div>
+
+            <!-- Canvas where QR code is dynamically rendered -->
+            <canvas id="promptPayQrCanvas" class="w-48 h-48 border border-slate-100 bg-white p-1 rounded-lg"></canvas>
+            
+            <!-- Or static image if uploaded -->
+            <img id="promptPayStaticImg" class="w-48 h-48 object-contain border border-slate-100 dark:border-slate-700 hidden rounded-lg bg-white" alt="Bank QR">
+
+            <div id="promptPayScanAmount" class="font-black text-slate-900 dark:text-white text-lg mt-2">฿0.00</div>
+          </div>
+          
+          <div class="w-full max-w-[280px]">
+            <div id="qrAccountDetailsCard" class="bg-slate-100 dark:bg-slate-800/90 p-2.5 rounded-xl text-xs space-y-1 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-200 text-left">
+              <div id="promptPayInfoText" class="font-bold text-slate-900 dark:text-white flex justify-between">
+                <span>ธนาคาร:</span>
+                <span id="qrBankNameText" class="font-semibold text-coffee-800 dark:text-amber-400">-</span>
+              </div>
+              <div id="qrAccountNoRow" class="flex justify-between font-semibold">
+                <span class="text-slate-500 dark:text-slate-400">เลขบัญชี:</span>
+                <span id="qrAccountNoText" class="text-coffee-900 dark:text-amber-300 font-bold select-all">-</span>
+              </div>
+              <div id="qrAccountNameRow" class="flex justify-between text-slate-600 dark:text-slate-300">
+                <span class="text-slate-500 dark:text-slate-400">ชื่อบัญชี:</span>
+                <span id="qrAccountNameText" class="font-medium truncate max-w-[170px]">-</span>
+              </div>
+            </div>
+            <p class="text-[11px] text-slate-400 dark:text-slate-500 mt-1.5 font-medium">สแกนชำระเงินและตรวจสอบชื่อบัญชีก่อนโอน</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 3. ADD/EDIT PRODUCT CONFIG MODAL -->
+  <div id="productConfigModal" class="fixed inset-0 bg-slate-950/70 backdrop-blur-sm z-50 flex items-center justify-center hidden p-4">
+    <div class="bg-white dark:bg-slate-900 w-full max-w-lg rounded-2xl shadow-xl overflow-hidden transform scale-95 transition-transform flex flex-col border border-slate-200 dark:border-slate-800">
+      <div class="p-4 border-b border-slate-200 dark:border-slate-800 flex justify-between items-center bg-slate-50 dark:bg-slate-900/80">
+        <h3 id="productConfigModalTitle" class="text-lg font-bold text-slate-900 dark:text-white">เพิ่มสินค้าใหม่</h3>
+        <button onclick="closeProductModal()" class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 focus:outline-none">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+      </div>
+
+      <div class="p-6 space-y-4 overflow-y-auto max-h-[70vh] bg-white dark:bg-slate-900">
+        <input type="hidden" id="editProductId">
+        
+        <div>
+          <label class="block text-xs font-bold text-slate-500 dark:text-slate-400 mb-1">ชื่อสินค้า</label>
+          <input type="text" id="configProdName" placeholder="เช่น เอสเพรสโซ่เย็น, บลูเบอร์รี่ชีสพาย" class="w-full px-3 py-2 border border-slate-300 dark:border-slate-700 rounded-lg text-sm bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-1 focus:ring-coffee-500 focus:outline-none">
+        </div>
+
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label class="block text-xs font-bold text-slate-500 dark:text-slate-400 mb-1">หมวดหมู่</label>
+            <select id="configProdCategory" class="w-full px-3 py-2 border border-slate-300 dark:border-slate-700 rounded-lg text-sm bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-1 focus:ring-coffee-500 focus:outline-none">
+              <!-- Category Options loaded dynamically -->
+            </select>
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-slate-500 dark:text-slate-400 mb-1">ราคาหลัก (บาท)</label>
+            <input type="number" id="configProdPrice" value="0" min="0" class="w-full px-3 py-2 border border-slate-300 dark:border-slate-700 rounded-lg text-sm bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-1 focus:ring-coffee-500 focus:outline-none">
+          </div>
+        </div>
+
+        <!-- Position Setting (When adding new product) -->
+        <div id="configProdPositionWrapper" class="border-t border-slate-200 dark:border-slate-800 pt-3">
+          <label class="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1.5">ตำแหน่งการแสดงผลบนหน้า POS</label>
+          <div class="grid grid-cols-2 gap-2">
+            <label class="flex items-center space-x-2 p-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/60 cursor-pointer hover:border-amber-500/60 transition">
+              <input type="radio" name="configProdPosition" id="posTop" value="top" checked class="text-amber-600 focus:ring-amber-500">
+              <span class="text-xs font-bold text-slate-800 dark:text-slate-200">🔝 ไว้บนสุด (อันดับ 1)</span>
+            </label>
+            <label class="flex items-center space-x-2 p-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/60 cursor-pointer hover:border-amber-500/60 transition">
+              <input type="radio" name="configProdPosition" id="posBottom" value="bottom" class="text-amber-600 focus:ring-amber-500">
+              <span class="text-xs font-bold text-slate-800 dark:text-slate-200">🔽 ไว้ล่างสุด (ต่อท้าย)</span>
+            </label>
+          </div>
+        </div>
+
+        <!-- Product Image Upload Section -->
+        <div class="border-t border-slate-200 dark:border-slate-800 pt-3 space-y-2">
+          <label class="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">รูปภาพสินค้า (Menu Image)</label>
+          <p class="text-[11px] text-slate-500 dark:text-slate-400">อัพโหลดรูปภาพประกอบเมนูสำหรับแสดงผลหน้าแคชเชียร์ (รองรับ .jpg, .png, .webp ระบบย่อขนาดให้อัตโนมัติ)</p>
+          
+          <div class="flex items-center space-x-4">
+            <!-- Image Preview Box -->
+            <div id="configProdImagePreviewWrapper" class="w-24 h-24 rounded-xl border-2 border-dashed border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/60 flex flex-col items-center justify-center overflow-hidden relative group flex-shrink-0">
+              <img id="configProdImagePreview" src="" alt="ตัวอย่างรูปภาพ" class="w-full h-full object-cover hidden">
+              <div id="configProdImagePlaceholder" class="flex flex-col items-center justify-center text-slate-400 dark:text-slate-500 p-2 text-center">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-7 w-7 mb-1 opacity-60" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                </svg>
+                <span class="text-[9px] leading-tight font-medium">ไม่มีรูปภาพ</span>
+              </div>
+            </div>
+
+            <!-- Upload Controls -->
+            <div class="space-y-2 flex-1">
+              <input type="file" id="configProdImageFileInput" accept="image/*" class="hidden" onchange="handleProductImageFile(event)">
+              <div class="flex flex-wrap gap-2">
+                <button type="button" onclick="document.getElementById('configProdImageFileInput').click()" class="bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 border border-slate-300 dark:border-slate-700 font-bold px-3 py-1.5 rounded-lg text-xs transition flex items-center gap-1.5 shadow-sm">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-coffee-700 dark:text-amber-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+                  </svg>
+                  <span>เลือกรูปภาพ...</span>
+                </button>
+                <button type="button" id="btnRemoveProdImage" onclick="removeProductImage()" class="text-red-500 hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/40 border border-transparent font-medium px-2.5 py-1.5 rounded-lg text-xs transition hidden">
+                  🗑️ ลบรูปภาพ
+                </button>
+              </div>
+              <span id="configProdImageInfo" class="text-[10px] text-slate-400 dark:text-slate-500 block">ยังไม่ได้เลือกรูปภาพ (สามารถใส่ภายหลังได้)</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Option Groups Link Section -->
+        <div class="border-t border-slate-200 dark:border-slate-800 pt-3 space-y-3">
+          <div class="flex justify-between items-center">
+            <span class="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">กลุ่มตัวเลือกสินค้า (Option Groups)</span>
+            <button type="button" onclick="openOptionGroupsModal()" class="text-xs text-amber-800 dark:text-amber-400 hover:text-amber-900 dark:hover:text-amber-300 font-bold underline flex items-center gap-1">
+              <span>⚙️ จัดการกลุ่มตัวเลือก</span>
+            </button>
+          </div>
+          <p class="text-[11px] text-slate-500 dark:text-slate-400">เลือกกลุ่มตัวเลือกที่ต้องการผูกเข้ากับสินค้านี้ เช่น เมล็ดกาแฟ, อุณหภูมิ, ระดับความหวาน, ท็อปปิ้ง (สามารถเลือกได้หลายกลุ่ม)</p>
+          
+          <div id="productOptionGroupsCheckboxContainer" class="space-y-2 bg-slate-50 dark:bg-slate-800/60 p-3 rounded-xl border border-slate-200 dark:border-slate-700 max-h-48 overflow-y-auto">
+            <!-- Loaded dynamically in openProductModal() -->
+          </div>
+        </div>
+      </div>
+
+      <div class="p-4 border-t border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/80 flex justify-end space-x-2">
+        <button onclick="closeProductModal()" class="border border-slate-300 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 px-4 py-2 text-sm font-bold rounded-lg">ยกเลิก</button>
+        <button onclick="saveProductConfig()" class="bg-coffee-600 hover:bg-coffee-700 text-white px-5 py-2 text-sm font-bold rounded-lg shadow">บันทึกสินค้า</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 4. CATEGORIES MANAGER MODAL -->
+  <div id="categoriesManagerModal" class="fixed inset-0 bg-slate-950/70 backdrop-blur-sm z-50 flex items-center justify-center hidden p-4">
+    <div class="bg-white dark:bg-slate-900 w-full max-w-lg rounded-2xl shadow-xl overflow-hidden transform scale-95 transition-transform flex flex-col border border-slate-200 dark:border-slate-800">
+      <div class="p-4 border-b border-slate-200 dark:border-slate-800 flex justify-between items-center bg-slate-50 dark:bg-slate-900/80">
+        <div class="flex items-center space-x-2.5">
+          <span class="text-xl">🗂️</span>
+          <div>
+            <h3 class="text-base font-bold text-slate-900 dark:text-white">จัดการและจัดเรียงลำดับหมวดหมู่สินค้า</h3>
+            <p class="text-xs text-slate-500 dark:text-slate-400">ลากสลับลำดับ หรือกดปุ่ม 🔼 🔽 เพื่อเรียงปุ่มหมวดหมู่บนหน้าจอ POS</p>
+          </div>
+        </div>
+        <button onclick="closeCategoryModal()" class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 focus:outline-none">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+      </div>
+
+      <div class="p-5 space-y-4 bg-white dark:bg-slate-900">
+        <!-- Add Category Form & Sorting Bar -->
+        <div class="space-y-2">
+          <div class="flex gap-2">
+            <input type="text" id="newCategoryInput" placeholder="พิมพ์ชื่อหมวดหมู่ใหม่..." class="flex-1 px-3.5 py-2 border border-slate-300 dark:border-slate-700 rounded-lg text-sm bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-1 focus:ring-coffee-500 focus:outline-none font-medium">
+            <button onclick="addNewCategory()" class="bg-coffee-600 hover:bg-coffee-700 text-white font-bold px-4 py-2 text-sm rounded-lg shadow-sm transition active:scale-95 flex items-center gap-1">
+              <span>+ เพิ่มหมวดหมู่</span>
+            </button>
+          </div>
+          <div class="flex items-center justify-between text-xs pt-1 px-1">
+            <span class="text-slate-500 dark:text-slate-400">เรียงตาม: ลำดับที่แสดงบนหน้า POS (จากซ้ายไปขวา)</span>
+            <button type="button" onclick="sortCategoriesAlphabetical()" class="text-amber-600 dark:text-amber-400 hover:underline font-semibold flex items-center gap-1">
+              <span>🔤 เรียงตาม ก-ฮ</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Categories List -->
+        <div class="border border-slate-200 dark:border-slate-700 rounded-xl overflow-hidden bg-slate-50 dark:bg-slate-800/40 max-h-[350px] overflow-y-auto">
+          <ul id="categoriesListContainer" class="divide-y divide-slate-200 dark:divide-slate-700">
+            <!-- Dynamically rendered -->
+          </ul>
+        </div>
+      </div>
+
+      <div class="p-4 border-t border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/80 flex justify-between items-center">
+        <span class="text-xs text-slate-400 dark:text-slate-500">💡 หมวดหมู่ลำดับแรกจะแสดงต่อจากปุ่ม "ทั้งหมด"</span>
+        <button onclick="closeCategoryModal()" class="bg-slate-800 dark:bg-slate-700 hover:bg-slate-900 dark:hover:bg-slate-600 text-white px-5 py-2 text-sm font-bold rounded-lg shadow transition">เสร็จสิ้น</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 5. QUICK DISCOUNT MODAL (CASHIER CART) -->
+  <div id="quickDiscountModal" class="fixed inset-0 bg-slate-950/70 backdrop-blur-sm z-50 flex items-center justify-center hidden p-4">
+    <div class="bg-white dark:bg-slate-900 w-full max-w-md rounded-2xl shadow-xl overflow-hidden transform scale-95 transition-transform flex flex-col border border-slate-200 dark:border-slate-800">
+      <div class="p-4 border-b border-slate-200 dark:border-slate-800 flex justify-between items-center bg-slate-50 dark:bg-slate-900/80">
+        <h3 class="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
+          <span>🏷️</span>
+          <span>ใส่ส่วนลดสำหรับบิลนี้</span>
+        </h3>
+        <button onclick="closeQuickDiscountModal()" class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 focus:outline-none">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+      </div>
+
+      <div class="p-5 space-y-4 bg-white dark:bg-slate-900">
+        <!-- Discount Mode Toggle -->
+        <div>
+          <label class="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2">เลือกประเภทส่วนลด</label>
+          <div class="grid grid-cols-2 gap-2 p-1 bg-slate-100 dark:bg-slate-800 rounded-xl">
+            <button type="button" id="btn-quick-disc-percent" onclick="setQuickDiscountMode('percent')" class="py-2 text-xs font-bold rounded-lg transition bg-white dark:bg-slate-700 text-coffee-700 dark:text-amber-400 shadow-sm">
+              ส่วนลดเปอร์เซ็นต์ (%)
+            </button>
+            <button type="button" id="btn-quick-disc-fixed" onclick="setQuickDiscountMode('fixed')" class="py-2 text-xs font-bold rounded-lg transition text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white">
+              ส่วนลดเป็นบาท (฿)
+            </button>
+          </div>
+        </div>
+
+        <!-- Custom Input -->
+        <div>
+          <label class="block text-xs font-bold text-slate-500 dark:text-slate-400 mb-1" id="quickDiscountInputLabel">ระบุเปอร์เซ็นต์ส่วนลด (%)</label>
+          <div class="relative">
+            <input type="number" id="quickDiscountValueInput" value="0" min="0" step="any" oninput="previewQuickDiscount()" class="w-full px-3 py-2 border border-slate-300 dark:border-slate-700 rounded-xl text-lg font-black bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-coffee-500 focus:outline-none">
+            <span class="absolute right-3 top-2.5 font-bold text-slate-400 dark:text-slate-500" id="quickDiscountUnitTag">%</span>
+          </div>
+          <p class="text-xs font-semibold text-coffee-700 dark:text-amber-400 mt-1" id="quickDiscountPreviewText">คำนวณส่วนลด: -฿0.00</p>
+        </div>
+
+        <!-- Preset Promotions from Database -->
+        <div class="border-t border-slate-100 dark:border-slate-800 pt-3">
+          <label class="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2">หรือเลือกโปรโมชั่นที่บันทึกไว้</label>
+          <div class="grid grid-cols-2 gap-2 max-h-36 overflow-y-auto" id="quickDiscountPresetsContainer">
+            <!-- Dynamically rendered buttons -->
+          </div>
+        </div>
+      </div>
+
+      <div class="p-4 border-t border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/80 flex justify-between space-x-2">
+        <button type="button" onclick="clearCartDiscount()" class="border border-red-200 dark:border-red-900/60 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/40 px-3 py-2 text-xs font-bold rounded-xl transition">
+          ล้างส่วนลด
+        </button>
+        <div class="flex space-x-2">
+          <button type="button" onclick="closeQuickDiscountModal()" class="border border-slate-300 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 px-4 py-2 text-xs font-bold rounded-xl">
+            ยกเลิก
+          </button>
+          <button type="button" onclick="applyQuickDiscountFromModal()" class="bg-coffee-600 hover:bg-coffee-700 text-white px-5 py-2 text-xs font-bold rounded-xl shadow">
+            ใช้ส่วนลดนี้
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 6. OPTION GROUPS MANAGER MODAL -->
+  <div id="optionGroupsManagerModal" class="fixed inset-0 bg-slate-950/70 backdrop-blur-sm z-50 flex items-center justify-center hidden p-4">
+    <div class="bg-white dark:bg-slate-900 w-full max-w-2xl rounded-2xl shadow-xl overflow-hidden transform scale-95 transition-transform flex flex-col max-h-[90vh] border border-slate-200 dark:border-slate-800">
+      <div class="p-4 border-b border-slate-200 dark:border-slate-800 flex justify-between items-center bg-slate-50 dark:bg-slate-900/80">
+        <div>
+          <h3 class="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
+            <span>⚙️</span>
+            <span>จัดการกลุ่มตัวเลือกสินค้า (Option Groups)</span>
+          </h3>
+          <p class="text-xs text-slate-500 dark:text-slate-400">สร้างและแก้ไขกลุ่มตัวเลือก เช่น เมล็ดกาแฟ, ความหวาน, อุณหภูมิ, ท็อปปิ้ง</p>
+        </div>
+        <button onclick="closeOptionGroupsModal()" class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 focus:outline-none">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+      </div>
+
+      <div class="p-6 overflow-y-auto space-y-4 flex-1 bg-white dark:bg-slate-900">
+        <div class="flex justify-between items-center">
+          <span class="text-xs font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider">รายการกลุ่มตัวเลือกทั้งหมด</span>
+          <button onclick="openEditOptionGroupModal(null)" class="bg-coffee-600 hover:bg-coffee-700 text-white text-xs font-semibold px-3 py-1.5 rounded-lg shadow-sm flex items-center gap-1 transition">
+            <span>+ สร้างกลุ่มตัวเลือกใหม่</span>
+          </button>
+        </div>
+
+        <div id="optionGroupsManagerList" class="space-y-3">
+          <!-- Rendered dynamically -->
+        </div>
+      </div>
+
+      <div class="p-4 border-t border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/80 flex justify-end">
+        <button onclick="closeOptionGroupsModal()" class="bg-slate-800 dark:bg-slate-700 hover:bg-slate-900 dark:hover:bg-slate-600 text-white px-5 py-2 text-xs font-bold rounded-xl shadow">
+          เสร็จสิ้น
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 7. ADD/EDIT SINGLE OPTION GROUP MODAL -->
+  <div id="optionGroupEditModal" class="fixed inset-0 bg-slate-950/70 backdrop-blur-sm z-[60] flex items-center justify-center hidden p-4">
+    <div class="bg-white dark:bg-slate-900 w-full max-w-lg rounded-2xl shadow-2xl overflow-hidden transform scale-95 transition-transform flex flex-col max-h-[85vh] border border-slate-200 dark:border-slate-800">
+      <div class="p-4 border-b border-slate-200 dark:border-slate-800 flex justify-between items-center bg-slate-50 dark:bg-slate-900/80">
+        <h3 id="optionGroupEditModalTitle" class="text-base font-bold text-slate-900 dark:text-white">เพิ่มกลุ่มตัวเลือก</h3>
+        <button onclick="closeEditOptionGroupModal()" class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+      </div>
+
+      <div class="p-5 overflow-y-auto space-y-4 flex-1 bg-white dark:bg-slate-900">
+        <input type="hidden" id="editOptionGroupId">
+
+        <div>
+          <label class="block text-xs font-bold text-slate-600 dark:text-slate-400 mb-1">ชื่อกลุ่มตัวเลือก <span class="text-red-500">*</span></label>
+          <input type="text" id="editOptionGroupName" placeholder="เช่น เมล็ดกาแฟ, ระดับความหวาน, ชนิดนม, ท็อปปิ้ง" class="w-full px-3 py-2 border border-slate-300 dark:border-slate-700 rounded-xl text-sm bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-1 focus:ring-coffee-500 focus:outline-none font-medium">
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-bold text-slate-600 dark:text-slate-400 mb-1">รูปแบบการเลือก</label>
+            <select id="editOptionGroupType" class="w-full px-3 py-2 border border-slate-300 dark:border-slate-700 rounded-xl text-xs bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-1 focus:ring-coffee-500 focus:outline-none font-medium">
+              <option value="single">เลือกได้ 1 อย่าง (Single Choice)</option>
+              <option value="multiple">เลือกได้หลายอย่าง (Multiple Choice)</option>
+            </select>
+          </div>
+          <div class="flex items-center pt-5">
+            <label class="flex items-center space-x-2 text-xs font-bold text-slate-700 dark:text-slate-300 cursor-pointer select-none">
+              <input type="checkbox" id="editOptionGroupRequired" class="rounded text-coffee-600 focus:ring-coffee-500 w-4 h-4">
+              <span>บังคับลูกค้าเลือก (Required)</span>
+            </label>
+          </div>
+        </div>
+
+        <!-- Option Items Builder -->
+        <div class="border-t border-slate-200 dark:border-slate-800 pt-3 space-y-2">
+          <div class="flex justify-between items-center">
+            <div>
+              <span class="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider block">รายการตัวเลือกย่อยและราคาบวกเพิ่ม</span>
+              <span class="text-[11px] text-slate-400 dark:text-slate-500">กดปุ่ม ▲ / ▼ เพื่อสลับลำดับตัวเลือกก่อน-หลังได้ตามต้องการ</span>
+            </div>
+            <button type="button" onclick="addOptionRow()" class="text-xs bg-amber-500/10 hover:bg-amber-500/20 text-coffee-700 dark:text-amber-400 hover:text-coffee-800 dark:hover:text-amber-300 font-bold px-2.5 py-1 rounded-lg border border-amber-500/30 flex items-center gap-1 transition">
+              <span>+ เพิ่มตัวเลือก</span>
+            </button>
+          </div>
+
+          <div id="optionItemsListContainer" class="space-y-2 max-h-60 overflow-y-auto pr-1 custom-scrollbar">
+            <!-- Rows of: [Index] [Up/Down] [Option Name] [+฿Price] [Delete] -->
+          </div>
+        </div>
+      </div>
+
+      <div class="p-4 border-t border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/80 flex justify-end space-x-2">
+        <button onclick="closeEditOptionGroupModal()" class="border border-slate-300 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 px-4 py-2 text-xs font-bold rounded-xl">ยกเลิก</button>
+        <button onclick="saveOptionGroup()" class="bg-coffee-600 hover:bg-coffee-700 text-white px-5 py-2 text-xs font-bold rounded-xl shadow">บันทึกกลุ่มตัวเลือก</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 8. ADD/EDIT PROMOTION MODAL -->
+  <div id="promotionConfigModal" class="fixed inset-0 bg-slate-950/70 backdrop-blur-sm z-50 flex items-center justify-center hidden p-4">
+    <div class="bg-white dark:bg-slate-900 w-full max-w-md rounded-2xl shadow-xl overflow-hidden transform scale-95 transition-transform flex flex-col border border-slate-200 dark:border-slate-800">
+      <div class="p-4 border-b border-slate-200 dark:border-slate-800 flex justify-between items-center bg-slate-50 dark:bg-slate-900/80">
+        <h3 id="promotionConfigModalTitle" class="text-base font-bold text-slate-900 dark:text-white">เพิ่มโปรโมชั่นส่วนลด</h3>
+        <button onclick="closePromotionModal()" class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+      </div>
+
+      <div class="p-5 space-y-4 bg-white dark:bg-slate-900">
+        <input type="hidden" id="editPromotionId">
+
+        <div>
+          <label class="block text-xs font-bold text-slate-600 dark:text-slate-400 mb-1">ชื่อโปรโมชั่น / เหตุผลส่วนลด <span class="text-red-500">*</span></label>
+          <input type="text" id="editPromoName" placeholder="เช่น ส่วนลดเปิดร้านใหม่, นำแก้วมาเอง, สมาชิก" class="w-full px-3 py-2 border border-slate-300 dark:border-slate-700 rounded-xl text-sm bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-1 focus:ring-coffee-500 focus:outline-none font-medium">
+        </div>
+
+        <div>
+          <label class="block text-xs font-bold text-slate-600 dark:text-slate-400 mb-1">ประเภทส่วนลด</label>
+          <select id="editPromoType" onchange="togglePromoTypeInputs()" class="w-full px-3 py-2 border border-slate-300 dark:border-slate-700 rounded-xl text-sm bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-1 focus:ring-coffee-500 focus:outline-none font-medium">
+            <option value="percent">ส่วนลดเป็นเปอร์เซ็นต์ (%)</option>
+            <option value="fixed">ส่วนลดบิลเป็นจำนวนเงิน (฿)</option>
+          </select>
+        </div>
+
+        <div>
+          <label class="block text-xs font-bold text-slate-600 dark:text-slate-400 mb-1" id="editPromoValueLabel">มูลค่าส่วนลด (%)</label>
+          <div class="relative">
+            <input type="number" id="editPromoValue" min="0" step="any" placeholder="เช่น 10" class="w-full px-3 py-2 border border-slate-300 dark:border-slate-700 rounded-xl text-lg font-black bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-coffee-500 focus:outline-none">
+            <span class="absolute right-3 top-2.5 font-bold text-slate-400 dark:text-slate-500" id="editPromoUnitTag">%</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="p-4 border-t border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/80 flex justify-end space-x-2">
+        <button onclick="closePromotionModal()" class="border border-slate-300 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 px-4 py-2 text-xs font-bold rounded-xl">ยกเลิก</button>
+        <button onclick="savePromotion()" class="bg-coffee-600 hover:bg-coffee-700 text-white px-5 py-2 text-xs font-bold rounded-xl shadow">บันทึกโปรโมชั่น</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==========================================
+       MODAL 9: THERMAL RECEIPT PREVIEW MODAL
+       ========================================== -->
+  <div id="receiptPreviewModal" class="fixed inset-0 bg-slate-950/70 backdrop-blur-sm z-50 flex items-center justify-center p-3 sm:p-4 hidden">
+    <div class="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl max-w-md w-full overflow-hidden flex flex-col max-h-[95vh] border border-slate-200 dark:border-slate-800 transform transition-all scale-95 duration-200">
+      <!-- Modal Header -->
+      <div class="p-4 border-b border-slate-200 dark:border-slate-800 flex justify-between items-center bg-slate-50 dark:bg-slate-900/80">
+        <div>
+          <h3 class="font-black text-slate-900 dark:text-white text-base flex items-center gap-2">
+            <span>🧾 ตัวอย่างใบเสร็จรับเงิน</span>
+            <span class="text-[10px] font-bold text-coffee-700 dark:text-amber-400 bg-coffee-100 dark:bg-amber-950/60 border border-coffee-200 dark:border-amber-800 px-2 py-0.5 rounded-full">Preview</span>
+          </h3>
+          <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">ตรวจสอบความถูกต้องก่อนบันทึกหรือสั่งพิมพ์</p>
+        </div>
+        <div class="flex items-center gap-2">
+          <!-- Paper Size Switcher -->
+          <div class="bg-slate-200/80 dark:bg-slate-800 p-0.5 rounded-lg flex items-center text-xs font-bold">
+            <button type="button" id="btn-preview-size-80" onclick="setReceiptPreviewSize('80mm')" class="px-2.5 py-1 rounded-md bg-white dark:bg-slate-700 text-coffee-800 dark:text-amber-400 shadow-sm transition">80 มม.</button>
+            <button type="button" id="btn-preview-size-58" onclick="setReceiptPreviewSize('58mm')" class="px-2.5 py-1 rounded-md text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition">58 มม.</button>
+          </div>
+          <!-- Close button -->
+          <button type="button" onclick="closeReceiptPreviewModal()" class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-1.5 rounded-lg hover:bg-slate-200/50 dark:hover:bg-slate-800 transition">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+              <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd" />
+            </svg>
+          </button>
+        </div>
+      </div>
+
+      <!-- Preview Paper Viewport (Dark counter surface around paper slip) -->
+      <div class="flex-1 overflow-y-auto bg-slate-200/70 dark:bg-slate-950 p-4 sm:p-5 flex justify-center items-start min-h-[350px] max-h-[66vh]">
+        <div id="previewReceiptPaper" class="receipt-container receipt-preview-paper">
+          <!-- Receipt Header -->
+          <div class="receipt-header">
+            <img src="logo.png" alt="โลโก้ร้านทานตะวัน" style="max-width: 44mm; height: auto; margin: 0 auto 5px auto; display: block; filter: grayscale(100%) contrast(120%);">
+            <h2 id="preview-shop-name" style="font-size: 15px; font-weight: bold; margin: 0;">ร้านทานตะวัน</h2>
+            <p style="font-size: 10px; font-weight: bold; margin: 1px 0 3px 0; color: #333;">TANTAWAN COFFEE &amp; CAFÉ</p>
+            <p id="preview-shop-address">ร้านทานตะวัน TANTAWAN COFFEE &amp; CAFÉ</p>
+            <p id="preview-shop-phone">โทร: 08X-XXX-XXXX</p>
+          </div>
+
+          <div class="receipt-divider">--------------------------------</div>
+
+          <div class="receipt-meta">
+            <div>ออเดอร์: <span id="preview-order-id">#ORD-DRAFT</span></div>
+            <div>วันที่: <span id="preview-order-date">00/00/0000 00:00</span></div>
+            <div>พนักงาน: <span id="preview-cashier-name">เจ้าของร้าน</span></div>
+          </div>
+
+          <div class="receipt-divider">--------------------------------</div>
+
+          <!-- Items Table -->
+          <table class="receipt-table">
+            <thead>
+              <tr>
+                <th style="text-align: left; width: 60%;">รายการ</th>
+                <th style="text-align: center; width: 15%;">จำนวน</th>
+                <th style="text-align: right; width: 25%;">ราคา</th>
+              </tr>
+            </thead>
+            <tbody id="preview-receipt-items">
+              <!-- Dynamic Items -->
+            </tbody>
+          </table>
+
+          <div class="receipt-divider">--------------------------------</div>
+
+          <div class="receipt-summary">
+            <div class="receipt-summary-row">
+              <span>ราคารวม:</span>
+              <span id="preview-subtotal">฿0.00</span>
+            </div>
+            <div class="receipt-summary-row font-normal text-sm" id="preview-discount-row">
+              <span id="preview-discount-label">ส่วนลด:</span>
+              <span id="preview-discount">-฿0.00</span>
+            </div>
+            <div class="receipt-summary-row receipt-total">
+              <span>ยอดสุทธิ:</span>
+              <span id="preview-total">฿0.00</span>
+            </div>
+          </div>
+
+          <div class="receipt-divider">--------------------------------</div>
+
+          <div class="receipt-payment">
+            <div>การชำระเงิน: <span id="preview-payment-method">เงินสด</span></div>
+            <div id="preview-bank-info-row" class="hidden">
+              <div style="font-size: 9.5px; margin-top: 2px;">บัญชี: <span id="preview-bank-info" style="font-weight: bold;">-</span></div>
+              <div style="font-size: 9px; color: #444;">ชื่อ: <span id="preview-bank-acc-name">-</span></div>
+            </div>
+            <div id="preview-cash-received-row">รับเงินมา: <span id="preview-cash-received">฿0.00</span></div>
+            <div id="preview-cash-change-row">เงินทอน: <span id="preview-cash-change">฿0.00</span></div>
+          </div>
+
+          <div class="receipt-divider" id="preview-qr-divider">--------------------------------</div>
+
+          <!-- QR code dynamically rendered -->
+          <div id="preview-promptpay-qr-container" class="receipt-qr-wrapper hidden">
+            <p id="preview-qr-code-label" style="font-size: 8px; margin-bottom: 4px;">สแกนตรวจสอบการชำระเงิน</p>
+            <canvas id="previewReceiptQrCanvas" style="width: 100px; height: 100px;"></canvas>
+            <img id="previewReceiptQrImg" style="width: 100px; height: 100px; object-fit: contain; display: none;" alt="QR Receipt">
+          </div>
+
+          <div class="receipt-footer">
+            <p id="preview-receipt-footer-msg">ขอบคุณที่ใช้บริการ / Thank you</p>
+            <p style="font-size: 8px; color: #666; margin-top: 10px;">Powered by ร้านทานตะวัน POS</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Modal Footer Action Buttons -->
+      <div class="p-4 border-t border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/80 flex flex-wrap items-center justify-between gap-2">
+        <button type="button" onclick="closeReceiptPreviewModal()" class="px-4 py-2.5 text-xs font-bold text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-xl transition">
+          ย้อนกลับ
+        </button>
+
+        <div class="flex items-center space-x-2" id="previewCheckoutActions">
+          <button type="button" onclick="confirmOrderFromPreview(false)" class="px-3.5 py-2.5 text-xs font-bold text-slate-800 dark:text-slate-200 bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 rounded-xl transition shadow-sm">
+            💾 บันทึกอย่างเดียว
+          </button>
+          <button type="button" onclick="confirmOrderFromPreview(true)" class="px-4 py-2.5 text-xs font-bold text-white bg-coffee-600 hover:bg-coffee-700 rounded-xl transition flex items-center space-x-1.5 shadow">
+            <span>🖨️ บันทึก &amp; พิมพ์ใบเสร็จ</span>
+          </button>
+        </div>
+
+        <div class="hidden items-center space-x-2" id="previewPastOrderActions">
+          <button type="button" onclick="printPastOrderFromPreview()" class="px-5 py-2.5 text-xs font-bold text-white bg-coffee-600 hover:bg-coffee-700 rounded-xl transition flex items-center space-x-1.5 shadow">
+            <span>🖨️ สั่งพิมพ์ใบเสร็จนี้ซ้ำ</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==========================================
+       MODAL 10: HOLD BILL (พักบิล) PROMPT MODAL
+       ========================================== -->
+  <div id="holdBillModal" class="fixed inset-0 bg-slate-950/70 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+    <div class="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl max-w-md w-full overflow-hidden flex flex-col border border-slate-200 dark:border-slate-800 transform transition-all scale-95 duration-150">
+      <!-- Header -->
+      <div class="p-4 border-b border-slate-200 dark:border-slate-800 flex justify-between items-center bg-slate-50 dark:bg-slate-900/80">
+        <div class="flex items-center space-x-2">
+          <span class="text-xl">⏸️</span>
+          <div>
+            <h3 class="font-bold text-slate-900 dark:text-white text-base">พักบิลรายการสั่งซื้อ</h3>
+            <p class="text-xs text-slate-500 dark:text-slate-400">เก็บออเดอร์นี้ไว้ชั่วคราว เพื่อคิดเงินลูกค้าท่านอื่นต่อได้ทันที</p>
+          </div>
+        </div>
+        <button type="button" onclick="closeHoldBillModal()" class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-1.5 rounded-lg transition">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+            <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd" />
+          </svg>
+        </button>
+      </div>
+
+      <!-- Body -->
+      <div class="p-5 space-y-4">
+        <!-- Order snapshot preview -->
+        <div class="bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800/60 rounded-xl p-3 flex justify-between items-center">
+          <div>
+            <span class="text-xs text-amber-800 dark:text-amber-300 font-semibold block">รายการที่จะพักไว้</span>
+            <span id="holdBillItemsCount" class="text-sm font-bold text-slate-900 dark:text-white">0 รายการ</span>
+          </div>
+          <div class="text-right">
+            <span class="text-xs text-amber-800 dark:text-amber-300 font-semibold block">ยอดเงินรวม</span>
+            <span id="holdBillTotalAmount" class="text-base font-black text-coffee-700 dark:text-amber-400">฿0.00</span>
+          </div>
+        </div>
+
+        <!-- Customer Note Input -->
+        <div class="space-y-1.5">
+          <label for="holdBillNoteInput" class="block text-xs font-bold text-slate-700 dark:text-slate-300">
+            ชื่อลูกค้า / เบอร์โทร / โต๊ะ <span class="text-slate-400 font-normal">(ไม่บังคับใส่)</span>
+          </label>
+          <input type="text" id="holdBillNoteInput" placeholder="เช่น คุณกานต์, 081-xxx, โต๊ะ 3 (ปล่อยว่างได้)" class="w-full px-3 py-2.5 text-sm bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-coffee-500 font-medium">
+          <p class="text-[11px] text-slate-400 dark:text-slate-500">💡 หากไม่ระบุ ระบบจะตั้งชื่อให้อัตโนมัติ เช่น "บิลพัก #1 (14:35)"</p>
+        </div>
+
+        <!-- Quick Tags -->
+        <div class="space-y-1.5">
+          <span class="text-[11px] font-semibold text-slate-500 dark:text-slate-400 block">แท็กด่วน (คลิกเพื่อใส่ชื่อทันที):</span>
+          <div class="flex flex-wrap gap-1.5">
+            <button type="button" onclick="setHoldBillPresetTag('โต๊ะ 1')" class="px-2.5 py-1 text-xs font-semibold rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 transition">โต๊ะ 1</button>
+            <button type="button" onclick="setHoldBillPresetTag('โต๊ะ 2')" class="px-2.5 py-1 text-xs font-semibold rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 transition">โต๊ะ 2</button>
+            <button type="button" onclick="setHoldBillPresetTag('โต๊ะ 3')" class="px-2.5 py-1 text-xs font-semibold rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 transition">โต๊ะ 3</button>
+            <button type="button" onclick="setHoldBillPresetTag('โต๊ะ 4')" class="px-2.5 py-1 text-xs font-semibold rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 transition">โต๊ะ 4</button>
+            <button type="button" onclick="setHoldBillPresetTag('รอสั่งเพิ่ม')" class="px-2.5 py-1 text-xs font-semibold rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 transition">รอสั่งเพิ่ม</button>
+            <button type="button" onclick="setHoldBillPresetTag('รอเพื่อน')" class="px-2.5 py-1 text-xs font-semibold rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 transition">รอเพื่อน</button>
+            <button type="button" onclick="setHoldBillPresetTag('กลับบ้าน')" class="px-2.5 py-1 text-xs font-semibold rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 transition">กลับบ้าน</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Footer -->
+      <div class="p-4 border-t border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/80 flex justify-end space-x-2">
+        <button type="button" onclick="closeHoldBillModal()" class="px-4 py-2 text-xs font-bold text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-xl transition">
+          ยกเลิก
+        </button>
+        <button type="button" onclick="confirmHoldBill()" class="px-5 py-2 text-xs font-bold text-white bg-amber-600 hover:bg-amber-700 rounded-xl transition flex items-center space-x-1.5 shadow">
+          <span>⏸️ พักบิลนี้</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==========================================
+       MODAL 11: HELD BILLS LIST (รายการบิลที่พักไว้) MODAL
+       ========================================== -->
+  <div id="heldBillsModal" class="fixed inset-0 bg-slate-950/70 backdrop-blur-sm z-50 flex items-center justify-center p-3 sm:p-4 hidden">
+    <div class="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl max-w-2xl w-full overflow-hidden flex flex-col max-h-[90vh] border border-slate-200 dark:border-slate-800 transform transition-all scale-95 duration-150">
+      <!-- Header -->
+      <div class="p-4 border-b border-slate-200 dark:border-slate-800 flex justify-between items-center bg-slate-50 dark:bg-slate-900/80">
+        <div class="flex items-center space-x-2">
+          <span class="text-xl">⏸️</span>
+          <div>
+            <div class="flex items-center gap-2">
+              <h3 class="font-bold text-slate-900 dark:text-white text-base">รายการบิลที่พักไว้ (Held Orders)</h3>
+              <span id="heldBillsModalCountBadge" class="text-xs font-bold bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 border border-amber-300 dark:border-amber-800 px-2 py-0.5 rounded-full">0 บิล</span>
+            </div>
+            <p class="text-xs text-slate-500 dark:text-slate-400">เลือกดึงบิลกลับมาที่หน้าคิดเงินเพื่อขายต่อ หรือลบรายการบิลพัก</p>
+          </div>
+        </div>
+        <button type="button" onclick="closeHeldBillsModal()" class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-1.5 rounded-lg transition">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+            <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd" />
+          </svg>
+        </button>
+      </div>
+
+      <!-- Search & Filter Bar -->
+      <div class="p-3 border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900">
+        <div class="relative">
+          <span class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400 text-xs">🔍</span>
+          <input type="text" id="heldBillsSearchInput" oninput="filterHeldBillsList()" placeholder="ค้นหาตามชื่อลูกค้า, โต๊ะ, เบอร์โทร หรือรหัสบิล..." class="w-full pl-8 pr-3 py-1.5 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-coffee-500 font-medium">
+        </div>
+      </div>
+
+      <!-- Held Bills List Container (Scrollable) -->
+      <div id="heldBillsListContainer" class="flex-1 overflow-y-auto p-4 space-y-3 bg-slate-50/50 dark:bg-slate-950/50 min-h-[250px]">
+        <!-- Dynamic Cards -->
+      </div>
+
+      <!-- Footer -->
+      <div class="p-4 border-t border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/80 flex justify-between items-center">
+        <div>
+          <button type="button" id="btnClearAllHeldBills" onclick="clearAllHeldBills()" class="text-xs text-red-500 hover:text-red-600 dark:hover:text-red-400 font-semibold transition hidden">
+            🗑️ ล้างบิลพักทั้งหมด
+          </button>
+        </div>
+        <button type="button" onclick="closeHeldBillsModal()" class="px-4 py-2 text-xs font-bold text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-xl transition">
+          ปิดหน้าต่าง
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==========================================
+       MODAL 12: RESTORE CONFLICT MODAL
+       ========================================== -->
+  <div id="restoreConflictModal" class="fixed inset-0 bg-slate-950/70 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+    <div class="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl max-w-md w-full overflow-hidden flex flex-col border border-slate-200 dark:border-slate-800 p-5 space-y-4">
+      <div class="flex items-center space-x-3">
+        <div class="w-10 h-10 rounded-xl bg-amber-100 dark:bg-amber-950/60 flex items-center justify-center text-amber-600 dark:text-amber-400 text-xl font-bold flex-shrink-0">
+          ⚠️
+        </div>
+        <div>
+          <h4 class="font-bold text-slate-900 dark:text-white text-base">มีรายการในตะกร้าปัจจุบัน!</h4>
+          <p class="text-xs text-slate-500 dark:text-slate-400">ต้องการดำเนินการอย่างไรกับสินค้าในตะกร้าตอนนี้?</p>
+        </div>
+      </div>
+
+      <p class="text-xs text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-800/80 p-3 rounded-xl leading-relaxed">
+        ตะกร้าปัจจุบันมีสินค้าอยู่ <strong id="conflictCurrentCartCount" class="text-slate-900 dark:text-white">0</strong> รายการ คุณต้องการพักบิลปัจจุบันไว้ก่อน หรือเขียนทับเพื่อดึงบิล <strong id="conflictTargetBillNote" class="text-amber-600 dark:text-amber-400">-</strong> มาขายต่อ?
+      </p>
+
+      <div class="flex flex-col space-y-2 pt-1">
+        <button type="button" onclick="confirmConflictAction('park_current')" class="w-full py-2.5 px-3 text-xs font-bold text-white bg-coffee-600 hover:bg-coffee-700 rounded-xl shadow transition flex items-center justify-center space-x-1.5">
+          <span>⏸️ พักบิลปัจจุบันไว้ก่อน แล้วดึงบิลนี้มา</span>
+        </button>
+        <button type="button" onclick="confirmConflictAction('overwrite')" class="w-full py-2.5 px-3 text-xs font-bold text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/40 border border-red-200 dark:border-red-900/50 rounded-xl transition text-center">
+          <span>⚠️ ล้างตะกร้าปัจจุบัน แล้วดึงบิลนี้มา</span>
+        </button>
+        <button type="button" onclick="closeRestoreConflictModal()" class="w-full py-2 px-3 text-xs font-semibold text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 text-center">
+          ยกเลิก
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==========================================
+       MODAL 13: PIN LOGIN & LOCK SCREEN MODAL
+       ========================================== -->
+  <div id="pinLoginModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-[100] flex items-center justify-center p-4 hidden">
+    <div class="bg-white dark:bg-slate-900 rounded-3xl shadow-2xl max-w-sm w-full overflow-hidden flex flex-col border border-slate-200 dark:border-slate-800 p-6 space-y-5 animate-scale-up">
+      
+      <!-- Header -->
+      <div class="text-center space-y-1">
+        <div class="w-14 h-14 mx-auto rounded-2xl bg-amber-500/10 dark:bg-amber-400/10 border border-amber-500/20 flex items-center justify-center text-3xl shadow-inner">
+          <span id="pinModalAvatar">🔐</span>
+        </div>
+        <h3 id="pinModalTitle" class="text-lg font-bold text-slate-900 dark:text-white pt-1">กรอกรหัส PIN</h3>
+        <p id="pinModalSubtitle" class="text-xs text-slate-500 dark:text-slate-400">กรุณาเลือกล็อคอินหรือป้อนรหัส 4 หลัก</p>
+      </div>
+
+      <!-- User Selector Buttons (Pills) -->
+      <div id="pinUserSelectorContainer" class="flex flex-wrap gap-2 justify-center">
+        <!-- Rendered dynamically e.g. [👑 เจ้าของร้าน] [☕ พนักงาน 1] -->
+      </div>
+
+      <!-- 4 PIN Dots Indicator -->
+      <div class="flex flex-col items-center justify-center">
+        <div id="pinDotsContainer" class="flex justify-center items-center gap-4 py-2 transition-transform">
+          <div class="pin-dot w-4 h-4 rounded-full border-2 border-slate-300 dark:border-slate-600 bg-transparent transition-all"></div>
+          <div class="pin-dot w-4 h-4 rounded-full border-2 border-slate-300 dark:border-slate-600 bg-transparent transition-all"></div>
+          <div class="pin-dot w-4 h-4 rounded-full border-2 border-slate-300 dark:border-slate-600 bg-transparent transition-all"></div>
+          <div class="pin-dot w-4 h-4 rounded-full border-2 border-slate-300 dark:border-slate-600 bg-transparent transition-all"></div>
+        </div>
+        <div id="pinErrorMessage" class="text-xs text-red-500 font-semibold min-h-[20px] mt-1 text-center opacity-0 transition-opacity">
+          รหัส PIN ไม่ถูกต้อง
+        </div>
+      </div>
+
+      <!-- Numpad Grid (3 x 4) -->
+      <div class="grid grid-cols-3 gap-2.5 max-w-[260px] mx-auto w-full">
+        <button type="button" onclick="enterPinDigit('1')" class="pin-key h-14 rounded-2xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-100 text-xl font-bold shadow-xs active:scale-95 transition">1</button>
+        <button type="button" onclick="enterPinDigit('2')" class="pin-key h-14 rounded-2xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-100 text-xl font-bold shadow-xs active:scale-95 transition">2</button>
+        <button type="button" onclick="enterPinDigit('3')" class="pin-key h-14 rounded-2xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-100 text-xl font-bold shadow-xs active:scale-95 transition">3</button>
+        
+        <button type="button" onclick="enterPinDigit('4')" class="pin-key h-14 rounded-2xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-100 text-xl font-bold shadow-xs active:scale-95 transition">4</button>
+        <button type="button" onclick="enterPinDigit('5')" class="pin-key h-14 rounded-2xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-100 text-xl font-bold shadow-xs active:scale-95 transition">5</button>
+        <button type="button" onclick="enterPinDigit('6')" class="pin-key h-14 rounded-2xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-100 text-xl font-bold shadow-xs active:scale-95 transition">6</button>
+        
+        <button type="button" onclick="enterPinDigit('7')" class="pin-key h-14 rounded-2xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-100 text-xl font-bold shadow-xs active:scale-95 transition">7</button>
+        <button type="button" onclick="enterPinDigit('8')" class="pin-key h-14 rounded-2xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-100 text-xl font-bold shadow-xs active:scale-95 transition">8</button>
+        <button type="button" onclick="enterPinDigit('9')" class="pin-key h-14 rounded-2xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-100 text-xl font-bold shadow-xs active:scale-95 transition">9</button>
+        
+        <button type="button" onclick="clearPinInput()" class="pin-key h-14 rounded-2xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800/60 dark:hover:bg-slate-700 text-slate-500 dark:text-slate-400 text-xs font-bold shadow-xs active:scale-95 transition">ล้าง (C)</button>
+        <button type="button" onclick="enterPinDigit('0')" class="pin-key h-14 rounded-2xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-100 text-xl font-bold shadow-xs active:scale-95 transition">0</button>
+        <button type="button" onclick="backspacePinInput()" class="pin-key h-14 rounded-2xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800/60 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 text-lg font-bold shadow-xs active:scale-95 transition">⌫</button>
+      </div>
+
+      <!-- Footer / Cancel button -->
+      <div class="flex justify-center pt-1">
+        <button type="button" id="btnCancelPinModal" onclick="closePinLoginModal()" class="text-xs text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 font-medium py-1 px-3 rounded-lg transition">
+          ยกเลิก
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==========================================
+       MODAL 14: ADD / EDIT STAFF MODAL
+       ========================================== -->
+  <div id="staffModal" class="fixed inset-0 bg-slate-950/70 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+    <div class="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl max-w-md w-full overflow-hidden flex flex-col border border-slate-200 dark:border-slate-800 transform transition-all scale-95 duration-150">
+      <div class="p-4 border-b border-slate-200 dark:border-slate-800 flex justify-between items-center bg-slate-50 dark:bg-slate-900/80">
+        <div class="flex items-center space-x-2">
+          <span class="text-xl">👤</span>
+          <div>
+            <h3 id="staffModalTitle" class="font-bold text-slate-900 dark:text-white text-base">เพิ่มพนักงานใหม่</h3>
+            <p class="text-xs text-slate-500 dark:text-slate-400">กำหนดชื่อ ตำแหน่ง และรหัส PIN สำหรับเข้าใช้งานระบบ</p>
+          </div>
+        </div>
+        <button type="button" onclick="closeStaffModal()" class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-1.5 rounded-lg transition">
+          <svg class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd" /></svg>
+        </button>
+      </div>
+
+      <div class="p-5 space-y-4">
+        <input type="hidden" id="staffModalUserId">
+        
+        <div>
+          <label class="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">ชื่อพนักงาน / ชื่อเรียก <span class="text-red-500">*</span></label>
+          <input type="text" id="staffModalName" placeholder="เช่น น้องพลอย แคชเชียร์, บาริสต้าตั้ม" class="w-full px-3 py-2 border border-slate-300 dark:border-slate-700 rounded-xl text-sm bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-coffee-500 font-medium">
+        </div>
+
+        <div>
+          <label class="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">ตำแหน่ง (สิทธิ์การเข้าถึง) <span class="text-red-500">*</span></label>
+          <select id="staffModalRole" class="w-full px-3 py-2 border border-slate-300 dark:border-slate-700 rounded-xl text-sm bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-coffee-500 font-medium">
+            <option value="staff" selected>☕ พนักงานหน้าร้าน (Staff) - ขายของได้, สรุปยอดเฉพาะวันนี้, แก้ไขเมนู/ดูย้อนหลังไม่ได้</option>
+            <option value="owner">👑 เจ้าของร้าน (Owner) - เข้าถึงได้ทุกฟังก์ชัน ทั้งเมนู บัญชี และการตั้งค่า</option>
+          </select>
+        </div>
+
+        <div>
+          <label class="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">รหัส PIN 4 หลัก (ตัวเลขเท่านั้น) <span class="text-red-500">*</span></label>
+          <div class="relative">
+            <input type="password" inputmode="numeric" id="staffModalPin" maxlength="4" placeholder="••••" class="w-full px-3 py-2 pr-10 border border-slate-300 dark:border-slate-700 rounded-xl text-lg tracking-widest font-mono text-center bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-coffee-500 font-bold" oninput="this.value = this.value.replace(/[^0-9]/g, '').slice(0, 4)">
+            <button type="button" onclick="const inp = document.getElementById('staffModalPin'); inp.type = inp.type === 'password' ? 'text' : 'password';" class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 text-sm" title="แสดง/ซ่อนรหัส PIN">👁️</button>
+          </div>
+          <p class="text-[11px] text-slate-400 dark:text-slate-500 mt-1">ใช้สำหรับปลดล็อคหน้าจอและสลับผู้ใช้งานอย่างรวดเร็ว</p>
+        </div>
+
+        <div class="flex items-center space-x-2 pt-1">
+          <input type="checkbox" id="staffModalActive" checked class="w-4 h-4 text-coffee-600 rounded focus:ring-coffee-500">
+          <label for="staffModalActive" class="text-xs font-semibold text-slate-700 dark:text-slate-300 cursor-pointer">
+            เปิดใช้งานบัญชีนี้ (Active)
+          </label>
+        </div>
+      </div>
+
+      <div class="p-4 border-t border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/80 flex justify-end space-x-2">
+        <button type="button" onclick="closeStaffModal()" class="px-4 py-2 text-xs font-bold text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-xl transition">
+          ยกเลิก
+        </button>
+        <button type="button" onclick="saveStaffModal()" class="px-5 py-2 text-xs font-bold text-white bg-coffee-600 hover:bg-coffee-700 rounded-xl shadow transition">
+          บันทึกข้อมูลพนักงาน
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==========================================
+       MODAL 15: REASSIGN CASHIER (โอนย้ายยอดขายบิล)
+       ========================================== -->
+  <div id="reassignCashierModal" class="fixed inset-0 bg-slate-950/70 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+    <div class="bg-white dark:bg-slate-900 rounded-3xl shadow-2xl max-w-md w-full overflow-hidden flex flex-col border border-slate-200 dark:border-slate-800 animate-scale-up">
+      <!-- Modal Header -->
+      <div class="p-5 border-b border-slate-200 dark:border-slate-800 flex justify-between items-center bg-slate-50 dark:bg-slate-900/80">
+        <div class="flex items-center space-x-3">
+          <div class="w-10 h-10 rounded-2xl bg-amber-500/10 text-amber-600 dark:text-amber-400 flex items-center justify-center text-xl font-bold border border-amber-500/20">
+            ⇄
+          </div>
+          <div>
+            <h3 class="font-bold text-slate-900 dark:text-white text-base">โอนย้ายยอดขาย / เปลี่ยนผู้ขาย</h3>
+            <p class="text-xs text-slate-500 dark:text-slate-400">สิทธิ์เฉพาะเจ้าของร้าน (Owner) ในการโอนยอดบิลให้พนักงาน</p>
+          </div>
+        </div>
+        <button type="button" onclick="closeReassignCashierModal()" class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-1.5 rounded-lg transition">
+          <svg class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd" /></svg>
+        </button>
+      </div>
+
+      <!-- Modal Body -->
+      <div class="p-5 space-y-4">
+        <!-- Order Info Card -->
+        <div class="bg-slate-50 dark:bg-slate-800/60 p-3.5 rounded-2xl border border-slate-200 dark:border-slate-700/80 space-y-2">
+          <div class="flex justify-between items-center text-xs">
+            <span class="font-bold text-slate-900 dark:text-white" id="reassignModalOrderId">#ORD-0000</span>
+            <span class="font-black text-amber-600 dark:text-amber-400 text-sm" id="reassignModalTotal">฿0.00</span>
+          </div>
+          <div class="text-[11px] text-slate-500 dark:text-slate-400 flex items-center justify-between">
+            <span id="reassignModalTime">เวลา: -</span>
+            <span id="reassignModalCurrentCashier" class="font-semibold text-slate-700 dark:text-slate-300">ผู้ขายปัจจุบัน: -</span>
+          </div>
+        </div>
+
+        <!-- Target Cashier Selection -->
+        <div class="space-y-2">
+          <label class="block text-xs font-bold text-slate-700 dark:text-slate-300">
+            เลือกพนักงานที่ต้องการโอนยอดบิลนี้ให้: <span class="text-red-500">*</span>
+          </label>
+          <div id="reassignCashierOptionsContainer" class="space-y-2 max-h-60 overflow-y-auto pr-1">
+            <!-- Dynamic staff cards with radio selection -->
+          </div>
+        </div>
+      </div>
+
+      <!-- Modal Footer -->
+      <div class="p-4 border-t border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/80 flex justify-end space-x-2">
+        <button type="button" onclick="closeReassignCashierModal()" class="px-4 py-2 text-xs font-bold text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-xl transition">
+          ยกเลิก
+        </button>
+        <button type="button" onclick="confirmReassignCashier()" class="px-5 py-2 text-xs font-bold text-white bg-coffee-600 hover:bg-coffee-700 dark:bg-amber-600 dark:hover:bg-amber-700 rounded-xl shadow transition flex items-center gap-1.5">
+          <span>ยืนยันการโอนยอด</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==========================================
+       MODAL 16: CUSTOM / OPEN ITEM MODAL (เพิ่มเมนูพิเศษ / คีย์ราคาเอง)
+       ========================================== -->
+  <div id="customItemModal" class="fixed inset-0 bg-slate-950/70 backdrop-blur-sm z-50 flex items-center justify-center hidden p-4">
+    <div class="bg-white dark:bg-slate-900 rounded-3xl shadow-2xl max-w-lg w-full overflow-hidden flex flex-col border border-slate-200 dark:border-slate-800 animate-scale-up">
+      <!-- Modal Header -->
+      <div class="p-5 border-b border-slate-200 dark:border-slate-800 flex justify-between items-center bg-slate-50 dark:bg-slate-900/80">
+        <div class="flex items-center space-x-3">
+          <div class="w-10 h-10 rounded-2xl bg-amber-500/10 text-amber-600 dark:text-amber-400 flex items-center justify-center text-xl font-bold border border-amber-500/20">
+            ✨
+          </div>
+          <div>
+            <h3 class="font-bold text-slate-900 dark:text-white text-base">เพิ่มเมนูพิเศษ / คีย์ราคาเอง</h3>
+            <p class="text-xs text-slate-500 dark:text-slate-400">สำหรับสินค้าตามสั่งนอกเมนู หรือโปรโมชั่นแลกแก้ว (คีย์ได้ตั้งแต่ ฿0)</p>
+          </div>
+        </div>
+        <button type="button" onclick="closeCustomItemModal()" class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-1.5 rounded-lg transition">
+          <svg class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd" /></svg>
+        </button>
+      </div>
+
+      <!-- Modal Body -->
+      <div class="p-5 space-y-4 max-h-[75vh] overflow-y-auto">
+        <!-- Item Name -->
+        <div class="space-y-1.5">
+          <label class="block text-xs font-bold text-slate-700 dark:text-slate-300">
+            ชื่อเมนู / รายการสินค้า: <span class="text-red-500">*</span>
+          </label>
+          <input type="text" id="customItemName" placeholder="เช่น กาแฟดริปเมล็ดพิเศษ, แลกแก้วฟรีโปรวันเกิด..." class="w-full px-3.5 py-2.5 border border-slate-300 dark:border-slate-700 rounded-xl text-sm font-semibold bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-amber-500 focus:outline-none">
+          
+          <!-- Quick Name Presets -->
+          <div class="flex flex-wrap gap-1.5 pt-1">
+            <button type="button" onclick="setCustomItemPreset('JetX', 'รายการอื่นๆ', 0)" class="px-2.5 py-1 text-xs font-bold rounded-lg bg-amber-500/15 text-amber-700 dark:text-amber-300 border border-amber-500/30 hover:bg-amber-500/25 transition flex items-center gap-1 shadow-xs">
+              <span>☕</span>
+              <span>JetX (฿0)</span>
+            </button>
+            <button type="button" onclick="setCustomItemPreset('เพิ่มบิล', 'รายการอื่นๆ', 0)" class="px-2.5 py-1 text-xs font-bold rounded-lg bg-indigo-500/15 text-indigo-700 dark:text-indigo-300 border border-indigo-500/30 hover:bg-indigo-500/25 transition flex items-center gap-1 shadow-xs">
+              <span>🧾</span>
+              <span>เพิ่มบิล (฿0)</span>
+            </button>
+            <button type="button" onclick="setCustomItemPreset('🎁 แลกแต้มฟรี 1 แก้ว', 'รายการอื่นๆ', 0)" class="px-2.5 py-1 text-xs font-bold rounded-lg bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 hover:bg-emerald-100 transition flex items-center gap-1 shadow-xs">
+              <span>🎁</span>
+              <span>แลกแต้มฟรี (฿0)</span>
+            </button>
+            <button type="button" onclick="setCustomItemPreset('☕ กาแฟพิเศษ', 'กาแฟ', null)" class="px-2 py-0.5 text-[11px] font-medium rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-amber-100 dark:hover:bg-amber-950/60 transition">☕ กาแฟพิเศษ</button>
+            <button type="button" onclick="setCustomItemPreset('✨ เมนูพิเศษตามสั่ง', 'เมนูพิเศษ', null)" class="px-2 py-0.5 text-[11px] font-medium rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-amber-100 dark:hover:bg-amber-950/60 transition">✨ เมนูพิเศษตามสั่ง</button>
+            <button type="button" onclick="setCustomItemPreset('🥐 เบเกอรี่พิเศษ', 'เบเกอรี่', null)" class="px-2 py-0.5 text-[11px] font-medium rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-amber-100 dark:hover:bg-amber-950/60 transition">🥐 เบเกอรี่พิเศษ</button>
+            <button type="button" onclick="setCustomItemPreset('📦 รายการอื่นๆ', 'รายการอื่นๆ', null)" class="px-2 py-0.5 text-[11px] font-medium rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-amber-100 dark:hover:bg-amber-950/60 transition">📦 รายการอื่นๆ</button>
+          </div>
+        </div>
+
+        <!-- Price Input & Quick Pills -->
+        <div class="space-y-1.5">
+          <div class="flex justify-between items-center">
+            <label class="block text-xs font-bold text-slate-700 dark:text-slate-300">
+              ราคาต่อหน่วย (บาท): <span class="text-red-500">*</span>
+            </label>
+            <span class="text-[11px] text-emerald-600 dark:text-emerald-400 font-semibold">คีย์ได้ตั้งแต่ ฿0 บาท</span>
+          </div>
+          <div class="relative">
+            <span class="absolute left-3.5 top-2.5 text-base font-black text-amber-600 dark:text-amber-400">฿</span>
+            <input type="number" id="customItemPrice" min="0" step="any" placeholder="0.00" class="w-full pl-9 pr-4 py-2.5 border border-slate-300 dark:border-slate-700 rounded-xl text-lg font-black bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-amber-500 focus:outline-none">
+          </div>
+
+          <!-- Quick Price Buttons -->
+          <div class="grid grid-cols-4 sm:grid-cols-8 gap-1.5 pt-1">
+            <button type="button" onclick="setCustomItemPricePreset(0)" class="py-1 text-xs font-black rounded-lg bg-emerald-100 dark:bg-emerald-950/70 text-emerald-800 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-700 hover:bg-emerald-200 transition">฿0 ฟรี</button>
+            <button type="button" onclick="setCustomItemPricePreset(20)" class="py-1 text-xs font-bold rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 transition">฿20</button>
+            <button type="button" onclick="setCustomItemPricePreset(35)" class="py-1 text-xs font-bold rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 transition">฿35</button>
+            <button type="button" onclick="setCustomItemPricePreset(50)" class="py-1 text-xs font-bold rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 transition">฿50</button>
+            <button type="button" onclick="setCustomItemPricePreset(60)" class="py-1 text-xs font-bold rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 transition">฿60</button>
+            <button type="button" onclick="setCustomItemPricePreset(75)" class="py-1 text-xs font-bold rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 transition">฿75</button>
+            <button type="button" onclick="setCustomItemPricePreset(90)" class="py-1 text-xs font-bold rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 transition">฿90</button>
+            <button type="button" onclick="setCustomItemPricePreset(100)" class="py-1 text-xs font-bold rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 transition">฿100</button>
+          </div>
+        </div>
+
+        <!-- Category Selector -->
+        <div class="space-y-1.5">
+          <label class="block text-xs font-bold text-slate-700 dark:text-slate-300">
+            หมวดหมู่ (สำหรับวิเคราะห์รายงานยอดขาย):
+          </label>
+          <select id="customItemCategory" class="w-full px-3.5 py-2 border border-slate-300 dark:border-slate-700 rounded-xl text-xs font-semibold bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-amber-500 focus:outline-none">
+            <!-- Dynamically populated categories -->
+          </select>
+        </div>
+
+        <!-- Customization Notes -->
+        <div class="space-y-1.5">
+          <label class="block text-xs font-bold text-slate-700 dark:text-slate-300">
+            รายละเอียดวัตถุดิบ / สูตรพิเศษ / หมายเหตุ:
+          </label>
+          <textarea id="customItemNotes" rows="2" placeholder="เช่น คั่วอ่อน JetX, หวาน 25%, เพิ่มวิปครีม หรือ แลกแต้มสะสมครบ 10 แก้ว" class="w-full px-3.5 py-2 border border-slate-300 dark:border-slate-700 rounded-xl text-xs bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-amber-500 focus:outline-none"></textarea>
+        </div>
+
+        <!-- Quantity Selector -->
+        <div class="flex items-center justify-between pt-1">
+          <label class="text-xs font-bold text-slate-700 dark:text-slate-300">จำนวน:</label>
+          <div class="flex items-center space-x-3 bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl p-1">
+            <button type="button" onclick="adjustCustomItemQty(-1)" class="w-8 h-8 flex items-center justify-center text-slate-600 dark:text-slate-300 font-bold hover:bg-white dark:hover:bg-slate-700 rounded-lg transition">-</button>
+            <span id="customItemQtyDisplay" class="font-bold text-slate-900 dark:text-white w-6 text-center text-sm">1</span>
+            <button type="button" onclick="adjustCustomItemQty(1)" class="w-8 h-8 flex items-center justify-center text-slate-600 dark:text-slate-300 font-bold hover:bg-white dark:hover:bg-slate-700 rounded-lg transition">+</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Modal Footer -->
+      <div class="p-4 border-t border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/80 flex justify-end space-x-2">
+        <button type="button" onclick="closeCustomItemModal()" class="px-4 py-2 text-xs font-bold text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-xl transition">
+          ยกเลิก
+        </button>
+        <button type="button" onclick="addCustomItemToCart()" class="px-5 py-2 text-xs font-bold text-white bg-coffee-600 hover:bg-coffee-700 dark:bg-amber-600 dark:hover:bg-amber-700 rounded-xl shadow transition flex items-center gap-1.5">
+          <span>+ เพิ่มลงในตะกร้า</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==========================================
+       MODAL 17: EDIT CART ITEM MODAL (แก้ไขราคา / หมายเหตุในตะกร้า)
+       ========================================== -->
+  <div id="editCartItemModal" class="fixed inset-0 bg-slate-950/70 backdrop-blur-sm z-50 flex items-center justify-center hidden p-4">
+    <div class="bg-white dark:bg-slate-900 rounded-3xl shadow-2xl max-w-md w-full overflow-hidden flex flex-col border border-slate-200 dark:border-slate-800 animate-scale-up">
+      <!-- Modal Header -->
+      <div class="p-5 border-b border-slate-200 dark:border-slate-800 flex justify-between items-center bg-slate-50 dark:bg-slate-900/80">
+        <div class="flex items-center space-x-3">
+          <div class="w-10 h-10 rounded-2xl bg-amber-500/10 text-amber-600 dark:text-amber-400 flex items-center justify-center text-xl font-bold border border-amber-500/20">
+            ✎
+          </div>
+          <div>
+            <h3 class="font-bold text-slate-900 dark:text-white text-base">แก้ไขราคา &amp; หมายเหตุ</h3>
+            <p class="text-xs text-slate-500 dark:text-slate-400" id="editCartItemSubtitle">ปรับราคาหรือระบุแลกแต้ม</p>
+          </div>
+        </div>
+        <button type="button" onclick="closeEditCartItemModal()" class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-1.5 rounded-lg transition">
+          <svg class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd" /></svg>
+        </button>
+      </div>
+
+      <!-- Modal Body -->
+      <div class="p-5 space-y-4">
+        <!-- Item Info Summary -->
+        <div class="p-3 bg-slate-50 dark:bg-slate-800/60 rounded-2xl border border-slate-200 dark:border-slate-700/80">
+          <div class="font-bold text-slate-900 dark:text-white text-sm" id="editCartItemName">-</div>
+          <div class="text-xs text-slate-400 dark:text-slate-500 mt-0.5" id="editCartItemModifiers">-</div>
+        </div>
+
+        <!-- Price Input -->
+        <div class="space-y-1.5">
+          <div class="flex justify-between items-center">
+            <label class="block text-xs font-bold text-slate-700 dark:text-slate-300">
+              ราคาต่อชิ้น (บาท):
+            </label>
+            <div class="flex items-center gap-1">
+              <button type="button" onclick="setEditCartItemPrice(0, 'แลกแต้ม/ฟรี')" class="px-2 py-0.5 text-[10px] font-bold rounded bg-emerald-100 text-emerald-800 dark:bg-emerald-950/70 dark:text-emerald-300 border border-emerald-300 hover:bg-emerald-200 transition">
+                🎁 ฟรี / แลกแต้ม (฿0)
+              </button>
+              <button type="button" onclick="resetEditCartItemPrice()" id="btnResetEditCartPrice" class="px-2 py-0.5 text-[10px] font-semibold text-slate-500 hover:text-slate-700 dark:text-slate-400">
+                ↺ ราคาเดิม
+              </button>
+            </div>
+          </div>
+          <div class="relative">
+            <span class="absolute left-3 top-2 text-sm font-bold text-amber-600 dark:text-amber-400">฿</span>
+            <input type="number" id="editCartItemPriceInput" min="0" step="any" class="w-full pl-8 pr-3 py-2 border border-slate-300 dark:border-slate-700 rounded-xl text-base font-bold bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-amber-500 focus:outline-none">
+          </div>
+        </div>
+
+        <!-- Note Input -->
+        <div class="space-y-1.5">
+          <label class="block text-xs font-bold text-slate-700 dark:text-slate-300">
+            หมายเหตุเฉพาะแก้ว / รายการ:
+          </label>
+          <input type="text" id="editCartItemNoteInput" placeholder="เช่น แลกแต้ม 10 แก้ว, ส่วนลดพิเศษ..." class="w-full px-3 py-2 border border-slate-300 dark:border-slate-700 rounded-xl text-xs bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-amber-500 focus:outline-none">
+        </div>
+
+        <!-- Quantity Selector -->
+        <div class="flex items-center justify-between pt-1">
+          <label class="text-xs font-bold text-slate-700 dark:text-slate-300">จำนวน:</label>
+          <div class="flex items-center space-x-3 bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl p-1">
+            <button type="button" onclick="adjustEditCartItemQty(-1)" class="w-8 h-8 flex items-center justify-center text-slate-600 dark:text-slate-300 font-bold hover:bg-white dark:hover:bg-slate-700 rounded-lg transition">-</button>
+            <span id="editCartItemQtyDisplay" class="font-bold text-slate-900 dark:text-white w-6 text-center text-sm">1</span>
+            <button type="button" onclick="adjustEditCartItemQty(1)" class="w-8 h-8 flex items-center justify-center text-slate-600 dark:text-slate-300 font-bold hover:bg-white dark:hover:bg-slate-700 rounded-lg transition">+</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Modal Footer -->
+      <div class="p-4 border-t border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/80 flex justify-end space-x-2">
+        <button type="button" onclick="closeEditCartItemModal()" class="px-4 py-2 text-xs font-bold text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-xl transition">
+          ยกเลิก
+        </button>
+        <button type="button" onclick="saveEditCartItem()" class="px-5 py-2 text-xs font-bold text-white bg-coffee-600 hover:bg-coffee-700 dark:bg-amber-600 dark:hover:bg-amber-700 rounded-xl shadow transition">
+          บันทึกการแก้ไข
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- TOAST NOTIFICATION CONTAINER -->
+  <div id="toastContainer" class="fixed bottom-5 right-5 z-[9999] flex flex-col space-y-2 pointer-events-none">
+    <!-- Dynamic toasts -->
+  </div>
+
+
+  <!-- ==========================================
+       THERMAL RECEIPT PRINT AREA
+       (HIDDEN ON SCREEN, VISIBLE ONLY ON WINDOW.PRINT())
+       ========================================== -->
+  <div id="receipt-print-area" class="hidden">
+    <div class="receipt-container">
+      <div class="receipt-header" style="page-break-inside: avoid; break-inside: avoid;">
+        <img id="print-receipt-logo" src="logo.png" alt="โลโก้ร้านทานตะวัน" style="max-width: 32mm; height: auto; margin: 0 auto 3px auto; display: block; filter: grayscale(100%) contrast(120%);">
+        <h2 id="print-shop-name" style="font-size: 14px; font-weight: bold; margin: 0;">ร้านทานตะวัน</h2>
+        <p style="font-size: 10px; font-weight: bold; margin: 1px 0 2px 0; color: #333;">TANTAWAN COFFEE &amp; CAFÉ</p>
+        <p id="print-shop-address" style="margin: 1px 0;">ร้านทานตะวัน TANTAWAN COFFEE &amp; CAFÉ</p>
+        <p id="print-shop-phone" style="margin: 1px 0;">โทร: 08X-XXX-XXXX</p>
+      </div>
+      
+      <div class="receipt-divider">--------------------------------</div>
+      
+      <div class="receipt-meta" style="page-break-inside: avoid; break-inside: avoid;">
+        <div>ออเดอร์: <span id="print-order-id">#000000</span></div>
+        <div>วันที่: <span id="print-order-date">00/00/0000 00:00</span></div>
+        <div>พนักงาน: <span id="print-cashier-name">เจ้าของร้าน</span></div>
+      </div>
+      
+      <div class="receipt-divider">--------------------------------</div>
+      
+      <!-- Items table -->
+      <table class="receipt-table" style="page-break-inside: avoid; break-inside: avoid;">
+        <thead>
+          <tr>
+            <th style="text-align: left; width: 60%;">รายการ</th>
+            <th style="text-align: center; width: 15%;">จำนวน</th>
+            <th style="text-align: right; width: 25%;">ราคา</th>
+          </tr>
+        </thead>
+        <tbody id="print-receipt-items">
+          <!-- Dynamic receipt items -->
+        </tbody>
+      </table>
+      
+      <div class="receipt-divider">--------------------------------</div>
+      
+      <div class="receipt-summary" style="page-break-inside: avoid; break-inside: avoid;">
+        <div class="receipt-summary-row">
+          <span>ราคารวม:</span>
+          <span id="print-subtotal">฿0.00</span>
+        </div>
+        <div class="receipt-summary-row font-normal text-sm" id="print-discount-row">
+          <span>ส่วนลด:</span>
+          <span id="print-discount">-฿0.00</span>
+        </div>
+        <div class="receipt-summary-row receipt-total">
+          <span>ยอดสุทธิ:</span>
+          <span id="print-total">฿0.00</span>
+        </div>
+      </div>
+      
+      <div class="receipt-divider">--------------------------------</div>
+      
+      <div class="receipt-payment" style="page-break-inside: avoid; break-inside: avoid;">
+        <div>การชำระเงิน: <span id="print-payment-method">เงินสด</span></div>
+        <div id="print-bank-info-row" class="hidden">
+          <div style="font-size: 9.5px; margin-top: 2px;">บัญชี: <span id="print-bank-info" style="font-weight: bold;">-</span></div>
+          <div style="font-size: 9px; color: #444;">ชื่อ: <span id="print-bank-acc-name">-</span></div>
+        </div>
+        <div id="print-cash-received-row">รับเงินมา: <span id="print-cash-received">฿0.00</span></div>
+        <div id="print-cash-change-row">เงินทอน: <span id="print-cash-change">฿0.00</span></div>
+      </div>
+      
+      <div class="receipt-divider" id="print-qr-divider">--------------------------------</div>
+      
+      <!-- QR code dynamically printed if QR/Bank was used -->
+      <div id="print-promptpay-qr-container" class="receipt-qr-wrapper hidden" style="page-break-inside: avoid; break-inside: avoid;">
+        <p id="print-qr-code-label" style="font-size: 8px; margin-bottom: 2px;">สแกนตรวจสอบการชำระเงิน</p>
+        <canvas id="printReceiptQrCanvas" style="width: 85px; height: 85px; margin: 2px auto; display: block;"></canvas>
+        <img id="printReceiptQrImg" style="width: 85px; height: 85px; object-fit: contain; margin: 2px auto; display: none;" alt="QR Receipt">
+      </div>
+
+      <div class="receipt-footer" style="page-break-inside: avoid; break-inside: avoid;">
+        <p id="print-receipt-footer-msg">ขอบคุณที่ใช้บริการ / Thank you</p>
+        <p style="font-size: 8px; color: #666; margin-top: 4px;">Powered by ร้านทานตะวัน POS</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Load Supabase Cloud & Realtime Integration -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="supabase-client.js"></script>
+
+  <!-- Load script logic last -->
+  <script src="app.js" defer></script>
+</body>
+</html>
