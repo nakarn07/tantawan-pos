@@ -218,7 +218,7 @@ const DEFAULT_PRODUCTS = [
     id: 'prod-affogato',
     name: 'อัฟโฟกาโต (Affogato)',
     category: 'กาแฟเย็น',
-    basePrice: 65,
+    basePrice: 70,
     image: 'assets/coffee/iced_affogato.jpg',
     optionGroupIds: ['optgrp-beans', 'optgrp-toppings'],
     hasTemp: false,
@@ -230,7 +230,7 @@ const DEFAULT_PRODUCTS = [
     id: 'prod-dirty',
     name: 'เดอร์ตี้ (Dirty)',
     category: 'กาแฟเย็น',
-    basePrice: 60,
+    basePrice: 130,
     image: 'assets/coffee/iced_dirty.jpg',
     optionGroupIds: ['optgrp-beans', 'optgrp-sweet', 'optgrp-toppings'],
     hasTemp: false,
@@ -611,12 +611,16 @@ function loadFromLocalStorage() {
           p.basePrice = 45;
           p.tempPrices = { hot: 0, cold: 5, frappe: 10 };
           prodsUpdated = true;
-        } else if (p.id === 'prod-affogato' && p.basePrice === 70) {
-          p.basePrice = 65;
-          prodsUpdated = true;
-        } else if (p.id === 'prod-dirty' && p.basePrice === 65) {
-          p.basePrice = 60;
-          prodsUpdated = true;
+        } else if (p.id === 'prod-affogato') {
+          if (p.basePrice !== 70) {
+            p.basePrice = 70;
+            prodsUpdated = true;
+          }
+        } else if (p.id === 'prod-dirty') {
+          if (p.basePrice !== 130) {
+            p.basePrice = 130;
+            prodsUpdated = true;
+          }
         } else if (p.id === 'prod-5' && p.basePrice === 60) {
           p.basePrice = 70;
           p.tempPrices = { hot: 0, cold: 0, frappe: 5 };

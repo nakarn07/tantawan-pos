@@ -2059,7 +2059,7 @@
             name: 'Affogato', 
             sub: 'Espresso & Ice Cream', 
             temp: 'cold', 
-            price: 65,
+            price: 70,
             image: 'assets/coffee/iced_affogato.jpg'
           },
           { 
@@ -2067,12 +2067,12 @@
             name: 'Dirty', 
             sub: 'Dirty Coffee', 
             temp: 'cold', 
-            price: 60,
+            price: 130,
             image: 'assets/coffee/iced_dirty.jpg'
           }
         ];
 
-        // 4 เมนูกาแฟร้อน (กาแฟสดแท้ 100% ลาเต้ร้อน = 45 บาท ตามระบบหลังบ้าน)
+        // 4 เมนูกาแฟร้อน (กาแฟสดแท้ 100% อเมริกาโน่ร้อน = 40 บาท, ลาเต้ร้อน = 45 บาท)
         const hotDrinks = [
           { 
             id: 'c-hot-esp', 
@@ -2087,7 +2087,7 @@
             name: 'อเมริกาโน่ร้อน', 
             sub: 'Hot Americano', 
             temp: 'hot', 
-            price: 45,
+            price: 40,
             image: 'assets/coffee/hot_americano.png'
           },
           { 
@@ -2110,20 +2110,21 @@
 
         // ---------------------------------------------------------------------
         // ป้องกันไม่ให้เมนูอื่นๆ หรือชา/มัทฉะ มาปนกับกาแฟสดอย่างเด็ดขาด
-        // ลาเต้เย็น = ฿50, ลาเต้ร้อน = ฿45
         // ---------------------------------------------------------------------
         try {
           const storedProds = JSON.parse(localStorage.getItem('coffeeshop_products'));
           if (Array.isArray(storedProds)) {
             const allDrinks = [...coldDrinks, ...hotDrinks];
             allDrinks.forEach(drink => {
-              // ล็อกราคาเมนูกาแฟสดมาตรฐาน ห้ามดึงค่ามัทฉะหรือชามาปนเด็ดขาด
+              // ล็อกราคาเมนูกาแฟสดมาตรฐานตามที่ร้านกำหนด
+              if (drink.id === 'c-cold-ame') { drink.price = 45; return; }
               if (drink.id === 'c-cold-lat') { drink.price = 50; return; }
-              if (drink.id === 'c-hot-lat') { drink.price = 45; return; }
+              if (drink.id === 'c-cold-affo') { drink.price = 70; return; }
+              if (drink.id === 'c-cold-dirty') { drink.price = 130; return; }
               if (drink.id === 'c-hot-esp') { drink.price = 35; return; }
+              if (drink.id === 'c-hot-ame') { drink.price = 40; return; }
+              if (drink.id === 'c-hot-lat') { drink.price = 45; return; }
               if (drink.id === 'c-hot-cap') { drink.price = 45; return; }
-              if (drink.id === 'c-cold-affo') { drink.price = 65; return; }
-              if (drink.id === 'c-cold-dirty') { drink.price = 60; return; }
 
               // สำหรับอเมริกาโน่
               if (drink.id === 'c-cold-ame' || drink.id === 'c-hot-ame') {
