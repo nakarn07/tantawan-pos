@@ -464,11 +464,21 @@ function handleMasterStoreLogin(e) {
 }
 
 function masterStoreLogout() {
-  if (confirm('🔒 คุณต้องการออกจากระบบร้านค้า (Lock Store) ใช่หรือไม่?\n\nเมื่อออกแล้ว ระบบจะต้องกรอก Username และ Password ร้านอีกครั้งเพื่อเข้าสู่ระบบ POS')) {
-    localStorage.removeItem(STORE_AUTH_STORAGE_KEY);
-    sessionStorage.removeItem(STORE_AUTH_STORAGE_KEY);
-    location.reload();
+  localStorage.removeItem(STORE_AUTH_STORAGE_KEY);
+  sessionStorage.removeItem(STORE_AUTH_STORAGE_KEY);
+  closeUserDropdown();
+
+  const overlay = document.getElementById('masterStoreGateOverlay');
+  if (overlay) {
+    overlay.classList.remove('hidden');
+    const userIn = document.getElementById('masterInputUsername');
+    const passIn = document.getElementById('masterInputPassword');
+    const errBox = document.getElementById('masterLoginError');
+    if (userIn) { userIn.value = ''; userIn.focus(); }
+    if (passIn) passIn.value = '';
+    if (errBox) errBox.classList.add('hidden');
   }
+  showToast('🔒 ออกจากระบบร้านค้าเรียบร้อยแล้ว กรุณาเข้าสู่ระบบใหม่', 'info');
 }
 
 function toggleMasterPasswordVisibility() {
