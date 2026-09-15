@@ -4732,6 +4732,90 @@ function exportToCSV() {
 }
 
 // --------------------------------------------------------------------------
+// FULL POS BACKUP & RESTORE / CLOUD MIGRATION
+// --------------------------------------------------------------------------
+function exportFullPOSBackup() {
+  try {
+    const backup = {
+      products: JSON.parse(localStorage.getItem('coffeeshop_products') || '[]'),
+      categories: JSON.parse(localStorage.getItem('coffeeshop_categories') || '[]'),
+      optionGroups: JSON.parse(localStorage.getItem('coffeeshop_option_groups') || '[]'),
+      promotions: JSON.parse(localStorage.getItem('coffeeshop_promotions') || '[]'),
+      settings: JSON.parse(localStorage.getItem('coffeeshop_settings') || '{}'),
+      users: JSON.parse(localStorage.getItem('coffeeshop_users') || '[]'),
+      orders: JSON.parse(localStorage.getItem('coffeeshop_orders') || '[]'),
+      timestamp: Date.now()
+    };
+
+    const blob = new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `tantawan_pos_backup_${new Date().toISOString().slice(0,10)}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    showToast('💾 ส่งออกไฟล์สำรองข้อมูลสำเร็จเรียบร้อย!', 'success');
+  } catch (err) {
+    showToast('เกิดข้อผิดพลาดในการส่งออกข้อมูล: ' + err.message, 'error');
+  }
+}
+
+function importFullPOSBackup(fileInput) {
+  const file = fileInput.files && fileInput.files[0];
+  if (!file) return;
+
+  const reader = new FileReader();
+  reader.onload = async (e) => {
+    try {
+      const data = JSON.parse(e.target.result);
+      let count = 0;
+      if (data.products && Array.isArray(data.products)) {
+        localStorage.setItem('coffeeshop_products', JSON.stringify(data.products));
+        products = data.products;
+        window.products = products;
+        count = products.length;
+      }
+      if (data.categories && Array.isArray(data.categories)) {
+        localStorage.setItem('coffeeshop_categories', JSON.stringify(data.categories));
+        categories = data.categories;
+        window.categories = categories;
+      }
+      if (data.optionGroups && Array.isArray(data.optionGroups)) {
+        localStorage.setItem('coffeeshop_option_groups', JSON.stringify(data.optionGroups));
+        optionGroups = data.optionGroups;
+      }
+      if (data.promotions && Array.isArray(data.promotions)) {
+        localStorage.setItem('coffeeshop_promotions', JSON.stringify(data.promotions));
+        promotions = data.promotions;
+      }
+      if (data.settings && typeof data.settings === 'object') {
+        localStorage.setItem('coffeeshop_settings', JSON.stringify(data.settings));
+        settings = data.settings;
+      }
+      if (data.orders && Array.isArray(data.orders)) {
+        localStorage.setItem('coffeeshop_orders', JSON.stringify(data.orders));
+        orders = data.orders;
+        window.orders = orders;
+      }
+
+      // Sync directly to Supabase cloud
+      if (typeof syncProductsToCloud === 'function') {
+        syncProductsToCloud(products);
+      }
+      if (typeof syncSettingsToCloud === 'function') {
+        syncSettingsToCloud(settings);
+      }
+
+      showToast(`🎉 กู้คืนข้อมูลสำเร็จ! โหลดเมนูเข้ามา ${count} รายการ`, 'success');
+      setTimeout(() => location.reload(), 1000);
+    } catch (err) {
+      alert('ไฟล์สำรองไม่ถูกต้อง: ' + err.message);
+    }
+  };
+  reader.readAsText(file);
+}
 // LIGHTWEIGHT SVG LINE CHART RENDERING (Works Offline)
 // --------------------------------------------------------------------------
 function renderSVGChart(filteredOrders) {

@@ -107,6 +107,18 @@
             <span class="hidden lg:inline text-[11px]" id="cloudSyncText">คลาวด์เชื่อมต่อ</span>
           </div>
 
+          <!-- Export/Import Full Backup Buttons -->
+          <button onclick="exportFullPOSBackup()" title="สำรองข้อมูลเมนูและระบบทั้งหมดเป็นไฟล์ JSON" class="px-2 sm:px-2.5 py-1.5 rounded-xl bg-blue-500/10 hover:bg-blue-500/20 text-blue-600 dark:text-blue-400 border border-blue-500/20 text-xs font-medium flex items-center gap-1.5 whitespace-nowrap">
+            <span>📤</span>
+            <span class="hidden xl:inline text-[11px]">สำรองเมนู</span>
+          </button>
+
+          <label title="นำเข้าไฟล์เมนูที่สำรองไว้" class="px-2 sm:px-2.5 py-1.5 rounded-xl bg-purple-500/10 hover:bg-purple-500/20 text-purple-600 dark:text-purple-400 border border-purple-500/20 text-xs font-medium flex items-center gap-1.5 whitespace-nowrap cursor-pointer">
+            <span>📥</span>
+            <span class="hidden xl:inline text-[11px]">กู้คืนเมนู</span>
+            <input type="file" accept=".json" onchange="importFullPOSBackup(this)" class="hidden">
+          </label>
+
           <!-- Customer Display Button -->
           <button id="btnCustomerDisplay" onclick="openCustomerDisplayWindow()" title="เปิดหน้าจอฝั่งลูกค้า (Customer Display)" class="px-2.5 sm:px-3 py-1.5 sm:py-2 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 text-amber-700 dark:text-amber-400 border border-amber-500/30 shadow-sm transition flex items-center gap-1.5 text-xs font-semibold whitespace-nowrap">
             <span>🖥️</span>
@@ -697,6 +709,31 @@
         <div>
           <h2 class="text-xl font-bold text-slate-900 dark:text-white">ตั้งค่าระบบ POS</h2>
           <p class="text-sm text-slate-500 dark:text-slate-400">ตั้งค่าข้อมูลร้าน ข้อมูลชำระเงิน การพิมพ์ใบเสร็จ และการแสดงผลธีม</p>
+        </div>
+
+        <!-- Data Backup & Cloud Migration Card -->
+        <div class="bg-gradient-to-r from-amber-500/10 via-amber-600/5 to-transparent p-6 rounded-2xl shadow-sm border border-amber-500/30 space-y-4">
+          <div class="flex items-center justify-between">
+            <h3 class="text-sm font-bold text-slate-900 dark:text-white uppercase tracking-wide flex items-center space-x-2">
+              <span class="text-xl">💾</span>
+              <span>สำรองข้อมูล &amp; ย้ายเมนูขึ้นระบบ (Backup &amp; Cloud Sync)</span>
+            </h3>
+            <span class="text-xs px-2.5 py-1 rounded-full bg-amber-500/20 text-amber-700 dark:text-amber-400 font-semibold">แนะนำ</span>
+          </div>
+          <p class="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
+            ใช้สำหรับส่งออกเมนูที่คุณตั้งค่าไว้ในเครื่องนี้ หรือนำเข้าเมนูไปยังเครื่องอื่นๆ / โดเมน Vercel ข้อมูลทั้งหมดรวมถึงรูปภาพและราคาจะถูกส่งขึ้นคลาวด์โดยอัตโนมัติ
+          </p>
+          <div class="flex flex-wrap gap-3 pt-2">
+            <button type="button" onclick="exportFullPOSBackup()" class="px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold shadow transition flex items-center gap-2">
+              <span>📤</span>
+              <span>ส่งออกไฟล์สำรองเมนูทั้งหมด (Export)</span>
+            </button>
+            <label class="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold shadow transition flex items-center gap-2 cursor-pointer">
+              <span>📥</span>
+              <span>นำเข้าไฟล์เมนู (Import &amp; Sync)</span>
+              <input type="file" accept=".json" onchange="importFullPOSBackup(this)" class="hidden">
+            </label>
+          </div>
         </div>
 
         <!-- Theme Settings Card -->
