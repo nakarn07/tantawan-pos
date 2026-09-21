@@ -17,6 +17,8 @@ let isCloudConnected = false;
 let cloudSyncListeners = [];
 let isSyncingProductsLocally = false;
 let localProductSyncTimer = null;
+let isSyncingOrderLocally = false;
+let localOrderSyncTimer = null;
 let realtimeFetchTimeout = null;
 
 // 1. INITIALIZE SUPABASE CLIENT
@@ -172,7 +174,7 @@ function initDbChangeListener() {
       })
       .subscribe();
 
-    // 2.3 REALTIME SETTINGS & SOLD OUT PRODUCTS SYNC
+    // 2.3 REALTIME SETTINGS, OPTION GROUPS & SOLD OUT PRODUCTS SYNC
     dbClient
       .channel('tantawan-settings-sync')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'shop_settings' }, (payload) => {
@@ -184,6 +186,36 @@ function initDbChangeListener() {
           if (typeof renderProductsGrid === 'function') renderProductsGrid();
           if (typeof renderMenuConfigTable === 'function') renderMenuConfigTable();
           if (typeof renderCustomerIdleShowcase === 'function') renderCustomerIdleShowcase();
+        } else if (payload.new && payload.new.key === 'option_groups' && Array.isArray(payload.new.value)) {
+          const newGroups = payload.new.value;
+          localStorage.setItem('coffeeshop_option_groups', JSON.stringify(newGroups));
+          if (typeof window !== 'undefined') window.optionGroups = newGroups;
+          if (typeof optionGroups !== 'undefined') optionGroups = newGroups;
+          if (typeof renderMenuConfigTable === 'function') renderMenuConfigTable();
+          console.log('📡 Realtime Option Groups updated from Cloud');
+        } else if (payload.new && payload.new.key === 'product_order' && Array.isArray(payload.new.value)) {
+          if (isSyncingOrderLocally) {
+            console.log('⏳ Skipping self-triggered product_order realtime refresh');
+            return;
+          }
+          const newOrder = payload.new.value;
+          localStorage.setItem('coffeeshop_product_order', JSON.stringify(newOrder));
+          if (typeof products !== 'undefined' && Array.isArray(products) && products.length > 0) {
+            const orderMap = {};
+            newOrder.forEach((id, idx) => { orderMap[id] = idx; });
+            products.sort((a, b) => {
+              const aIdx = orderMap[a.id] !== undefined ? orderMap[a.id] : 999999;
+              const bIdx = orderMap[b.id] !== undefined ? orderMap[b.id] : 999999;
+              if (aIdx !== bIdx) return aIdx - bIdx;
+              return (a.id || '').localeCompare(b.id || '');
+            });
+            if (typeof window !== 'undefined') window.products = products;
+            localStorage.setItem('coffeeshop_products', JSON.stringify(products));
+            if (typeof renderProductsGrid === 'function') renderProductsGrid();
+            if (typeof renderMenuConfigTable === 'function') renderMenuConfigTable();
+            if (typeof renderCustomerIdleShowcase === 'function') renderCustomerIdleShowcase();
+          }
+          console.log('📡 Realtime Product Order synced from Cloud (' + newOrder.length + ' items)');
         }
       })
       .subscribe();
@@ -366,8 +398,36 @@ async function fetchOrdersFromCloud() {
   return null;
 }
 
-// 7. SYNC PRODUCTS TO CLOUD
-async function syncProductsToCloud(prods) {
+// 7.0 SYNC PRODUCT ORDER TO CLOUD (เฉพาะเมื่อผู้ใช้จงใจจัดลำดับเมนูเท่านั้น)
+async function syncProductOrderToCloud(orderedIds) {
+  if (!dbClient || !isCloudConnected || !Array.isArray(orderedIds)) return;
+  // Safety guard: ป้องกันไม่ให้อาร์เรย์ที่ไม่สมบูรณ์ (< 50 รายการ) ไปเซฟทับลำดับหลักบน Cloud เด็ดขาด
+  if (orderedIds.length < 50) {
+    console.warn('⚠️ syncProductOrderToCloud: order length too short (' + orderedIds.length + '), skipping Cloud overwrite to protect store data');
+    return;
+  }
+  try {
+    isSyncingOrderLocally = true;
+    if (localOrderSyncTimer) clearTimeout(localOrderSyncTimer);
+    localOrderSyncTimer = setTimeout(() => {
+      isSyncingOrderLocally = false;
+    }, 3000);
+
+    localStorage.setItem('coffeeshop_product_order', JSON.stringify(orderedIds));
+
+    await dbClient.from('shop_settings').upsert({
+      key: 'product_order',
+      value: orderedIds,
+      updated_at: new Date().toISOString()
+    });
+    console.log('☁️ Product order permanently synced to Supabase (' + orderedIds.length + ' items)');
+  } catch (e) {
+    console.warn('Sync product order error:', e);
+  }
+}
+
+// 7. SYNC PRODUCTS TO CLOUD (เซฟข้อมูลเมนู โดยไม่ไปแตะต้องลำดับเมนูบน Cloud)
+async function syncProductsToCloud(prods, shouldUpdateOrder = false) {
   if (!dbClient || !isCloudConnected || !Array.isArray(prods)) return;
   try {
     // Set local sync lock for 3 seconds so incoming realtime echo won't overwrite active user changes
@@ -379,8 +439,12 @@ async function syncProductsToCloud(prods) {
 
     const BANNED_IDS = ['prod-7', 'prod-8', 'prod-affogato', 'prod-dirty', 'prod-9', 'prod-11', 'prod-12', 'prod-1'];
     const cleanProds = prods.filter(p => !BANNED_IDS.includes(p.id));
-    const orderedIds = cleanProds.map(p => p.id);
-    localStorage.setItem('coffeeshop_product_order', JSON.stringify(orderedIds));
+
+    // Safety guard: Never overwrite products on Cloud with an incomplete or dummy array (< 20 items)
+    if (cleanProds.length < 20) {
+      console.warn('⚠️ syncProductsToCloud: product count too low (' + cleanProds.length + '), skipping Cloud overwrite to protect store data');
+      return;
+    }
 
     const rows = cleanProds.map(p => ({
       id: String(p.id),
@@ -390,7 +454,7 @@ async function syncProductsToCloud(prods) {
       image: p.image || null,
       option_group_ids: p.optionGroupIds || [],
       has_temp: !!p.hasTemp,
-      temp_prices: p.tempPrices || { hot: 0, cold: 5, frappe: 10 },
+      temp_prices: p.tempPrices || { hot: 0, cold: 0, frappe: 0 },
       has_sweetness: !!p.hasSweetness,
       has_extras: !!p.hasExtras,
       extras: p.extras || [],
@@ -398,13 +462,13 @@ async function syncProductsToCloud(prods) {
     }));
     await dbClient.from('products').upsert(rows);
 
-    // Save custom product order to shop_settings so it is permanently preserved across cloud and all devices
-    await dbClient.from('shop_settings').upsert({
-      key: 'product_order',
-      value: orderedIds
-    });
+    // ONLY update product_order if explicitly requested (e.g. reordering action) AND product count >= 50
+    if (shouldUpdateOrder && cleanProds.length >= 50) {
+      const orderedIds = cleanProds.map(p => p.id);
+      await syncProductOrderToCloud(orderedIds);
+    }
 
-    console.log('☁️ Products and custom order synced to Supabase (' + rows.length + ' items)');
+    console.log('☁️ Products synced to Supabase (' + rows.length + ' items)');
   } catch (e) {
     console.warn('Sync products error:', e);
   }
@@ -489,7 +553,8 @@ async function fetchProductsFromCloud() {
         formatted.sort((a, b) => {
           const aIdx = orderMap[a.id] !== undefined ? orderMap[a.id] : 999999;
           const bIdx = orderMap[b.id] !== undefined ? orderMap[b.id] : 999999;
-          return aIdx - bIdx;
+          if (aIdx !== bIdx) return aIdx - bIdx;
+          return (a.id || '').localeCompare(b.id || '');
         });
       }
 
@@ -621,6 +686,41 @@ async function fetchSoldOutProductsFromCloud() {
     return null;
   } catch (e) {
     console.warn('Fetch sold out products error:', e);
+  }
+  return null;
+}
+
+// 8.2 SYNC & FETCH OPTION GROUPS
+async function syncOptionGroupsToCloud(groups) {
+  if (!dbClient || !isCloudConnected || !Array.isArray(groups)) return;
+  try {
+    await dbClient.from('shop_settings').upsert({
+      key: 'option_groups',
+      value: groups,
+      updated_at: new Date().toISOString()
+    });
+    console.log('☁️ Option groups synced to Supabase (' + groups.length + ' groups)');
+  } catch (e) {
+    console.warn('Sync option groups error:', e);
+  }
+}
+
+async function fetchOptionGroupsFromCloud() {
+  if (!dbClient || !isCloudConnected) return null;
+  try {
+    const { data: row, error } = await dbClient
+      .from('shop_settings')
+      .select('value')
+      .eq('key', 'option_groups')
+      .maybeSingle();
+
+    if (!error && row && Array.isArray(row.value) && row.value.length > 0) {
+      localStorage.setItem('coffeeshop_option_groups', JSON.stringify(row.value));
+      console.log('☁️ Option groups loaded from Supabase (' + row.value.length + ' groups)');
+      return row.value;
+    }
+  } catch (e) {
+    console.error('fetchOptionGroupsFromCloud error:', e);
   }
   return null;
 }
