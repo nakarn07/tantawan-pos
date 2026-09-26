@@ -62,6 +62,7 @@ let receiptPreviewSize = '80mm';
 let currentProductEditingImage = null; // Base64 data URL for product image
 let reportBestSellerCategory = 'all'; // Active category filter for best sellers
 let latestProductSalesStats = {}; // Cached product sales stats
+let bestSellersDisplayLimit = 5; // Default display limit for best sellers (Top 5)
 
 // Global constants for legacy extras options (fallback)
 const AVAILABLE_EXTRAS = [
@@ -69,7 +70,7 @@ const AVAILABLE_EXTRAS = [
   { name: 'วิปครีม (Whipped Cream)', price: 15 },
   { name: 'ไข่มุก (Boba)', price: 10 },
   { name: 'คาราเมลซอส (Caramel)', price: 10 },
-  { name: 'คอนเลค (Cornflakes)', price: 10 },
+  { name: '��อนเลค (Cornflakes)', price: 10 },
   { name: 'บุกน้ำผึ้ง (Honey Jelly)', price: 15 }
 ];
 
@@ -5225,6 +5226,7 @@ function setDateRange(range) {
     endInput.value = formatLocalDate(lastDayLastMonth);
   }
 
+  bestSellersDisplayLimit = 5;
   calculateReportStats();
 }
 
@@ -5239,6 +5241,7 @@ function customDateChanged() {
     const btn = document.getElementById(`btn-date-${r}`);
     if (btn) btn.className = 'px-2.5 py-1.5 text-xs font-semibold rounded-lg text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition';
   });
+  bestSellersDisplayLimit = 5;
   calculateReportStats();
 }
 
@@ -5693,9 +5696,26 @@ function renderBestSellerCategoryTabs() {
 
 function setBestSellerCategory(cat) {
   reportBestSellerCategory = cat;
+  bestSellersDisplayLimit = 5;
   renderBestSellerCategoryTabs();
   renderTopItemsList(latestProductSalesStats);
 }
+
+function expandBestSellers(step = 10) {
+  bestSellersDisplayLimit += step;
+  renderTopItemsList(latestProductSalesStats);
+}
+
+function collapseBestSellers() {
+  bestSellersDisplayLimit = 5;
+  renderTopItemsList(latestProductSalesStats);
+  const container = document.getElementById('topSellingList');
+  if (container) {
+    container.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }
+}
+window.expandBestSellers = expandBestSellers;
+window.collapseBestSellers = collapseBestSellers;
 
 function renderTopItemsList(salesStats = latestProductSalesStats) {
   const container = document.getElementById('topSellingList');
@@ -5710,15 +5730,35 @@ function renderTopItemsList(salesStats = latestProductSalesStats) {
   // Sort descending by qty sold, then by total revenue
   items.sort((a, b) => b.qty - a.qty || b.revenue - a.revenue);
 
-  if (items.length === 0) {
+  const totalCount = items.length;
+
+  // Update count badge in header if element exists
+  const countBadge = document.getElementById('bestSellerCountBadge');
+  if (countBadge) {
+    if (totalCount === 0) {
+      countBadge.innerText = '0 เมนู';
+    } else if (bestSellersDisplayLimit >= totalCount) {
+      countBadge.innerText = `ครบทั้ง ${totalCount} เมนู`;
+    } else {
+      countBadge.innerText = `อันดับ 1-${Math.min(bestSellersDisplayLimit, totalCount)} จาก ${totalCount}`;
+    }
+  }
+
+  if (totalCount === 0) {
     const catLabel = reportBestSellerCategory === 'all' ? 'ทุกหมวดหมู่' : `หมวด "${reportBestSellerCategory}"`;
-    container.innerHTML = `<span class="text-xs text-slate-400 dark:text-slate-500 block text-center py-6">ไม่มีข้อมูลออเดอร์ใน${catLabel} สำหรับช่วงเวลานี้</span>`;
+    container.innerHTML = `
+      <div class="py-8 text-center text-slate-400 dark:text-slate-500 text-xs">
+        <span class="text-2xl block mb-1">☕</span>
+        <span>ไม่มีข้อมูลออเดอร์ใน${catLabel} สำหรับช่วงเวลานี้</span>
+      </div>
+    `;
     return;
   }
 
   const maxQty = items[0].qty;
+  const visibleItems = items.slice(0, bestSellersDisplayLimit);
 
-  items.forEach((item, index) => {
+  visibleItems.forEach((item, index) => {
     const pct = maxQty > 0 ? (item.qty / maxQty) * 100 : 0;
     const rank = index + 1;
 
@@ -5767,6 +5807,54 @@ function renderTopItemsList(salesStats = latestProductSalesStats) {
     `;
     container.appendChild(row);
   });
+
+  // If there are more than 5 items, render clean footer controls
+  if (totalCount > 5) {
+    const footer = document.createElement('div');
+    footer.className = 'pt-3 mt-1 border-t border-slate-100 dark:border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-2 text-xs';
+
+    const hasMore = visibleItems.length < totalCount;
+    const isExpanded = visibleItems.length > 5;
+    const remaining = totalCount - visibleItems.length;
+
+    let actionsHtml = '';
+    if (hasMore && !isExpanded) {
+      actionsHtml = `
+        <button type="button" onclick="expandBestSellers(10)" class="w-full sm:w-auto px-4 py-1.5 text-xs font-bold rounded-xl bg-amber-500 hover:bg-amber-600 text-white shadow-sm hover:shadow transition flex items-center justify-center gap-1.5 cursor-pointer">
+          <span>ดูเพิ่ม (+10 อันดับ)</span>
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 9l-7 7-7-7" /></svg>
+        </button>
+      `;
+    } else if (hasMore && isExpanded) {
+      actionsHtml = `
+        <div class="flex items-center gap-2 w-full sm:w-auto">
+          <button type="button" onclick="collapseBestSellers()" class="flex-1 sm:flex-initial px-3 py-1.5 text-xs font-semibold rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 transition flex items-center justify-center gap-1 cursor-pointer">
+            <span>ย่อเหลือ 5</span>
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 15l7-7 7 7" /></svg>
+          </button>
+          <button type="button" onclick="expandBestSellers(10)" class="flex-1 sm:flex-initial px-3.5 py-1.5 text-xs font-bold rounded-xl bg-amber-500 hover:bg-amber-600 text-white shadow-sm hover:shadow transition flex items-center justify-center gap-1.5 cursor-pointer">
+            <span>ดูเพิ่ม (+10)</span>
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 9l-7 7-7-7" /></svg>
+          </button>
+        </div>
+      `;
+    } else if (!hasMore && isExpanded) {
+      actionsHtml = `
+        <button type="button" onclick="collapseBestSellers()" class="w-full sm:w-auto px-4 py-1.5 text-xs font-semibold rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 transition flex items-center justify-center gap-1.5 cursor-pointer">
+          <span>ย่อกลับเหลือ 5 อันดับแรก</span>
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 15l7-7 7 7" /></svg>
+        </button>
+      `;
+    }
+
+    footer.innerHTML = `
+      <div class="text-[11px] text-slate-500 dark:text-slate-400 font-medium">
+        แสดง <strong>${visibleItems.length}</strong> จาก <strong>${totalCount}</strong> รายการ${hasMore ? ` (เหลือ ${remaining})` : ''}
+      </div>
+      ${actionsHtml}
+    `;
+    container.appendChild(footer);
+  }
 }
 
 function renderLedgerTable(filteredOrders) {
