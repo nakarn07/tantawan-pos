@@ -2332,16 +2332,43 @@ function getProductSalesMap() {
   return salesMap;
 }
 
+let currentGridDensity = (typeof localStorage !== 'undefined' && localStorage.getItem('coffeeshop_grid_density')) || 'compact';
+
+function setGridDensity(mode) {
+  currentGridDensity = mode || 'compact';
+  try {
+    localStorage.setItem('coffeeshop_grid_density', currentGridDensity);
+  } catch (e) {}
+  const selectEl = document.getElementById('gridDensityMode');
+  if (selectEl) selectEl.value = currentGridDensity;
+  renderProductsGrid();
+}
+
 function filterProducts() {
   renderProductsGrid();
 }
 
 function renderProductsGrid() {
   const grid = document.getElementById('productGrid');
+  if (!grid) return;
   grid.innerHTML = '';
   
-  const searchVal = document.getElementById('searchProducts').value.toLowerCase().trim();
+  const searchVal = document.getElementById('searchProducts')?.value.toLowerCase().trim() || '';
   const sortMode = document.getElementById('productSortMode')?.value || 'custom';
+  const densitySelect = document.getElementById('gridDensityMode');
+  if (densitySelect && densitySelect.value !== currentGridDensity) {
+    densitySelect.value = currentGridDensity;
+  }
+
+  // Configure responsive grid columns based on density
+  if (currentGridDensity === 'mini') {
+    grid.className = 'grid grid-cols-4 sm:grid-cols-5 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-7 2xl:grid-cols-9 gap-1 sm:gap-1.5';
+  } else if (currentGridDensity === 'normal') {
+    grid.className = 'grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-2 sm:gap-3';
+  } else {
+    // 'compact' (Default & Recommended for Tablet)
+    grid.className = 'grid grid-cols-3 sm:grid-cols-4 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-8 gap-1.5 sm:gap-2';
+  }
 
   // Filter products by selected category and search input
   let filteredProducts = products.filter(p => {
@@ -2379,6 +2406,15 @@ function renderProductsGrid() {
     return;
   }
 
+  // Choose proportional font & padding sizes based on density
+  const isMini = (currentGridDensity === 'mini');
+  const isNormal = (currentGridDensity === 'normal');
+  const cardPadding = isMini ? 'p-1' : (isNormal ? 'p-2 sm:p-2.5' : 'p-1.5 sm:p-2');
+  const cardRounded = isMini ? 'rounded-lg' : 'rounded-xl';
+  const catTextSize = isMini ? 'text-[7.5px] px-1 py-0.2' : (isNormal ? 'text-[9.5px] sm:text-[10px] px-1.5 py-0.5' : 'text-[8.5px] sm:text-[9px] px-1.5 py-0.5');
+  const priceTextSize = isMini ? 'text-[9px] font-black px-1' : (isNormal ? 'text-xs sm:text-[13px] font-black px-2 py-0.5' : 'text-[10px] sm:text-[11px] font-black px-1.5 py-0.5');
+  const nameTextSize = isMini ? 'text-[10px] leading-tight' : (isNormal ? 'text-xs sm:text-[13px] leading-tight' : 'text-[11px] sm:text-xs leading-tight');
+
   filteredProducts.forEach(p => {
     const card = document.createElement('div');
     const isSoldOut = Array.isArray(soldOutProductIds) && soldOutProductIds.includes(p.id);
@@ -2386,61 +2422,61 @@ function renderProductsGrid() {
     const priceDisplay = Number.isInteger(p.basePrice) ? '฿' + p.basePrice : '฿' + p.basePrice.toFixed(2);
 
     if (p.image) {
-      // 1:1 Aspect Ratio Card WITH Image
-      card.className = `aspect-square rounded-xl relative overflow-hidden cursor-pointer select-none transition-all duration-150 active:scale-95 border ${isSoldOut ? 'border-red-400 dark:border-red-900/70 opacity-65 grayscale-[35%]' : 'border-slate-200 dark:border-slate-800 hover:border-amber-500 hover:shadow-md'} group flex flex-col justify-between p-2`;
+      // 1:1 Aspect Ratio Card WITH Image (Proportionally Scaled)
+      card.className = `aspect-square ${cardRounded} relative overflow-hidden cursor-pointer select-none transition-all duration-150 active:scale-95 border ${isSoldOut ? 'border-red-400 dark:border-red-900/70 opacity-65 grayscale-[35%]' : 'border-slate-200 dark:border-slate-800 hover:border-amber-500 hover:shadow-md'} group flex flex-col justify-between ${cardPadding}`;
       card.innerHTML = `
         <img src="${p.image}" alt="${p.name}" class="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-300 pointer-events-none">
         <div class="absolute inset-0 bg-gradient-to-t from-slate-950/90 via-slate-950/30 to-transparent pointer-events-none"></div>
         
         <!-- Top row: Category tag & Price badge -->
         <div class="relative z-10 flex justify-between items-start w-full pointer-events-none">
-          <span class="bg-black/60 backdrop-blur-sm text-[9px] font-semibold text-amber-300 px-1.5 py-0.5 rounded shadow-xs truncate max-w-[60%]">${p.category}</span>
-          <span class="bg-amber-500 text-slate-950 text-[11px] font-black px-1.5 py-0.5 rounded shadow-sm">${priceDisplay}</span>
+          <span class="bg-black/60 backdrop-blur-sm ${catTextSize} font-semibold text-amber-300 rounded shadow-xs truncate max-w-[60%]">${p.category}</span>
+          <span class="bg-amber-500 text-slate-950 ${priceTextSize} rounded shadow-sm">${priceDisplay}</span>
         </div>
 
         ${isSoldOut ? `
         <!-- Sold Out Badge Overlay -->
-        <div class="absolute inset-0 bg-black/60 z-20 flex flex-col items-center justify-center p-2 text-center pointer-events-none">
-          <span class="bg-red-600 text-white font-black text-[11px] sm:text-xs px-2.5 py-1 rounded-full shadow-lg border border-red-400 flex items-center gap-1 animate-pulse">
+        <div class="absolute inset-0 bg-black/60 z-20 flex flex-col items-center justify-center p-1.5 text-center pointer-events-none">
+          <span class="bg-red-600 text-white font-black text-[10px] sm:text-xs px-2 py-0.5 rounded-full shadow-lg border border-red-400 flex items-center gap-1 animate-pulse">
             🚫 หมดชั่วคราว
           </span>
-          <span class="text-[9.5px] text-red-200 mt-1 font-semibold">ปิดการขาย</span>
+          <span class="text-[9px] text-red-200 mt-0.5 font-semibold">ปิดการขาย</span>
         </div>
         ` : ''}
 
         <!-- Bottom row: Product name -->
         <div class="relative z-10 w-full mt-auto pointer-events-none">
-          <h4 class="text-xs sm:text-[13px] font-bold text-white leading-tight line-clamp-2 drop-shadow-sm">${p.name}</h4>
+          <h4 class="${nameTextSize} font-bold text-white line-clamp-2 drop-shadow-sm">${p.name}</h4>
         </div>
       `;
     } else {
       // 1:1 Aspect Ratio Card WITHOUT Image (Clean POS Touch Tile)
-      card.className = `aspect-square rounded-xl relative overflow-hidden cursor-pointer select-none transition-all duration-150 active:scale-95 border ${isSoldOut ? 'border-red-400 dark:border-red-900/70 opacity-65 grayscale-[35%] bg-red-50/20 dark:bg-red-950/20' : 'border-slate-200 dark:border-slate-800 hover:border-amber-500/70 hover:shadow-md bg-white dark:bg-slate-900'} group flex flex-col justify-between p-2 sm:p-2.5`;
+      card.className = `aspect-square ${cardRounded} relative overflow-hidden cursor-pointer select-none transition-all duration-150 active:scale-95 border ${isSoldOut ? 'border-red-400 dark:border-red-900/70 opacity-65 grayscale-[35%] bg-red-50/20 dark:bg-red-950/20' : 'border-slate-200 dark:border-slate-800 hover:border-amber-500/70 hover:shadow-md bg-white dark:bg-slate-900'} group flex flex-col justify-between ${cardPadding}`;
       card.innerHTML = `
         <!-- Top row: Category -->
         <div class="flex justify-between items-center w-full pointer-events-none">
-          <span class="text-[9px] sm:text-[10px] font-semibold text-slate-500 dark:text-slate-400 truncate max-w-[80%]">${p.category}</span>
+          <span class="${catTextSize} font-semibold text-slate-500 dark:text-slate-400 truncate max-w-[80%]">${p.category}</span>
           <div class="w-1.5 h-1.5 rounded-full ${isSoldOut ? 'bg-red-500 animate-pulse' : 'bg-amber-500/60 group-hover:bg-amber-500'} transition-colors"></div>
         </div>
 
         ${isSoldOut ? `
         <!-- Sold Out Badge Overlay -->
-        <div class="absolute inset-0 bg-slate-950/60 z-20 flex flex-col items-center justify-center p-2 text-center pointer-events-none">
-          <span class="bg-red-600 text-white font-black text-[11px] sm:text-xs px-2.5 py-1 rounded-full shadow-lg border border-red-400 flex items-center gap-1 animate-pulse">
+        <div class="absolute inset-0 bg-slate-950/60 z-20 flex flex-col items-center justify-center p-1.5 text-center pointer-events-none">
+          <span class="bg-red-600 text-white font-black text-[10px] sm:text-xs px-2 py-0.5 rounded-full shadow-lg border border-red-400 flex items-center gap-1 animate-pulse">
             🚫 หมดชั่วคราว
           </span>
-          <span class="text-[9.5px] text-red-200 mt-1 font-semibold">ปิดการขาย</span>
+          <span class="text-[9px] text-red-200 mt-0.5 font-semibold">ปิดการขาย</span>
         </div>
         ` : ''}
 
         <!-- Center: Product name -->
         <div class="flex-1 flex items-center justify-center text-center my-0.5 pointer-events-none">
-          <h4 class="text-xs sm:text-[13px] font-bold text-slate-800 dark:text-slate-100 group-hover:text-amber-500 dark:group-hover:text-amber-400 transition-colors line-clamp-3 leading-snug">${p.name}</h4>
+          <h4 class="${nameTextSize} font-bold text-slate-800 dark:text-slate-100 group-hover:text-amber-500 dark:group-hover:text-amber-400 transition-colors line-clamp-3 leading-snug">${p.name}</h4>
         </div>
 
         <!-- Bottom row: Price badge -->
         <div class="w-full pt-1 border-t border-slate-100 dark:border-slate-800/80 flex justify-center items-center pointer-events-none">
-          <span class="text-xs sm:text-[13px] font-black text-amber-600 dark:text-amber-400">${priceDisplay}</span>
+          <span class="${priceTextSize} text-amber-600 dark:text-amber-400">${priceDisplay}</span>
         </div>
       `;
     }
@@ -3662,17 +3698,7 @@ function broadcastStaffCartUpdate() {
   if (typeof broadcastStaffCart === 'function') {
     broadcastStaffCart({
       type: 'SYNC_CART',
-      cart: cart.map(item => ({
-        id: item.id,
-        name: item.name,
-        pricePerItem: item.pricePerItem,
-        qty: item.qty,
-        itemTotal: item.itemTotal,
-        selectedOptions: item.selectedOptions || [],
-        isCustomPrice: item.isCustomPrice || false,
-        customPriceNote: item.customPriceNote || item.customNotes || '',
-        category: item.category || ''
-      })),
+      cart: cart.map(item => ({ ...item })),
       cartDiscountDetail: cartDiscountDetail
     });
   }
@@ -3688,6 +3714,14 @@ function broadcastStaffOrderCompleted(orderObj) {
     });
   }
 }
+
+window.requestRemoteStaffCart = function() {
+  if (typeof broadcastStaffCart === 'function') {
+    broadcastStaffCart({
+      type: 'REQUEST_CART'
+    });
+  }
+};
 
 window.handleStaffCartSync = function(payload) {
   if (!payload || !payload.type) return;
@@ -3708,6 +3742,11 @@ window.handleStaffCartSync = function(payload) {
       renderCart();
     } finally {
       setTimeout(() => { isReceivingStaffCartSync = false; }, 80);
+    }
+  } else if (payload.type === 'REQUEST_CART') {
+    // If another device just connected and we have items in our cart, share our current cart
+    if (cart && cart.length > 0 && !isReceivingStaffCartSync) {
+      broadcastStaffCartUpdate();
     }
   } else if (payload.type === 'ORDER_COMPLETED') {
     isReceivingStaffCartSync = true;

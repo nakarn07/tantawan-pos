@@ -61,38 +61,38 @@
           </div>
         </div>
 
-        <!-- Tab Controls & Theme Toggle -->
-        <div class="flex items-center space-x-2">
-          <nav class="flex space-x-1 bg-slate-100 dark:bg-slate-800 p-1 rounded-xl overflow-x-auto no-scrollbar max-w-[calc(100vw-130px)] sm:max-w-none" aria-label="Tabs">
-            <button id="tab-cashier" onclick="switchTab('cashier')" class="tab-btn px-2.5 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm font-medium rounded-lg bg-white dark:bg-slate-700 text-coffee-700 dark:text-amber-400 shadow-sm transition flex items-center space-x-1.5 sm:space-x-2 whitespace-nowrap flex-shrink-0">
+        <!-- Tab Controls & Utilities Container -->
+        <div class="flex items-center space-x-1.5 sm:space-x-2 min-w-0 flex-shrink">
+          <nav class="flex space-x-1 bg-slate-100 dark:bg-slate-800 p-1 rounded-xl overflow-x-auto no-scrollbar max-w-[50vw] sm:max-w-[55vw] md:max-w-none flex-shrink" aria-label="Tabs">
+            <button id="tab-cashier" onclick="switchTab('cashier')" class="tab-btn px-2 sm:px-3 lg:px-4 py-1.5 sm:py-2 text-xs sm:text-sm font-medium rounded-lg bg-white dark:bg-slate-700 text-coffee-700 dark:text-amber-400 shadow-sm transition flex items-center space-x-1 sm:space-x-1.5 whitespace-nowrap flex-shrink-0">
               <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
               </svg>
               <span>รับออเดอร์</span>
             </button>
             
-            <button id="tab-reports" onclick="switchTab('reports')" class="tab-btn px-2.5 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm font-medium rounded-lg text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition flex items-center space-x-1.5 sm:space-x-2 whitespace-nowrap flex-shrink-0">
+            <button id="tab-reports" onclick="switchTab('reports')" class="tab-btn px-2 sm:px-3 lg:px-4 py-1.5 sm:py-2 text-xs sm:text-sm font-medium rounded-lg text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition flex items-center space-x-1 sm:space-x-1.5 whitespace-nowrap flex-shrink-0">
               <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
               </svg>
               <span>ยอดขาย & บัญชี</span>
             </button>
 
-            <button id="tab-menu" onclick="switchTab('menu')" class="tab-btn px-2.5 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm font-medium rounded-lg text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition flex items-center space-x-1.5 sm:space-x-2 whitespace-nowrap flex-shrink-0">
+            <button id="tab-menu" onclick="switchTab('menu')" class="tab-btn px-2 sm:px-3 lg:px-4 py-1.5 sm:py-2 text-xs sm:text-sm font-medium rounded-lg text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition flex items-center space-x-1 sm:space-x-1.5 whitespace-nowrap flex-shrink-0">
               <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
               </svg>
               <span>จัดการเมนู</span>
             </button>
 
-            <button id="tab-promotions" onclick="switchTab('promotions')" class="tab-btn px-2.5 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm font-medium rounded-lg text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition flex items-center space-x-1.5 sm:space-x-2 whitespace-nowrap flex-shrink-0">
+            <button id="tab-promotions" onclick="switchTab('promotions')" class="tab-btn px-2 sm:px-3 lg:px-4 py-1.5 sm:py-2 text-xs sm:text-sm font-medium rounded-lg text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition flex items-center space-x-1 sm:space-x-1.5 whitespace-nowrap flex-shrink-0">
               <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
               </svg>
               <span>โปรโมชั่น</span>
             </button>
 
-            <button id="tab-settings" onclick="switchTab('settings')" class="tab-btn px-2.5 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm font-medium rounded-lg text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition flex items-center space-x-1.5 sm:space-x-2 whitespace-nowrap flex-shrink-0">
+            <button id="tab-settings" onclick="switchTab('settings')" class="tab-btn px-2 sm:px-3 lg:px-4 py-1.5 sm:py-2 text-xs sm:text-sm font-medium rounded-lg text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition flex items-center space-x-1 sm:space-x-1.5 whitespace-nowrap flex-shrink-0">
               <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
                 <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
@@ -102,48 +102,48 @@
           </nav>
 
           <!-- Cloud Sync Status Badge -->
-          <div id="cloudSyncBadge" title="สถานะเชื่อมต่อ Supabase Cloud" class="px-2 sm:px-2.5 py-1.5 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 text-xs font-medium flex items-center gap-1.5 whitespace-nowrap">
+          <div id="cloudSyncBadge" title="สถานะเชื่อมต่อ Supabase Cloud" class="px-2 sm:px-2.5 py-1.5 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 text-xs font-medium flex items-center gap-1.5 whitespace-nowrap flex-shrink-0">
             <span class="inline-block w-2 h-2 rounded-full bg-emerald-500 animate-pulse" id="cloudSyncDot"></span>
-            <span class="hidden lg:inline text-[11px]" id="cloudSyncText">คลาวด์เชื่อมต่อ</span>
+            <span class="hidden 2xl:inline text-[11px]" id="cloudSyncText">คลาวด์เชื่อมต่อ</span>
           </div>
 
-          <!-- Export/Import Full Backup Buttons -->
-          <button onclick="exportFullPOSBackup()" title="สำรองข้อมูลเมนูและระบบทั้งหมดเป็นไฟล์ JSON" class="px-2 sm:px-2.5 py-1.5 rounded-xl bg-blue-500/10 hover:bg-blue-500/20 text-blue-600 dark:text-blue-400 border border-blue-500/20 text-xs font-medium flex items-center gap-1.5 whitespace-nowrap">
+          <!-- Export/Import Full Backup Buttons (Visible on wide screens; also always available inside Settings tab) -->
+          <button onclick="exportFullPOSBackup()" title="สำรองข้อมูลเมนูและระบบทั้งหมดเป็นไฟล์ JSON" class="hidden 2xl:flex px-2 sm:px-2.5 py-1.5 rounded-xl bg-blue-500/10 hover:bg-blue-500/20 text-blue-600 dark:text-blue-400 border border-blue-500/20 text-xs font-medium items-center gap-1.5 whitespace-nowrap flex-shrink-0">
             <span>📤</span>
-            <span class="hidden xl:inline text-[11px]">สำรองเมนู</span>
+            <span class="text-[11px]">สำรองเมนู</span>
           </button>
 
-          <label title="นำเข้าไฟล์เมนูที่สำรองไว้" class="px-2 sm:px-2.5 py-1.5 rounded-xl bg-purple-500/10 hover:bg-purple-500/20 text-purple-600 dark:text-purple-400 border border-purple-500/20 text-xs font-medium flex items-center gap-1.5 whitespace-nowrap cursor-pointer">
+          <label title="นำเข้าไฟล์เมนูที่สำรองไว้" class="hidden 2xl:flex px-2 sm:px-2.5 py-1.5 rounded-xl bg-purple-500/10 hover:bg-purple-500/20 text-purple-600 dark:text-purple-400 border border-purple-500/20 text-xs font-medium items-center gap-1.5 whitespace-nowrap cursor-pointer flex-shrink-0">
             <span>📥</span>
-            <span class="hidden xl:inline text-[11px]">กู้คืนเมนู</span>
+            <span class="text-[11px]">กู้คืนเมนู</span>
             <input type="file" accept=".json" onchange="importFullPOSBackup(this)" class="hidden">
           </label>
 
           <!-- Customer Display Button -->
-          <button id="btnCustomerDisplay" onclick="openCustomerDisplayWindow()" title="เปิดหน้าจอฝั่งลูกค้า (Customer Display)" class="px-2.5 sm:px-3 py-1.5 sm:py-2 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 text-amber-700 dark:text-amber-400 border border-amber-500/30 shadow-sm transition flex items-center gap-1.5 text-xs font-semibold whitespace-nowrap">
+          <button id="btnCustomerDisplay" onclick="openCustomerDisplayWindow()" title="เปิดหน้าจอฝั่งลูกค้า (Customer Display)" class="px-2 sm:px-2.5 py-1.5 sm:py-2 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 text-amber-700 dark:text-amber-400 border border-amber-500/30 shadow-sm transition flex items-center gap-1 text-xs font-semibold whitespace-nowrap flex-shrink-0">
             <span>🖥️</span>
-            <span class="hidden md:inline">เปิดจอลูกค้า</span>
+            <span class="hidden 2xl:inline">เปิดจอลูกค้า</span>
           </button>
 
           <!-- Theme Toggle Button -->
-          <button id="btnThemeToggle" onclick="toggleTheme()" title="สลับโหมดมืด / โหมดสว่าง" class="p-2 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-amber-400 border border-slate-200 dark:border-slate-700 shadow-sm transition flex items-center justify-center">
-            <span id="themeToggleIcon" class="text-base">🌙</span>
+          <button id="btnThemeToggle" onclick="toggleTheme()" title="สลับโหมดมืด / โหมดสว่าง" class="p-1.5 sm:p-2 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-amber-400 border border-slate-200 dark:border-slate-700 shadow-sm transition flex items-center justify-center flex-shrink-0">
+            <span id="themeToggleIcon" class="text-sm sm:text-base">🌙</span>
           </button>
 
           <!-- Quick Screen Lock Button -->
-          <button id="btnQuickLock" onclick="lockScreen()" title="ล็อคหน้าจอ POS ทันที" class="p-2 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-amber-500/10 hover:text-amber-600 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 shadow-sm transition flex items-center justify-center">
+          <button id="btnQuickLock" onclick="lockScreen()" title="ล็อคหน้าจอ POS ทันที" class="p-1.5 sm:p-2 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-amber-500/10 hover:text-amber-600 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 shadow-sm transition flex items-center justify-center flex-shrink-0">
             <span class="text-sm">🔒</span>
           </button>
 
           <!-- Current User Profile & Fast Switch Dropdown -->
-          <div class="relative">
-            <button id="currentUserBadgeBtn" onclick="toggleUserDropdown()" class="flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-750 transition text-xs shadow-xs">
+          <div class="relative flex-shrink-0">
+            <button id="currentUserBadgeBtn" onclick="toggleUserDropdown()" class="flex items-center gap-1 sm:gap-1.5 px-2 sm:px-2.5 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-750 transition text-xs shadow-xs">
               <span id="currentUserRoleIcon" class="text-sm">👑</span>
-              <div class="text-left leading-tight hidden lg:block">
+              <div class="text-left leading-tight hidden 2xl:block">
                 <div id="currentUserNameDisplay" class="font-bold text-slate-800 dark:text-slate-200 truncate max-w-[100px]">เจ้าของร้าน</div>
                 <div id="currentUserRoleBadge" class="text-[10px] text-amber-600 dark:text-amber-400 font-semibold">เจ้าของร้าน (Owner)</div>
               </div>
-              <svg class="w-3.5 h-3.5 text-slate-400 ml-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+              <svg class="w-3 h-3 sm:w-3.5 sm:h-3.5 text-slate-400 ml-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
             </button>
 
             <!-- Dropdown Menu -->
@@ -181,24 +181,33 @@
       <!-- Left side: Products Grid and Categories -->
       <div class="flex-1 flex flex-col min-h-[58vh] md:min-h-0 md:h-full bg-slate-50 dark:bg-slate-950 border-r border-slate-200 dark:border-slate-800 overflow-hidden">
         <!-- Search and Category Filters -->
-        <div class="p-3 sm:p-4 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 space-y-2.5 sm:space-y-3 flex-shrink-0">
-          <div class="flex flex-wrap sm:flex-nowrap gap-2">
-            <div class="relative flex-1 min-w-[140px]">
-              <input type="text" id="searchProducts" placeholder="ค้นหาเมนู..." oninput="filterProducts()" class="w-full pl-9 sm:pl-10 pr-3 sm:pr-4 py-1.5 sm:py-2 border border-slate-300 dark:border-slate-700 rounded-lg text-xs sm:text-sm bg-white dark:bg-slate-800 text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-coffee-500 focus:border-coffee-500">
-              <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 sm:h-5 sm:w-5 absolute left-2.5 sm:left-3 top-2 sm:top-2.5 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        <div class="p-2.5 sm:p-3.5 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 space-y-2 sm:space-y-2.5 flex-shrink-0">
+          <div class="flex flex-wrap sm:flex-nowrap gap-1.5 sm:gap-2 items-center">
+            <div class="relative flex-1 min-w-[120px]">
+              <input type="text" id="searchProducts" placeholder="ค้นหาเมนู..." oninput="filterProducts()" class="w-full pl-8 sm:pl-9 pr-3 py-1.5 sm:py-2 border border-slate-300 dark:border-slate-700 rounded-lg text-xs sm:text-sm bg-white dark:bg-slate-800 text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-coffee-500 focus:border-coffee-500">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 absolute left-2.5 top-2 sm:top-2.5 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
               </svg>
             </div>
-            <select id="productSortMode" onchange="filterProducts()" class="border border-slate-300 dark:border-slate-700 rounded-lg px-2 sm:px-2.5 py-1.5 sm:py-2 text-[11px] sm:text-xs font-semibold bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-coffee-500 flex-shrink-0 cursor-pointer shadow-xs" title="จัดเรียงลำดับเมนู">
+
+            <!-- Grid Density / Card Size Selector (ขนาดการ์ดเมนู) -->
+            <select id="gridDensityMode" onchange="setGridDensity(this.value)" class="border border-slate-300 dark:border-slate-700 rounded-lg px-2 py-1.5 sm:py-2 text-[11px] sm:text-xs font-semibold bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-coffee-500 flex-shrink-0 cursor-pointer shadow-xs" title="ปรับขนาดการ์ดเมนูให้เหมาะกับหน้าจอ">
+              <option value="compact">📱 กะทัดรัด (พอดีจอแท็บเล็ต)</option>
+              <option value="normal">🍱 ปกติ (การ์ดใหญ่)</option>
+              <option value="mini">⚡ เล็กพิเศษ (เห็นเมนูมากสุด)</option>
+            </select>
+
+            <select id="productSortMode" onchange="filterProducts()" class="border border-slate-300 dark:border-slate-700 rounded-lg px-2 py-1.5 sm:py-2 text-[11px] sm:text-xs font-semibold bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-coffee-500 flex-shrink-0 cursor-pointer shadow-xs" title="จัดเรียงลำดับเมนู">
               <option value="custom">📌 ตามลำดับที่จัดไว้</option>
               <option value="best-seller">🔥 เมนูขายดี</option>
               <option value="price-asc">💰 ราคา: ต่ำ-สูง</option>
               <option value="price-desc">💎 ราคา: สูง-ต่ำ</option>
               <option value="name-asc">🔤 ชื่อ: ก-ฮ</option>
             </select>
-            <button type="button" onclick="openCustomItemModal()" class="px-2.5 sm:px-3 py-1.5 sm:py-2 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white rounded-lg text-xs sm:text-sm font-bold shadow-sm transition flex items-center gap-1.5 flex-shrink-0 whitespace-nowrap active:scale-95" title="คีย์เมนูพิเศษ / สินค้าตามสั่ง / คีย์ราคาเองตั้งแต่ ฿0">
+
+            <button type="button" onclick="openCustomItemModal()" class="px-2.5 sm:px-3 py-1.5 sm:py-2 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white rounded-lg text-xs font-bold shadow-sm transition flex items-center gap-1.5 flex-shrink-0 whitespace-nowrap active:scale-95" title="คีย์เมนูพิเศษ / สินค้าตามสั่ง / คีย์ราคาเองตั้งแต่ ฿0">
               <span>✨</span>
-              <span>+ เมนูพิเศษ / คีย์ราคาเอง</span>
+              <span class="hidden sm:inline">+ เมนูพิเศษ</span>
             </button>
           </div>
           <!-- Category Pills -->
@@ -208,15 +217,15 @@
         </div>
 
         <!-- Products Scrollable Grid -->
-        <div class="flex-1 overflow-y-auto p-2 sm:p-3.5 bg-slate-50 dark:bg-slate-950">
-          <div id="productGrid" class="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-8 gap-1.5 sm:gap-2.5">
+        <div class="flex-1 overflow-y-auto p-2 sm:p-3 bg-slate-50 dark:bg-slate-950">
+          <div id="productGrid" class="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-8 gap-1.5 sm:gap-2">
             <!-- Dynamic products -->
           </div>
         </div>
       </div>
 
       <!-- Right side: Shopping Cart -->
-      <div class="w-full md:w-96 bg-white dark:bg-slate-900 flex flex-col min-h-[42vh] md:min-h-0 md:h-full shadow-lg relative flex-shrink-0 border-t md:border-t-0 md:border-l border-slate-200 dark:border-slate-800">
+      <div class="w-full md:w-72 lg:w-80 xl:w-96 bg-white dark:bg-slate-900 flex flex-col min-h-[42vh] md:min-h-0 md:h-full shadow-lg relative flex-shrink-0 border-t md:border-t-0 md:border-l border-slate-200 dark:border-slate-800">
         <!-- Cart Header -->
         <div class="p-4 border-b border-slate-200 dark:border-slate-800 flex justify-between items-center bg-slate-50 dark:bg-slate-900/80">
           <div class="flex items-center space-x-1.5 flex-shrink-0">

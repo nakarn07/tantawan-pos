@@ -393,3 +393,21 @@ button, a, input, select {
   animation: scaleUp 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
+/* ==========================================================================
+   TABLET & MOBILE RESPONSIVE OPTIMIZATIONS
+   ========================================================================== */
+@media (max-width: 1024px) {
+  /* Prevent any horizontal screen wobbling on tablets */
+  html, body {
+    overflow-x: hidden;
+    position: relative;
+    width: 100%;
+  }
+
+  /* Smooth horizontal scrolling for categories and nav tabs */
+  .no-scrollbar {
+    -webkit-overflow-scrolling: touch;
+  }
+}
+
+
