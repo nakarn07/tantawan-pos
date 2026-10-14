@@ -95,6 +95,15 @@
 
 <body class="h-full bg-slate-950 text-slate-100 flex flex-col overflow-hidden select-none">
 
+  <!-- Orphaned / Restored Window Notice Banner -->
+  <div id="orphanedNoticeBanner" class="hidden fixed top-3 left-1/2 -translate-x-1/2 z-[100] bg-slate-900/95 border border-amber-500/50 text-slate-200 px-4 py-2.5 rounded-2xl shadow-2xl flex items-center gap-3 text-xs backdrop-blur-md">
+    <span class="text-base flex-shrink-0">⚠️</span>
+    <span class="font-medium">ไม่พบหน้าจอแคชเชียร์หลัก (หน้าต่างนี้อาจถูกเบราว์เซอร์กู้คืนมาจากรอบก่อน)</span>
+    <button onclick="closeCustomerWindow()" class="px-3 py-1 bg-rose-600 hover:bg-rose-700 text-white font-bold rounded-xl transition shadow-sm cursor-pointer whitespace-nowrap">
+      ปิดหน้าต่างนี้
+    </button>
+  </div>
+
   <!-- =========================================================================
        CUSTOMER DISPLAY HEADER
        ========================================================================= -->
@@ -118,11 +127,19 @@
       </div>
 
       <!-- Fullscreen Toggle Button -->
-      <button onclick="toggleFullScreen()" title="สลับเต็มหน้าจอ (Full Screen F11)" class="p-2 sm:p-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700 transition flex items-center gap-1.5 text-xs font-semibold shadow-sm">
+      <button onclick="toggleFullScreen()" title="สลับเต็มหน้าจอ (Full Screen F11)" class="p-2 sm:p-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700 transition flex items-center gap-1.5 text-xs font-semibold shadow-sm cursor-pointer">
         <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 sm:h-5 sm:w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
           <path stroke-linecap="round" stroke-linejoin="round" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" />
         </svg>
         <span class="hidden md:inline">เต็มจอ (F11)</span>
+      </button>
+
+      <!-- Close Window Button -->
+      <button onclick="closeCustomerWindow()" title="ปิดหน้าจอลูกค้านี้ (Close Window)" class="p-2 sm:p-2.5 rounded-xl bg-rose-500/15 hover:bg-rose-500/25 text-rose-300 hover:text-white border border-rose-500/30 transition flex items-center gap-1.5 text-xs font-semibold shadow-sm cursor-pointer">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 sm:h-5 sm:w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+        </svg>
+        <span class="hidden md:inline">ปิดหน้าต่างนี้</span>
       </button>
     </div>
   </header>
@@ -2300,7 +2317,7 @@
           { name: 'คาราเมลซอส (Caramel)', sub: 'หอมเนย หวานละมุน', price: 10 },
           { name: 'ช็อตมัทฉะแท้ (Matcha Shot)', sub: 'ชาเขียวมัทฉะแท้เข้มข้น', price: 20 },
           { name: 'เพิ่มช็อตกาแฟ (Extra Shot)', sub: 'เอสเพรสโซ่ช็อต เข้มสะใจ', price: 15 },
-          { name: 'วิปครีมสด (Whipped Cream)', sub: 'วิปครีมนุ่มฟู ละลายในปาก', price: 15 },
+          { name: 'ว��ปครีมสด (Whipped Cream)', sub: 'วิปครีมนุ่มฟู ละลายในปาก', price: 15 },
           { name: 'บุกน้ำผึ้ง / ไข่มุก (Boba)', sub: 'หนึบหนับ เคี้ยวเพลิน', price: 10 }
         ];
 
@@ -2970,15 +2987,85 @@
       }
     }
 
+    function closeCustomerWindow() {
+      try {
+        window.close();
+      } catch (err) {}
+      // Fallback message if browser security blocks window.close()
+      setTimeout(() => {
+        const banner = document.getElementById('orphanedNoticeBanner');
+        if (banner) {
+          banner.classList.remove('hidden');
+          banner.innerHTML = `
+            <span class="text-base flex-shrink-0">ℹ️</span>
+            <span class="font-medium">ท่านสามารถปิดหน้าต่างนี้ได้ที่ปุ่ม <strong>[X]</strong> มุมขวาบน หรือกดคีย์ลัด <strong>Ctrl + W</strong> ได้เลยครับ</span>
+          `;
+        }
+      }, 300);
+    }
+    window.closeCustomerWindow = closeCustomerWindow;
+
+    let hasReceivedCashierSignal = false;
+
+    // Ping cashier on startup to check if cashier is active
+    channel.postMessage({ type: 'PING_CASHIER' });
+    setTimeout(() => {
+      // If after 3.5s no signal received, show gentle reminder banner
+      if (!hasReceivedCashierSignal) {
+        const banner = document.getElementById('orphanedNoticeBanner');
+        if (banner) banner.classList.remove('hidden');
+      }
+    }, 3500);
+
     channel.onmessage = (e) => {
+      if (!e.data) return;
+      if (e.data.type === 'PONG_CASHIER') {
+        hasReceivedCashierSignal = true;
+        const banner = document.getElementById('orphanedNoticeBanner');
+        if (banner) banner.classList.add('hidden');
+        return;
+      }
+      if (e.data.type === 'CASHIER_UNLOAD') {
+        // Cashier page closed -> close customer display window automatically
+        try {
+          window.close();
+        } catch (err) {}
+        const banner = document.getElementById('orphanedNoticeBanner');
+        if (banner) {
+          banner.classList.remove('hidden');
+          banner.innerHTML = `
+            <span class="text-base flex-shrink-0">👋</span>
+            <span class="font-medium">แคชเชียร์ปิดระบบแล้ว ท่านสามารถปิดหน้าต่างนี้ได้เลย</span>
+            <button onclick="closeCustomerWindow()" class="px-3 py-1 bg-rose-600 hover:bg-rose-700 text-white font-bold rounded-xl transition shadow-sm cursor-pointer whitespace-nowrap">ปิดหน้าต่างนี้</button>
+          `;
+        }
+        return;
+      }
+      hasReceivedCashierSignal = true;
+      const banner = document.getElementById('orphanedNoticeBanner');
+      if (banner) banner.classList.add('hidden');
       handleDisplayEvent(e.data);
     };
+
+    // Pause timers when window is minimized or hidden (saves CPU, avoids interrupting gaming/movies)
+    document.addEventListener('visibilitychange', () => {
+      if (document.hidden) {
+        if (coffeeAutoRotateTimer) clearInterval(coffeeAutoRotateTimer);
+        if (idleToppingsAutoScrollTimer) clearInterval(idleToppingsAutoScrollTimer);
+      } else {
+        restartCoffeeAutoRotate();
+        restartToppingsAutoScroll();
+      }
+    });
 
     // Storage fallback for cross-window syncing
     window.addEventListener('storage', (e) => {
       if (e.key === 'tantawan_customer_display_event' && e.newValue) {
         try {
           const data = JSON.parse(e.newValue);
+          hasReceivedCashierSignal = true;
+          const banner = document.getElementById('orphanedNoticeBanner');
+          if (banner) banner.classList.add('hidden');
           handleDisplayEvent(data);
         } catch (err) {
           console.error('Storage sync error:', err);
@@ -3006,6 +3093,9 @@
           renderCustomerIdleShowcase();
         }
       }).catch(() => {});
+    }
+    if (typeof fetchSettingsFromCloud === 'function') {
+      fetchSettingsFromCloud().catch(() => {});
     }
 
     // Expose handleDisplayEvent globally so Supabase Realtime can call it from any device

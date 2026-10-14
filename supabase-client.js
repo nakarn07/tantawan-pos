@@ -20,6 +20,8 @@ let localProductSyncTimer = null;
 let isSyncingOrderLocally = false;
 let localOrderSyncTimer = null;
 let realtimeFetchTimeout = null;
+const currentDeviceId = 'pos-' + Math.random().toString(36).substring(2, 9);
+if (typeof window !== 'undefined') window.currentDeviceId = currentDeviceId;
 
 // 1. INITIALIZE SUPABASE CLIENT
 function initSupabase() {
@@ -86,6 +88,14 @@ function initRealtimeChannel() {
           // ส่งต่อให้ฟังก์ชันหน้าจอลูกค้า handleDisplayEvent
           if (typeof window.handleDisplayEvent === 'function') {
             window.handleDisplayEvent(payload.payload);
+          }
+        }
+      })
+      .on('broadcast', { event: 'staff-cart-sync' }, (payload) => {
+        if (payload && payload.payload) {
+          // ส่งต่อให้หน้าจอพนักงาน handleStaffCartSync
+          if (typeof window.handleStaffCartSync === 'function') {
+            window.handleStaffCartSync(payload.payload);
           }
         }
       })
@@ -192,6 +202,7 @@ function initDbChangeListener() {
           if (typeof window !== 'undefined') window.optionGroups = newGroups;
           if (typeof optionGroups !== 'undefined') optionGroups = newGroups;
           if (typeof renderMenuConfigTable === 'function') renderMenuConfigTable();
+          if (typeof renderCustomerIdleShowcase === 'function') renderCustomerIdleShowcase();
           console.log('📡 Realtime Option Groups updated from Cloud');
         } else if (payload.new && payload.new.key === 'product_order' && Array.isArray(payload.new.value)) {
           if (isSyncingOrderLocally) {
@@ -216,6 +227,16 @@ function initDbChangeListener() {
             if (typeof renderCustomerIdleShowcase === 'function') renderCustomerIdleShowcase();
           }
           console.log('📡 Realtime Product Order synced from Cloud (' + newOrder.length + ' items)');
+        } else if (payload.new && payload.new.key === 'general' && payload.new.value) {
+          const newSettings = payload.new.value;
+          localStorage.setItem('coffeeshop_settings', JSON.stringify(newSettings));
+          if (typeof settings !== 'undefined') {
+            Object.assign(settings, newSettings);
+          }
+          if (typeof window !== 'undefined' && typeof window.settings !== 'undefined') {
+            Object.assign(window.settings, newSettings);
+          }
+          console.log('📡 Realtime General Settings synced from Cloud (PromptPay/MaeManee:', newSettings.promptPayType, ')');
         }
       })
       .subscribe();
@@ -252,6 +273,24 @@ function broadcastToCustomerScreen(eventData) {
       _syncTimestamp: Date.now()
     }));
   } catch (e) {}
+}
+
+// 3.4 BROADCAST STAFF CART SYNC (ซิงค์ตะกร้าหน้าจอพนักงานข้ามเครื่องแบบ Realtime)
+function broadcastStaffCart(eventData) {
+  if (!eventData || !realtimeChannel || !isCloudConnected) return;
+  try {
+    realtimeChannel.send({
+      type: 'broadcast',
+      event: 'staff-cart-sync',
+      payload: {
+        ...eventData,
+        senderDeviceId: currentDeviceId,
+        timestamp: Date.now()
+      }
+    }).catch(err => console.warn('broadcastStaffCart error:', err));
+  } catch (e) {
+    console.warn('broadcastStaffCart exception:', e);
+  }
 }
 
 // 4. CLOUD DATABASE SYNC: ORDERS (บันทึกและซิงค์บิลขาย)
@@ -721,6 +760,27 @@ async function fetchOptionGroupsFromCloud() {
     }
   } catch (e) {
     console.error('fetchOptionGroupsFromCloud error:', e);
+  }
+  return null;
+}
+
+// 8.3 FETCH GENERAL SETTINGS FROM CLOUD (แม่มณี, QR, ข้อมูลร้าน, เสียงแจ้งเตือน)
+async function fetchSettingsFromCloud() {
+  if (!dbClient || !isCloudConnected) return null;
+  try {
+    const { data: row, error } = await dbClient
+      .from('shop_settings')
+      .select('value')
+      .eq('key', 'general')
+      .maybeSingle();
+
+    if (!error && row && row.value && typeof row.value === 'object') {
+      localStorage.setItem('coffeeshop_settings', JSON.stringify(row.value));
+      console.log('☁️ General shop settings loaded from Supabase:', row.value.shopName, 'promptPayType:', row.value.promptPayType);
+      return row.value;
+    }
+  } catch (e) {
+    console.error('fetchSettingsFromCloud error:', e);
   }
   return null;
 }

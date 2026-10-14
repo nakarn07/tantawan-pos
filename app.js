@@ -2040,6 +2040,18 @@ function loadFromLocalStorage() {
         }
       }).catch(() => {});
     }
+
+    // Sync remote general shop settings (Mae Manee / PromptPay / shop details) from Supabase on startup
+    if (typeof fetchSettingsFromCloud === 'function') {
+      fetchSettingsFromCloud().then(cloudSettings => {
+        if (cloudSettings && typeof cloudSettings === 'object') {
+          settings = Object.assign({}, DEFAULT_SETTINGS, cloudSettings);
+          window.settings = settings;
+          localStorage.setItem('coffeeshop_settings', JSON.stringify(settings));
+          console.log('☁️ Applied shop settings from Cloud (PromptPay/MaeManee:', settings.promptPayType, ')');
+        }
+      }).catch(() => {});
+    }
     
     // Auto-migrate products to optionGroupIds if missing
     let productsMigrated = false;
@@ -3632,7 +3644,90 @@ function updateCartSummary() {
   if (typeof syncCustomerDisplay === 'function') {
     syncCustomerDisplay('CART_UPDATE');
   }
+
+  // Synchronize cart across staff screens in real-time (Multi-device Tablet <-> PC)
+  if (typeof broadcastStaffCartUpdate === 'function') {
+    broadcastStaffCartUpdate();
+  }
 }
+
+// --------------------------------------------------------------------------
+// REALTIME STAFF CART SYNCHRONIZATION (LIVE MULTI-DEVICE ORDERING)
+// --------------------------------------------------------------------------
+let isReceivingStaffCartSync = false;
+let lastRemoteCartSyncTime = 0;
+
+function broadcastStaffCartUpdate() {
+  if (isReceivingStaffCartSync) return; // Prevent echoing back received updates
+  if (typeof broadcastStaffCart === 'function') {
+    broadcastStaffCart({
+      type: 'SYNC_CART',
+      cart: cart.map(item => ({
+        id: item.id,
+        name: item.name,
+        pricePerItem: item.pricePerItem,
+        qty: item.qty,
+        itemTotal: item.itemTotal,
+        selectedOptions: item.selectedOptions || [],
+        isCustomPrice: item.isCustomPrice || false,
+        customPriceNote: item.customPriceNote || item.customNotes || '',
+        category: item.category || ''
+      })),
+      cartDiscountDetail: cartDiscountDetail
+    });
+  }
+}
+
+function broadcastStaffOrderCompleted(orderObj) {
+  if (typeof broadcastStaffCart === 'function') {
+    broadcastStaffCart({
+      type: 'ORDER_COMPLETED',
+      orderNumber: (orderObj && orderObj.orderNumber) ? orderObj.orderNumber : (orderObj ? orderObj.id : ''),
+      orderId: orderObj ? orderObj.id : '',
+      total: orderObj ? orderObj.total : 0
+    });
+  }
+}
+
+window.handleStaffCartSync = function(payload) {
+  if (!payload || !payload.type) return;
+  const myDevId = (typeof currentDeviceId !== 'undefined') ? currentDeviceId : null;
+  if (myDevId && payload.senderDeviceId === myDevId) return; // Ignore own echoes
+
+  if (payload.type === 'SYNC_CART') {
+    if (payload.timestamp && payload.timestamp < lastRemoteCartSyncTime) return; // Ignore stale messages
+    lastRemoteCartSyncTime = payload.timestamp || Date.now();
+
+    isReceivingStaffCartSync = true;
+    try {
+      cart = Array.isArray(payload.cart) ? payload.cart : [];
+      if (payload.cartDiscountDetail) {
+        cartDiscountDetail = payload.cartDiscountDetail;
+      }
+      saveToStorage('coffeeshop_cart', cart);
+      renderCart();
+    } finally {
+      setTimeout(() => { isReceivingStaffCartSync = false; }, 80);
+    }
+  } else if (payload.type === 'ORDER_COMPLETED') {
+    isReceivingStaffCartSync = true;
+    try {
+      cart = [];
+      cartDiscountDetail = { type: 'none', value: 0, amount: 0, name: '' };
+      saveToStorage('coffeeshop_cart', cart);
+      renderCart();
+      closeCheckoutModal();
+      showToast(`🔔 ออเดอร์ ${payload.orderNumber || ''} คิดเงินสำเร็จแล้วจากอีกเครื่อง`, 'success');
+      
+      // Also ensure dashboard & recent orders refresh
+      if (typeof renderRecentOrders === 'function') renderRecentOrders();
+      if (typeof calculateReportStats === 'function') calculateReportStats();
+      if (typeof updateDashboardStats === 'function') updateDashboardStats();
+    } finally {
+      setTimeout(() => { isReceivingStaffCartSync = false; }, 80);
+    }
+  }
+};
 
 // --------------------------------------------------------------------------
 // QUICK DISCOUNT MODAL LOGIC (CASHIER CART)
@@ -4217,6 +4312,15 @@ function openCheckoutModal() {
     return;
   }
 
+  // Ensure freshest settings (Mae Manee / PromptPay) from localStorage/cloud are applied
+  try {
+    const freshStored = JSON.parse(localStorage.getItem('coffeeshop_settings') || 'null');
+    if (freshStored && typeof freshStored === 'object') {
+      settings = Object.assign({}, DEFAULT_SETTINGS, freshStored);
+      window.settings = settings;
+    }
+  } catch(e) {}
+
   const { total } = getCartCalculation();
   document.getElementById('checkoutTotalAmount').innerText = `฿${total.toFixed(2)}`;
   document.getElementById('promptPayScanAmount').innerText = `฿${total.toFixed(2)}`;
@@ -4603,6 +4707,11 @@ function completeOrder(shouldPrint) {
 
   if (typeof syncCustomerDisplay === 'function') {
     syncCustomerDisplay('PAYMENT_SUCCESS', { amount: total });
+  }
+
+  // Notify other staff devices in real-time that order was completed
+  if (typeof broadcastStaffOrderCompleted === 'function') {
+    broadcastStaffOrderCompleted(newOrderObj);
   }
 
   // Play cashier chime & polite Thai voice notification (Zero fee, offline)
@@ -8671,6 +8780,7 @@ function showToast(message, type = 'success') {
 // ==========================================================================
 const customerDisplayChannel = new BroadcastChannel('tantawan-pos-customer-display');
 let currentActiveQrPayload = '';
+let customerDisplayWin = null;
 
 function openCustomerDisplayWindow() {
   const width = 1180;
@@ -8678,14 +8788,14 @@ function openCustomerDisplayWindow() {
   const left = Math.max(0, (window.screen.availWidth - width) / 2);
   const top = Math.max(0, (window.screen.availHeight - height) / 2);
   
-  const win = window.open(
+  customerDisplayWin = window.open(
     'customer.html',
     'TantawanCustomerDisplay',
     `width=${width},height=${height},left=${left},top=${top},menubar=no,toolbar=no,location=no,status=no`
   );
   
-  if (win) {
-    win.focus();
+  if (customerDisplayWin) {
+    customerDisplayWin.focus();
     setTimeout(() => {
       syncCustomerDisplay('CART_UPDATE');
     }, 400);
@@ -8693,6 +8803,29 @@ function openCustomerDisplayWindow() {
   } else {
     showToast('กรุณาอนุญาตป๊อปอัป (Pop-up) ของเบราว์เซอร์เพื่อเปิดจอลูกค้า', 'warning');
   }
+}
+
+// Automatically close customer display popup when cashier page unloads or closes
+window.addEventListener('beforeunload', () => {
+  try {
+    if (customerDisplayWin && !customerDisplayWin.closed) {
+      customerDisplayWin.close();
+    }
+    if (customerDisplayChannel) {
+      customerDisplayChannel.postMessage({ type: 'CASHIER_UNLOAD' });
+    }
+  } catch (err) {}
+});
+
+// Respond to ping from customer display to confirm cashier is active
+if (typeof customerDisplayChannel !== 'undefined' && customerDisplayChannel) {
+  customerDisplayChannel.onmessage = (e) => {
+    if (e.data && e.data.type === 'PING_CASHIER') {
+      customerDisplayChannel.postMessage({ type: 'PONG_CASHIER' });
+    } else if (e.data && e.data.type === 'REQUEST_INITIAL_STATE') {
+      syncCustomerDisplay('CART_UPDATE');
+    }
+  };
 }
 
 function syncCustomerDisplay(type, payload = null) {
