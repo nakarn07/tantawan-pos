@@ -1693,6 +1693,36 @@ function onThemeSettingChange(val) {
   applyTheme(val);
 }
 
+// Fullscreen Toggle for Web/Tablet
+function toggleFullScreen() {
+  const doc = window.document;
+  const docEl = doc.documentElement;
+
+  const requestFullScreen = docEl.requestFullscreen || docEl.mozRequestFullScreen || docEl.webkitRequestFullScreen || docEl.msRequestFullscreen;
+  const cancelFullScreen = doc.exitFullscreen || doc.mozCancelFullScreen || doc.webkitExitFullscreen || doc.msExitFullscreen;
+
+  if (!doc.fullscreenElement && !doc.mozFullScreenElement && !doc.webkitFullscreenElement && !doc.msFullscreenElement) {
+    if (requestFullScreen) {
+      requestFullScreen.call(docEl).catch(e => console.log('Fullscreen request ignored:', e));
+    }
+  } else {
+    if (cancelFullScreen) {
+      cancelFullScreen.call(doc);
+    }
+  }
+}
+
+if (typeof document !== 'undefined') {
+  ['fullscreenchange', 'webkitfullscreenchange', 'mozfullscreenchange', 'MSFullscreenChange'].forEach(evt => {
+    document.addEventListener(evt, () => {
+      const icon = document.getElementById('fullscreenToggleIcon');
+      if (!icon) return;
+      const isFull = !!(document.fullscreenElement || document.webkitFullscreenElement || document.mozFullScreenElement || document.msFullscreenElement);
+      icon.innerText = isFull ? '🗗' : '⛶';
+    });
+  });
+}
+
 // ==========================================================================
 // MASTER STORE ACCESS GATE (USERNAME & PASSWORD AUTHENTICATION)
 // ==========================================================================

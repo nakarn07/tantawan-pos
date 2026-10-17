@@ -10,6 +10,7 @@
   <meta name="apple-mobile-web-app-title" content="ทานตะวัน POS">
   <link rel="icon" type="image/png" href="logo.png">
   <link rel="apple-touch-icon" href="logo.png">
+  <link rel="manifest" href="manifest.json">
   <title>ร้านทานตะวัน POS | TANTAWAN COFFEE &amp; CAFÉ</title>
   <!-- Load Tailwind CSS CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
@@ -123,6 +124,11 @@
           <button id="btnCustomerDisplay" onclick="openCustomerDisplayWindow()" title="เปิดหน้าจอฝั่งลูกค้า (Customer Display)" class="px-2 sm:px-2.5 py-1.5 sm:py-2 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 text-amber-700 dark:text-amber-400 border border-amber-500/30 shadow-sm transition flex items-center gap-1 text-xs font-semibold whitespace-nowrap flex-shrink-0">
             <span>🖥️</span>
             <span class="hidden 2xl:inline">เปิดจอลูกค้า</span>
+          </button>
+
+          <!-- Fullscreen Toggle Button -->
+          <button id="btnFullscreenToggle" onclick="toggleFullScreen()" title="เปิด/ปิด โหมดเต็มจอ (Fullscreen)" class="p-1.5 sm:p-2 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-amber-400 border border-slate-200 dark:border-slate-700 shadow-sm transition flex items-center justify-center flex-shrink-0">
+            <span id="fullscreenToggleIcon" class="text-sm sm:text-base">⛶</span>
           </button>
 
           <!-- Theme Toggle Button -->
