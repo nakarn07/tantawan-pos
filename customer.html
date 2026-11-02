@@ -816,6 +816,84 @@
     // -----------------------------------------------------------------------
     // RENDER ORDER STATE FROM CASHIER POS
     // -----------------------------------------------------------------------
+    function getCustomerSweetnessBadgeInfo(optName, groupName = '', groupId = '') {
+      const text = (optName || '').trim();
+      const lower = text.toLowerCase();
+      const isSweetGroup = groupId === 'optgrp-sweet' || 
+                           /ความหวาน|sweetness|sweet/i.test(groupName) ||
+                           /หวาน|sweet/i.test(text);
+
+      if (!isSweetGroup && !/\b(0%|25%|50%|75%|100%|125%)/.test(text)) {
+        return null;
+      }
+
+      if (/125%|หวานมาก/.test(lower)) {
+        return { label: '🍬 หวานมาก 125%', badgeClass: 'bg-rose-500/20 text-rose-300 border border-rose-500/40 font-bold' };
+      }
+      if (/100%|หวานปกติ|ปกติ/.test(lower)) {
+        return { label: '🍯 หวานปกติ 100%', badgeClass: 'bg-amber-500/20 text-amber-300 border border-amber-500/40 font-bold' };
+      }
+      if (/75%|หวานกลาง/.test(lower)) {
+        return { label: '🍯 หวานกลาง 75%', badgeClass: 'bg-amber-500/20 text-amber-300 border border-amber-500/40 font-bold' };
+      }
+      if (/25%|หวานน้อยมาก/.test(lower)) {
+        return { label: '💧 หวานน้อยมาก 25%', badgeClass: 'bg-sky-500/20 text-sky-300 border border-sky-500/40 font-bold' };
+      }
+      if (/50%|หวานน้อย/.test(lower)) {
+        return { label: '💧 หวานน้อย 50%', badgeClass: 'bg-blue-500/20 text-blue-300 border border-blue-500/40 font-bold' };
+      }
+      if (/(?:^|[^\d])0%|ไม่หวาน|no sweet/.test(lower)) {
+        return { label: '🍃 ไม่หวาน 0%', badgeClass: 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 font-bold' };
+      }
+      if (lower.includes('หวาน')) {
+        return { label: `🍯 ${text}`, badgeClass: 'bg-amber-500/20 text-amber-300 border border-amber-500/40 font-bold' };
+      }
+      return null;
+    }
+
+    function getCustomerItemModifiersBadgesHtml(item) {
+      let sweetBadge = null;
+      const otherMods = [];
+
+      if (Array.isArray(item.selectedOptions) && item.selectedOptions.length > 0) {
+        item.selectedOptions.forEach(opt => {
+          const optName = opt.optName || opt.name || '';
+          const groupName = opt.groupName || '';
+          const groupId = opt.groupId || '';
+          const sweetInfo = getCustomerSweetnessBadgeInfo(optName, groupName, groupId);
+          if (sweetInfo && !sweetBadge) {
+            sweetBadge = sweetInfo;
+          } else {
+            const priceText = (opt.price && Number(opt.price) > 0) ? ` (+฿${opt.price})` : '';
+            otherMods.push(optName.split(' ')[0] + priceText);
+          }
+        });
+      } else {
+        if (item.selectedSweetness) {
+          sweetBadge = getCustomerSweetnessBadgeInfo(item.selectedSweetness, 'ระดับความหวาน', 'optgrp-sweet') || {
+            label: `🍯 หวาน ${item.selectedSweetness}`,
+            badgeClass: 'bg-amber-500/20 text-amber-300 border border-amber-500/40 font-bold'
+          };
+        }
+        if (item.selectedTemp) otherMods.push(item.selectedTemp);
+        if (Array.isArray(item.selectedExtras)) {
+          item.selectedExtras.forEach(e => {
+            const extraPrice = (e.price && Number(e.price) > 0) ? ` (+฿${e.price})` : '';
+            otherMods.push(`+ ${(e.name || '').split(' ')[0]}${extraPrice}`);
+          });
+        }
+      }
+
+      let html = '';
+      if (sweetBadge) {
+        html += `<span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] ${sweetBadge.badgeClass} whitespace-nowrap">${sweetBadge.label}</span>`;
+      }
+      if (otherMods.length > 0) {
+        html += `<span class="text-[11px] text-amber-400/90">${otherMods.join(', ')}</span>`;
+      }
+      return html ? `<div class="flex flex-wrap items-center gap-1.5 mt-0.5">${html}</div>` : '';
+    }
+
     function renderCustomerOrder(data) {
       const { cart = [], subtotal = 0, discount = 0, total = 0, discountDetail = null } = data;
       
@@ -874,12 +952,8 @@
         const itemCard = document.createElement('div');
         itemCard.className = 'bg-slate-950/70 border border-slate-800/80 p-3.5 rounded-2xl flex justify-between items-start space-x-3 fade-in-scale';
 
-        // Modifiers
-        let modsHtml = '';
-        if (item.selectedOptions && item.selectedOptions.length > 0) {
-          const modNames = item.selectedOptions.map(o => o.optName.split(' ')[0]);
-          modsHtml = `<div class="text-[11px] text-amber-400/90 mt-0.5">${modNames.join(', ')}</div>`;
-        }
+        // Modifiers with sweetness badges
+        const modsHtml = getCustomerItemModifiersBadgesHtml(item);
 
         const zeroBahtBadge = (item.itemTotal === 0 || item.pricePerItem === 0)
           ? `<span class="px-1.5 py-0.2 rounded text-[10px] font-black bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 ml-1">แลกแต้ม/ฟรี</span>`

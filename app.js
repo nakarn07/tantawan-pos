@@ -1862,6 +1862,10 @@ function init() {
   updateHeldBillsBadge();
   initHoldBillEvents();
   initPinModalKeyboardEvents();
+
+  // Initialize Bar Queue & Sound UI
+  updateQueueBadgeCount();
+  updateQueueSoundUI();
 }
 
 // --------------------------------------------------------------------------
@@ -2018,6 +2022,8 @@ function loadFromLocalStorage() {
           if (typeof renderRecentOrders === 'function') renderRecentOrders();
           if (typeof calculateReportStats === 'function') calculateReportStats();
           if (typeof updateDashboardStats === 'function') updateDashboardStats();
+          if (typeof updateQueueBadgeCount === 'function') updateQueueBadgeCount();
+          if (currentActiveTab === 'queue' && typeof renderBarQueue === 'function') renderBarQueue();
         }
       }).catch(() => {});
     }
@@ -2290,9 +2296,23 @@ function switchTab(tabId) {
   const promoContent = document.getElementById('content-promotions');
   if (promoContent) promoContent.classList.add('hidden');
   document.getElementById('content-settings').classList.add('hidden');
+  const queueContent = document.getElementById('content-queue');
+  if (queueContent) queueContent.classList.add('hidden');
   
   const targetContent = document.getElementById(`content-${tabId}`);
   if (targetContent) targetContent.classList.remove('hidden');
+
+  // Start or stop queue elapsed timer
+  if (tabId === 'queue') {
+    if (!barQueueElapsedInterval) {
+      barQueueElapsedInterval = setInterval(updateQueueElapsedTimes, 20000);
+    }
+  } else {
+    if (barQueueElapsedInterval) {
+      clearInterval(barQueueElapsedInterval);
+      barQueueElapsedInterval = null;
+    }
+  }
 
   // Trigger content-specific re-renders
   if (tabId === 'reports') {
@@ -2305,6 +2325,621 @@ function switchTab(tabId) {
     renderProductsGrid();
   } else if (tabId === 'settings') {
     renderStaffList();
+  } else if (tabId === 'queue') {
+    renderBarQueue();
+  }
+}
+
+// ==========================================================================
+// SWEETNESS BADGES & BAR QUEUE (KITCHEN DISPLAY SYSTEM)
+// ==========================================================================
+
+/**
+ * Identify sweetness level and generate prominent badge color styling
+ */
+function getSweetnessBadgeInfo(optName, groupName = '', groupId = '') {
+  const text = (optName || '').trim();
+  const lower = text.toLowerCase();
+  const isSweetGroup = groupId === 'optgrp-sweet' || 
+                       /ความหวาน|sweetness|sweet/i.test(groupName) ||
+                       /หวาน|sweet/i.test(text);
+
+  if (!isSweetGroup && !/\b(0%|25%|50%|75%|100%|125%)/.test(text)) {
+    return null;
+  }
+
+  // 125% / หวานมาก -> Rose badge
+  if (/125%|หวานมาก/.test(lower)) {
+    return {
+      label: '🍬 หวานมาก (125%)',
+      short: '125%',
+      badgeClass: 'bg-rose-600 text-white font-black'
+    };
+  }
+
+  // 100% / หวานปกติ -> Amber badge
+  if (/100%|หวานปกติ|ปกติ/.test(lower)) {
+    return {
+      label: '🍯 หวานปกติ (100%)',
+      short: '100%',
+      badgeClass: 'bg-amber-600 text-white font-black'
+    };
+  }
+
+  // 75% / หวานกลาง -> Amber/yellow badge
+  if (/75%|หวานกลาง/.test(lower)) {
+    return {
+      label: '🍯 หวานกลาง (75%)',
+      short: '75%',
+      badgeClass: 'bg-amber-500 text-slate-950 font-black'
+    };
+  }
+
+  // 25% / หวานน้อยมาก -> Sky blue badge
+  if (/25%|หวานน้อยมาก/.test(lower)) {
+    return {
+      label: '💧 หวานน้อยมาก (25%)',
+      short: '25%',
+      badgeClass: 'bg-sky-500 text-white font-bold'
+    };
+  }
+
+  // 50% / หวานน้อย -> Blue badge
+  if (/50%|หวานน้อย/.test(lower)) {
+    return {
+      label: '💧 หวานน้อย (50%)',
+      short: '50%',
+      badgeClass: 'bg-blue-600 text-white font-bold'
+    };
+  }
+
+  // 0% / ไม่หวาน -> Emerald green badge
+  if (/(?:^|[^\d])0%|ไม่หวาน|no sweet/.test(lower)) {
+    return {
+      label: '🍃 ไม่หวาน (0%)',
+      short: '0%',
+      badgeClass: 'bg-emerald-600 text-white font-black'
+    };
+  }
+
+  if (lower.includes('หวาน')) {
+    return {
+      label: `🍯 ${text}`,
+      short: text,
+      badgeClass: 'bg-amber-600 text-white font-bold'
+    };
+  }
+
+  return null;
+}
+
+/**
+ * Generate formatted HTML badges for modifiers:
+ * Highlights Sweetness level with high-contrast color badges,
+ * and formats roast, syrups, and add-ons neatly.
+ */
+function getItemModifiersBadgesHtml(item, options = {}) {
+  let sweetBadge = null;
+  const otherMods = [];
+
+  if (Array.isArray(item.selectedOptions) && item.selectedOptions.length > 0) {
+    item.selectedOptions.forEach(opt => {
+      const optName = opt.optName || opt.name || '';
+      const groupName = opt.groupName || '';
+      const groupId = opt.groupId || '';
+      const sweetInfo = getSweetnessBadgeInfo(optName, groupName, groupId);
+      if (sweetInfo && !sweetBadge) {
+        sweetBadge = sweetInfo;
+      } else {
+        const priceText = (opt.price && Number(opt.price) > 0) ? ` (+฿${opt.price})` : '';
+        const cleanName = optName.split(' ')[0] + priceText;
+        otherMods.push(cleanName);
+      }
+    });
+  } else {
+    if (item.selectedSweetness) {
+      sweetBadge = getSweetnessBadgeInfo(item.selectedSweetness, 'ระดับความหวาน', 'optgrp-sweet') || {
+        label: `🍯 หวาน ${item.selectedSweetness}`,
+        short: item.selectedSweetness,
+        badgeClass: 'bg-amber-600 text-white font-bold'
+      };
+    }
+    if (item.selectedTemp) {
+      otherMods.push(item.selectedTemp);
+    }
+    if (Array.isArray(item.selectedExtras)) {
+      item.selectedExtras.forEach(e => {
+        const extraName = (e.name || '').split(' ')[0];
+        const extraPrice = (e.price && Number(e.price) > 0) ? ` (+฿${e.price})` : '';
+        otherMods.push(`+ ${extraName}${extraPrice}`);
+      });
+    }
+  }
+
+  let html = '';
+  if (sweetBadge) {
+    const badgePadding = options.isCompact ? 'px-1.5 py-0.5 text-[10px]' : 'px-2 py-0.5 text-xs';
+    html += `<span class="inline-flex items-center gap-1 ${badgePadding} rounded-md font-bold shadow-sm ${sweetBadge.badgeClass} whitespace-nowrap tracking-wide">
+      ${sweetBadge.label}
+    </span>`;
+  }
+  if (otherMods.length > 0) {
+    const textClass = options.isCompact 
+      ? 'text-[11px] text-slate-500 dark:text-slate-400 font-normal leading-tight' 
+      : 'text-xs text-slate-500 dark:text-slate-400 font-medium leading-tight';
+    html += `<span class="${textClass}">${otherMods.join(', ')}</span>`;
+  }
+
+  return html ? `<div class="flex flex-wrap items-center gap-1.5 mt-0.5">${html}</div>` : '';
+}
+
+// --------------------------------------------------------------------------
+// BAR QUEUE & KITCHEN DISPLAY STATE & METHODS
+// --------------------------------------------------------------------------
+let barQueueFilter = 'waiting'; // 'waiting' | 'served' | 'all'
+let barQueueSearchQuery = '';
+let barQueueSoundEnabled = (localStorage.getItem('coffeeshop_queue_sound') !== '0');
+let barQueueCupProgress = {};
+try {
+  barQueueCupProgress = JSON.parse(localStorage.getItem('coffeeshop_queue_cup_progress') || '{}');
+} catch(e) {
+  barQueueCupProgress = {};
+}
+let barQueueElapsedInterval = null;
+
+function getQueueFulfillmentMap() {
+  try {
+    return JSON.parse(localStorage.getItem('coffeeshop_queue_fulfillment') || '{}');
+  } catch(e) {
+    return {};
+  }
+}
+
+function setOrderQueueFulfillment(orderId, status, servedAt = null) {
+  const map = getQueueFulfillmentMap();
+  map[orderId] = {
+    status: status,
+    servedAt: servedAt || (status === 'served' ? Date.now() : null),
+    updatedAt: Date.now()
+  };
+  try {
+    localStorage.setItem('coffeeshop_queue_fulfillment', JSON.stringify(map));
+  } catch(e) {}
+
+  const order = orders.find(o => o.id === orderId);
+  if (order) {
+    order.fulfillmentStatus = status;
+    if (servedAt) order.servedAt = servedAt;
+  }
+}
+
+function getOrderFulfillmentStatus(order) {
+  if (!order) return 'served';
+  const map = getQueueFulfillmentMap();
+  if (map[order.id]) {
+    return map[order.id].status;
+  }
+  if (order.fulfillmentStatus) {
+    return order.fulfillmentStatus;
+  }
+  return 'served';
+}
+
+function getTodayQueueOrders() {
+  const todayDateStr = new Date().toDateString();
+  const now = Date.now();
+
+  return orders.filter(o => {
+    if (o.status === 'voided') return false;
+
+    let time = o.timestamp;
+    if (!time && o.createdAt) {
+      time = new Date(o.createdAt).getTime();
+    }
+    if (!time) return false;
+
+    // Filter to today (calendar day match or within last 20 hours)
+    const isToday = (new Date(time).toDateString() === todayDateStr) || (now - time < 20 * 60 * 60 * 1000);
+    return isToday;
+  });
+}
+
+function updateQueueBadgeCount() {
+  const todayOrders = getTodayQueueOrders();
+  const waitingOrders = todayOrders.filter(o => getOrderFulfillmentStatus(o) === 'waiting');
+  const servedOrders = todayOrders.filter(o => getOrderFulfillmentStatus(o) === 'served');
+  const waitingCount = waitingOrders.length;
+  const servedCount = servedOrders.length;
+
+  // Header Nav Tab Badge
+  const headerBadge = document.getElementById('queueBadgeCount');
+  if (headerBadge) {
+    headerBadge.innerText = waitingCount;
+    if (waitingCount > 0) {
+      headerBadge.classList.remove('hidden');
+    } else {
+      headerBadge.classList.add('hidden');
+    }
+  }
+
+  // Cashier Cart Shortcut Badge
+  const cashierBadge = document.getElementById('cashierQueueBadge');
+  if (cashierBadge) {
+    cashierBadge.innerText = waitingCount;
+    if (waitingCount > 0) {
+      cashierBadge.classList.remove('hidden');
+    } else {
+      cashierBadge.classList.add('hidden');
+    }
+  }
+
+  // Queue Screen Filter Badges
+  const filterWaitingBadge = document.getElementById('queueFilterWaitingBadge');
+  if (filterWaitingBadge) filterWaitingBadge.innerText = waitingCount;
+
+  const filterServedBadge = document.getElementById('queueFilterServedBadge');
+  if (filterServedBadge) filterServedBadge.innerText = servedCount;
+
+  const filterHeldBadge = document.getElementById('queueFilterHeldBadge');
+  if (filterHeldBadge) filterHeldBadge.innerText = (Array.isArray(heldBills) ? heldBills.length : 0);
+
+  // Update Summary Metrics
+  const totalWaitingCups = waitingOrders.reduce((sum, o) => {
+    return sum + (o.items || []).reduce((isum, item) => isum + (Number(item.qty) || 1), 0);
+  }, 0);
+
+  const cupsWaitingEl = document.getElementById('queueStatsCupsWaiting');
+  if (cupsWaitingEl) cupsWaitingEl.innerText = `${totalWaitingCups} แก้ว`;
+
+  const billsWaitingEl = document.getElementById('queueStatsBillsWaiting');
+  if (billsWaitingEl) billsWaitingEl.innerText = `${waitingCount} บิล`;
+
+  const longestWaitEl = document.getElementById('queueStatsLongestWait');
+  if (longestWaitEl) {
+    if (waitingOrders.length === 0) {
+      longestWaitEl.innerText = '-';
+    } else {
+      let oldestTime = Date.now();
+      waitingOrders.forEach(o => {
+        const t = o.timestamp || (o.createdAt ? new Date(o.createdAt).getTime() : Date.now());
+        if (t < oldestTime) oldestTime = t;
+      });
+      const minutesAgo = Math.max(0, Math.floor((Date.now() - oldestTime) / 60000));
+      longestWaitEl.innerText = minutesAgo === 0 ? 'เพิ่งสั่ง' : `${minutesAgo} นาที`;
+    }
+  }
+}
+
+function formatOrderElapsedTime(timestamp) {
+  if (!timestamp) return '';
+  const diffSec = Math.max(0, Math.floor((Date.now() - timestamp) / 1000));
+  if (diffSec < 60) return 'เมื่อสักครู่';
+  const diffMin = Math.floor(diffSec / 60);
+  if (diffMin < 60) return `${diffMin} นาทีที่แล้ว`;
+  const diffHour = Math.floor(diffMin / 60);
+  return `${diffHour} ชม. ${diffMin % 60} นาทีที่แล้ว`;
+}
+
+function updateQueueElapsedTimes() {
+  if (currentActiveTab === 'queue') {
+    renderBarQueue();
+  }
+}
+
+function renderBarQueue() {
+  updateQueueBadgeCount();
+  updateQueueSoundUI();
+
+  const container = document.getElementById('barQueueCardsGrid');
+  if (!container) return;
+
+  const todayOrders = getTodayQueueOrders();
+  
+  let filtered = todayOrders.filter(o => {
+    const status = getOrderFulfillmentStatus(o);
+    if (barQueueFilter === 'waiting') return status === 'waiting';
+    if (barQueueFilter === 'served') return status === 'served';
+    return true;
+  });
+
+  if (barQueueSearchQuery.trim()) {
+    const q = barQueueSearchQuery.trim().toLowerCase();
+    filtered = filtered.filter(o => {
+      const orderNum = (o.orderNumber || o.id || '').toLowerCase();
+      const cashier = (o.cashierName || '').toLowerCase();
+      const itemsMatch = (o.items || []).some(item => (item.name || '').toLowerCase().includes(q));
+      return orderNum.includes(q) || cashier.includes(q) || itemsMatch;
+    });
+  }
+
+  // FIFO for waiting (serve first customer first), LIFO for served
+  if (barQueueFilter === 'waiting') {
+    filtered.sort((a, b) => {
+      const tA = a.timestamp || (a.createdAt ? new Date(a.createdAt).getTime() : 0);
+      const tB = b.timestamp || (b.createdAt ? new Date(b.createdAt).getTime() : 0);
+      return tA - tB;
+    });
+  } else {
+    filtered.sort((a, b) => {
+      const tA = a.servedAt || a.timestamp || 0;
+      const tB = b.servedAt || b.timestamp || 0;
+      return tB - tA;
+    });
+  }
+
+  if (filtered.length === 0) {
+    let emptyIcon = '✨';
+    let emptyTitle = 'ไม่มีออเดอร์ค้างส่ง';
+    let emptySubtitle = 'ยอดเยี่ยมมาก! บาริสต้าเคลียร์ออเดอร์ครบทั้งหมดแล้ว';
+
+    if (barQueueFilter === 'served') {
+      emptyIcon = '📋';
+      emptyTitle = 'ยังไม่มีออเดอร์ที่ส่งมอบในวันนี้';
+      emptySubtitle = 'เมื่อทำกาแฟเสร็จและกด "ส่งมอบแล้ว" บิลจะมาแสดงที่นี่';
+    } else if (barQueueSearchQuery.trim()) {
+      emptyIcon = '🔍';
+      emptyTitle = `ไม่พบบิลที่ตรงกับ "${barQueueSearchQuery}"`;
+      emptySubtitle = 'ลองค้นหาด้วยเลขที่บิลอื่น หรือล้างช่องค้นหา';
+    }
+
+    container.innerHTML = `
+      <div class="col-span-full py-16 text-center flex flex-col items-center justify-center bg-white dark:bg-slate-900 rounded-3xl border border-dashed border-slate-300 dark:border-slate-800 p-8 shadow-xs">
+        <span class="text-5xl sm:text-6xl mb-3">${emptyIcon}</span>
+        <h3 class="text-base sm:text-lg font-bold text-slate-800 dark:text-slate-100">${emptyTitle}</h3>
+        <p class="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-1 max-w-md">${emptySubtitle}</p>
+        ${barQueueFilter === 'waiting' ? `
+          <button type="button" onclick="switchTab('cashier')" class="mt-4 px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold text-xs sm:text-sm transition shadow-sm flex items-center gap-1.5">
+            <span>➕</span><span>ไปหน้ารับออเดอร์</span>
+          </button>
+        ` : ''}
+      </div>
+    `;
+    return;
+  }
+
+  container.innerHTML = filtered.map(order => {
+    const status = getOrderFulfillmentStatus(order);
+    const orderTime = order.timestamp || (order.createdAt ? new Date(order.createdAt).getTime() : Date.now());
+    const timeStr = order.timeStr || order.time || new Date(orderTime).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' });
+    const elapsedText = formatOrderElapsedTime(orderTime);
+    const elapsedMin = Math.floor((Date.now() - orderTime) / 60000);
+    const isUrgent = (status === 'waiting' && elapsedMin >= 10);
+    const totalCups = (order.items || []).reduce((sum, it) => sum + (Number(it.qty) || 1), 0);
+
+    const progressForOrder = barQueueCupProgress[order.id] || {};
+    let doneCupsCount = 0;
+
+    const itemsHtml = (order.items || []).map((item, itemIdx) => {
+      const isCupDone = !!progressForOrder[itemIdx];
+      if (isCupDone) doneCupsCount += (Number(item.qty) || 1);
+
+      const modsBadgeHtml = getItemModifiersBadgesHtml(item, { isCompact: true });
+      const customNoteHtml = (item.customPriceNote || item.customNotes)
+        ? `<div class="text-[11px] text-amber-700 dark:text-amber-400 font-semibold italic mt-0.5">📝 ${item.customPriceNote || item.customNotes}</div>`
+        : '';
+
+      return `
+        <div onclick="toggleCupProgress('${order.id}', ${itemIdx})" class="group cursor-pointer p-2.5 rounded-xl border transition flex items-start gap-2.5 ${isCupDone ? 'bg-emerald-500/10 border-emerald-500/30 dark:bg-emerald-950/30' : 'bg-slate-50 dark:bg-slate-800/60 border-slate-200/70 dark:border-slate-700/60 hover:border-amber-400 dark:hover:border-amber-500'}">
+          <button type="button" class="mt-0.5 flex-shrink-0 w-5 h-5 rounded-md border flex items-center justify-center text-xs font-bold transition ${isCupDone ? 'bg-emerald-600 border-emerald-600 text-white shadow-xs' : 'border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-transparent group-hover:border-amber-500'}">
+            ✓
+          </button>
+          <div class="flex-1 min-w-0">
+            <div class="flex items-center justify-between gap-1">
+              <span class="text-xs sm:text-sm font-bold text-slate-900 dark:text-white leading-tight ${isCupDone ? 'line-through opacity-70 text-emerald-900 dark:text-emerald-300' : ''}">
+                ${item.name}
+              </span>
+              <span class="text-xs font-black px-1.5 py-0.5 rounded-md ${isCupDone ? 'bg-emerald-500/20 text-emerald-700 dark:text-emerald-300' : 'bg-amber-500/20 text-amber-900 dark:text-amber-300'} flex-shrink-0">
+                x${item.qty || 1}
+              </span>
+            </div>
+            ${modsBadgeHtml}
+            ${customNoteHtml}
+          </div>
+        </div>
+      `;
+    }).join('');
+
+    const allCupsDone = (doneCupsCount >= totalCups && totalCups > 0);
+
+    return `
+      <div class="bg-white dark:bg-slate-900 rounded-2xl border ${isUrgent ? 'border-rose-400 dark:border-rose-600 shadow-rose-500/10 ring-1 ring-rose-400' : 'border-slate-200 dark:border-slate-800'} shadow-sm flex flex-col justify-between overflow-hidden transition hover:shadow-md animate-fade-in">
+        <!-- Card Header -->
+        <div class="p-3.5 pb-2.5 border-b border-slate-100 dark:border-slate-800 ${isUrgent ? 'bg-rose-50/60 dark:bg-rose-950/20' : 'bg-slate-50/60 dark:bg-slate-800/30'}">
+          <div class="flex items-center justify-between gap-2">
+            <div class="flex items-center gap-1.5 min-w-0">
+              <span class="text-xs font-black px-2 py-0.5 rounded-md bg-amber-500 text-slate-950 shadow-xs">
+                #${(order.orderNumber || order.id || '').replace(/^ORD-/, '')}
+              </span>
+              <span class="text-xs font-bold text-slate-700 dark:text-slate-300 truncate">
+                ${order.paymentMethod || 'ชำระแล้ว'}
+              </span>
+            </div>
+            <div class="text-[11px] font-bold text-slate-500 dark:text-slate-400 flex-shrink-0">
+              ${timeStr} น.
+            </div>
+          </div>
+
+          <div class="flex items-center justify-between gap-1 mt-2 text-[11px]">
+            <span class="inline-flex items-center gap-1 font-semibold ${isUrgent ? 'text-rose-600 dark:text-rose-400 font-bold animate-pulse' : 'text-slate-500 dark:text-slate-400'}">
+              <span>⏱️</span><span>${elapsedText}</span>
+            </span>
+            <span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded font-bold text-[10px] bg-slate-200/80 dark:bg-slate-800 text-slate-700 dark:text-slate-300">
+              <span>☕</span><span>${totalCups} แก้ว</span>
+            </span>
+          </div>
+        </div>
+
+        <!-- Card Items Body -->
+        <div class="p-3 space-y-2 flex-1 overflow-y-auto max-h-[360px]">
+          ${itemsHtml}
+        </div>
+
+        <!-- Card Footer Actions -->
+        <div class="p-3 pt-2 border-t border-slate-100 dark:border-slate-800 bg-slate-50/40 dark:bg-slate-800/20">
+          ${status === 'waiting' ? `
+            <button type="button" onclick="markOrderAsServed('${order.id}')" class="w-full py-2.5 px-3 rounded-xl font-black text-xs sm:text-sm shadow-md transition flex items-center justify-center gap-2 ${allCupsDone ? 'bg-emerald-600 hover:bg-emerald-700 text-white animate-bounce-subtle' : 'bg-coffee-600 hover:bg-coffee-700 text-white'}">
+              <span>✅</span>
+              <span>${allCupsDone ? 'ครบทุกแก้วแล้ว! ส่งมอบออเดอร์' : 'ทำเสร็จ & ส่งมอบแล้ว'}</span>
+            </button>
+          ` : `
+            <div class="flex items-center justify-between gap-2">
+              <span class="text-[11px] text-emerald-600 dark:text-emerald-400 font-bold flex items-center gap-1">
+                <span>✅</span><span>ส่งมอบแล้ว</span>
+              </span>
+              <button type="button" onclick="restoreOrderToQueue('${order.id}')" class="text-xs text-amber-600 dark:text-amber-400 hover:underline font-semibold flex items-center gap-1">
+                <span>↩️</span><span>กู้คืนเป็นรอส่ง</span>
+              </button>
+            </div>
+          `}
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+function setQueueFilter(mode) {
+  barQueueFilter = mode;
+  const btnWaiting = document.getElementById('btnQueueFilterWaiting');
+  const btnServed = document.getElementById('btnQueueFilterServed');
+
+  if (btnWaiting && btnServed) {
+    if (mode === 'waiting') {
+      btnWaiting.className = 'px-3 sm:px-4 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-xs whitespace-nowrap';
+      btnServed.className = 'px-3 sm:px-4 py-1.5 rounded-lg text-xs font-semibold transition flex items-center gap-1.5 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white whitespace-nowrap';
+    } else {
+      btnServed.className = 'px-3 sm:px-4 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-xs whitespace-nowrap';
+      btnWaiting.className = 'px-3 sm:px-4 py-1.5 rounded-lg text-xs font-semibold transition flex items-center gap-1.5 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white whitespace-nowrap';
+    }
+  }
+  renderBarQueue();
+}
+
+function filterBarQueue() {
+  const input = document.getElementById('queueSearchInput');
+  barQueueSearchQuery = input ? input.value : '';
+  renderBarQueue();
+}
+
+function markOrderAsServed(orderId) {
+  setOrderQueueFulfillment(orderId, 'served', Date.now());
+  saveToStorage('coffeeshop_orders', orders);
+
+  if (typeof broadcastStaffCart === 'function') {
+    broadcastStaffCart({
+      type: 'QUEUE_STATUS_CHANGE',
+      orderId: orderId,
+      fulfillmentStatus: 'served',
+      servedAt: Date.now()
+    });
+  }
+
+  showToast(`✅ ส่งมอบออเดอร์ #${orderId.replace(/^ORD-/, '')} เรียบร้อยแล้ว`, 'success');
+  updateQueueBadgeCount();
+  renderBarQueue();
+}
+
+function restoreOrderToQueue(orderId) {
+  setOrderQueueFulfillment(orderId, 'waiting');
+  saveToStorage('coffeeshop_orders', orders);
+
+  if (typeof broadcastStaffCart === 'function') {
+    broadcastStaffCart({
+      type: 'QUEUE_STATUS_CHANGE',
+      orderId: orderId,
+      fulfillmentStatus: 'waiting'
+    });
+  }
+
+  showToast(`↩️ กู้คืนออเดอร์ #${orderId.replace(/^ORD-/, '')} กลับสู่คิวรอส่งแล้ว`, 'info');
+  updateQueueBadgeCount();
+  renderBarQueue();
+}
+
+function toggleCupProgress(orderId, itemIndex) {
+  if (!barQueueCupProgress[orderId]) {
+    barQueueCupProgress[orderId] = {};
+  }
+  const current = !!barQueueCupProgress[orderId][itemIndex];
+  barQueueCupProgress[orderId][itemIndex] = !current;
+
+  try {
+    localStorage.setItem('coffeeshop_queue_cup_progress', JSON.stringify(barQueueCupProgress));
+  } catch(e) {}
+
+  if (typeof broadcastStaffCart === 'function') {
+    broadcastStaffCart({
+      type: 'QUEUE_CUP_PROGRESS',
+      orderId: orderId,
+      itemIndex: itemIndex,
+      isDone: !current
+    });
+  }
+
+  renderBarQueue();
+}
+
+function toggleQueueSound() {
+  barQueueSoundEnabled = !barQueueSoundEnabled;
+  try {
+    localStorage.setItem('coffeeshop_queue_sound', barQueueSoundEnabled ? '1' : '0');
+  } catch(e) {}
+  updateQueueSoundUI();
+  if (barQueueSoundEnabled) {
+    playQueueChime();
+    showToast('🔔 เปิดเสียงเตือนออเดอร์ใหม่แล้ว', 'success');
+  } else {
+    showToast('🔕 ปิดเสียงเตือนออเดอร์ใหม่แล้ว', 'info');
+  }
+}
+
+function updateQueueSoundUI() {
+  const icon = document.getElementById('queueSoundIcon');
+  const text = document.getElementById('queueSoundText');
+  const btn = document.getElementById('btnQueueSoundToggle');
+  if (icon) icon.innerText = barQueueSoundEnabled ? '🔔' : '🔕';
+  if (text) text.innerText = barQueueSoundEnabled ? 'เสียงเตือน: เปิด' : 'เสียงเตือน: ปิด';
+  if (btn) {
+    if (barQueueSoundEnabled) {
+      btn.classList.add('border-amber-400', 'text-amber-700', 'dark:text-amber-400');
+      btn.classList.remove('opacity-60');
+    } else {
+      btn.classList.remove('border-amber-400', 'text-amber-700', 'dark:text-amber-400');
+      btn.classList.add('opacity-60');
+    }
+  }
+}
+
+function playQueueChime() {
+  if (!barQueueSoundEnabled) return;
+  try {
+    const AudioCtx = window.AudioContext || window.webkitAudioContext;
+    if (!AudioCtx) return;
+    const ctx = new AudioCtx();
+    const now = ctx.currentTime;
+
+    const osc1 = ctx.createOscillator();
+    const gain1 = ctx.createGain();
+    osc1.type = 'sine';
+    osc1.frequency.setValueAtTime(587.33, now);
+    gain1.gain.setValueAtTime(0.15, now);
+    gain1.gain.exponentialRampToValueAtTime(0.01, now + 0.15);
+    osc1.connect(gain1);
+    gain1.connect(ctx.destination);
+    osc1.start(now);
+    osc1.stop(now + 0.15);
+
+    const osc2 = ctx.createOscillator();
+    const gain2 = ctx.createGain();
+    osc2.type = 'sine';
+    osc2.frequency.setValueAtTime(880, now + 0.12);
+    gain2.gain.setValueAtTime(0.2, now + 0.12);
+    gain2.gain.exponentialRampToValueAtTime(0.001, now + 0.35);
+    osc2.connect(gain2);
+    gain2.connect(ctx.destination);
+    osc2.start(now + 0.12);
+    osc2.stop(now + 0.35);
+  } catch (e) {
+    console.warn('Queue sound error:', e);
   }
 }
 
@@ -3566,21 +4201,8 @@ function renderCart() {
     const itemEl = document.createElement('div');
     itemEl.className = 'pt-3 first:pt-0 pb-3 flex flex-col space-y-1.5 border-b border-slate-100 dark:border-slate-800 last:border-0 animate-slide-in';
     
-    // Compile modifiers list
-    let modifiersText = [];
-    if (item.selectedOptions && item.selectedOptions.length > 0) {
-      modifiersText = item.selectedOptions.map(o => {
-        return o.optName.split(' ')[0] + (o.price > 0 ? ` (+฿${o.price})` : '');
-      });
-    } else {
-      if (item.selectedTemp) modifiersText.push(item.selectedTemp);
-      if (item.selectedSweetness) modifiersText.push(`หวาน ${item.selectedSweetness}`);
-      (item.selectedExtras || []).forEach(e => modifiersText.push(`+ ${e.name.split(' ')[0]}`));
-    }
-    
-    const modsHtml = modifiersText.length > 0
-      ? `<span class="text-xs text-slate-400 dark:text-slate-500 font-medium leading-tight block">${modifiersText.join(', ')}</span>`
-      : '';
+    // Compile modifiers list with prominent sweetness badge
+    const modsHtml = getItemModifiersBadgesHtml(item);
 
     const zeroBahtBadge = (item.pricePerItem === 0)
       ? `<span class="inline-flex items-center px-1.5 py-0.2 rounded text-[10px] font-black bg-emerald-100 dark:bg-emerald-950/70 text-emerald-800 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-700 ml-1">🎁 แลกแต้ม/ฟรี</span>`
@@ -3740,7 +4362,8 @@ function broadcastStaffOrderCompleted(orderObj) {
       type: 'ORDER_COMPLETED',
       orderNumber: (orderObj && orderObj.orderNumber) ? orderObj.orderNumber : (orderObj ? orderObj.id : ''),
       orderId: orderObj ? orderObj.id : '',
-      total: orderObj ? orderObj.total : 0
+      total: orderObj ? orderObj.total : 0,
+      order: orderObj
     });
   }
 }
@@ -3786,7 +4409,23 @@ window.handleStaffCartSync = function(payload) {
       saveToStorage('coffeeshop_cart', cart);
       renderCart();
       closeCheckoutModal();
-      showToast(`🔔 ออเดอร์ ${payload.orderNumber || ''} คิดเงินสำเร็จแล้วจากอีกเครื่อง`, 'success');
+
+      if (payload.order && payload.order.id) {
+        const orderId = payload.order.id;
+        const exists = orders.some(o => o.id === orderId);
+        if (!exists) {
+          orders.push(payload.order);
+          saveToStorage('coffeeshop_orders', orders);
+        }
+        setOrderQueueFulfillment(orderId, 'waiting');
+      }
+
+      showToast(`🔔 ออเดอร์ ${payload.orderNumber || ''} บันทึกสำเร็จแล้วจากอีกเครื่อง`, 'success');
+      playQueueChime();
+      updateQueueBadgeCount();
+      if (currentActiveTab === 'queue') {
+        renderBarQueue();
+      }
       
       // Also ensure dashboard & recent orders refresh
       if (typeof renderRecentOrders === 'function') renderRecentOrders();
@@ -3794,6 +4433,28 @@ window.handleStaffCartSync = function(payload) {
       if (typeof updateDashboardStats === 'function') updateDashboardStats();
     } finally {
       setTimeout(() => { isReceivingStaffCartSync = false; }, 80);
+    }
+  } else if (payload.type === 'QUEUE_STATUS_CHANGE') {
+    if (payload.orderId && payload.fulfillmentStatus) {
+      setOrderQueueFulfillment(payload.orderId, payload.fulfillmentStatus, payload.servedAt);
+      saveToStorage('coffeeshop_orders', orders);
+      updateQueueBadgeCount();
+      if (currentActiveTab === 'queue') {
+        renderBarQueue();
+      }
+    }
+  } else if (payload.type === 'QUEUE_CUP_PROGRESS') {
+    if (payload.orderId && payload.itemIndex !== undefined) {
+      if (!barQueueCupProgress[payload.orderId]) {
+        barQueueCupProgress[payload.orderId] = {};
+      }
+      barQueueCupProgress[payload.orderId][payload.itemIndex] = !!payload.isDone;
+      try {
+        localStorage.setItem('coffeeshop_queue_cup_progress', JSON.stringify(barQueueCupProgress));
+      } catch(e) {}
+      if (currentActiveTab === 'queue') {
+        renderBarQueue();
+      }
     }
   }
 };
@@ -4756,12 +5417,18 @@ function completeOrder(shouldPrint) {
     cashierName: (currentUser && currentUser.name) ? currentUser.name : 'เจ้าของร้าน',
     cashierId: (currentUser && currentUser.id) ? currentUser.id : 'user-owner',
     cashierRole: (currentUser && currentUser.role) ? currentUser.role : 'owner',
-    status: 'completed' // completed, voided
+    status: 'completed', // completed, voided
+    fulfillmentStatus: 'waiting' // bar queue status
   };
 
   // Save to database array
   orders.push(newOrderObj);
   saveToStorage('coffeeshop_orders', orders);
+  setOrderQueueFulfillment(orderId, 'waiting');
+  updateQueueBadgeCount();
+  if (currentActiveTab === 'queue') {
+    renderBarQueue();
+  }
 
   // Sync to Supabase Cloud
   if (typeof syncOrderToCloud === 'function') {

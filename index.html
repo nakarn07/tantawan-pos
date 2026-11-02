@@ -71,6 +71,15 @@
               </svg>
               <span>รับออเดอร์</span>
             </button>
+
+            <!-- Tab 2: Queue / Kitchen Display (ออเดอร์รอส่ง) -->
+            <button id="tab-queue" onclick="switchTab('queue')" class="tab-btn px-2 sm:px-3 lg:px-4 py-1.5 sm:py-2 text-xs sm:text-sm font-medium rounded-lg text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition flex items-center space-x-1 sm:space-x-1.5 whitespace-nowrap flex-shrink-0 relative" title="รายการออเดอร์ที่รอชงและรอส่งมอบ">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+              </svg>
+              <span>ออเดอร์รอส่ง</span>
+              <span id="queueBadgeCount" class="hidden min-w-[18px] h-[18px] px-1 bg-amber-500 text-slate-950 font-black text-[10px] rounded-full inline-flex items-center justify-center animate-pulse shadow-sm">0</span>
+            </button>
             
             <button id="tab-reports" onclick="switchTab('reports')" class="tab-btn px-2 sm:px-3 lg:px-4 py-1.5 sm:py-2 text-xs sm:text-sm font-medium rounded-lg text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition flex items-center space-x-1 sm:space-x-1.5 whitespace-nowrap flex-shrink-0">
               <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
@@ -249,6 +258,12 @@
               <span>✨</span>
               <span class="hidden sm:inline">+ เมนูพิเศษ</span>
             </button>
+            <!-- Kitchen / Bar Queue Shortcut Button -->
+            <button type="button" id="btnCashierQueue" onclick="switchTab('queue')" class="relative px-2 py-1 text-xs font-semibold rounded-lg bg-emerald-50 dark:bg-emerald-950/50 hover:bg-emerald-100 dark:hover:bg-emerald-900/60 text-emerald-900 dark:text-emerald-300 border border-emerald-300/80 dark:border-emerald-800/80 transition flex items-center gap-1 shadow-sm whitespace-nowrap flex-shrink-0" title="ดูออเดอร์รอส่ง">
+              <span>📋</span>
+              <span class="whitespace-nowrap">รอส่ง</span>
+              <span id="cashierQueueBadge" class="hidden min-w-[18px] h-[18px] px-1 bg-emerald-500 text-white text-[10px] font-bold rounded-full inline-flex items-center justify-center shadow-sm">0</span>
+            </button>
             <!-- Held Bills Queue Button with Count Badge -->
             <button type="button" id="btnHeldBills" onclick="openHeldBillsModal()" class="relative px-2 py-1 text-xs font-semibold rounded-lg bg-amber-50 dark:bg-amber-950/50 hover:bg-amber-100 dark:hover:bg-amber-900/60 text-amber-900 dark:text-amber-300 border border-amber-300/80 dark:border-amber-800/80 transition flex items-center gap-1 shadow-sm whitespace-nowrap flex-shrink-0" title="ดูรายการบิลที่พักไว้">
               <span>⏸️</span>
@@ -304,6 +319,98 @@
               </svg>
             </button>
           </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB: BAR QUEUE & KITCHEN DISPLAY (ออเดอร์รอส่ง) -->
+    <div id="content-queue" class="h-full overflow-y-auto bg-slate-50 dark:bg-slate-950 p-3 sm:p-5 lg:p-6 hidden">
+      <div class="max-w-7xl mx-auto space-y-4">
+        <!-- Queue Top Banner & Metrics -->
+        <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4 bg-white dark:bg-slate-900 p-4 sm:p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm">
+          <div>
+            <div class="flex items-center gap-2.5 flex-wrap">
+              <h2 class="text-lg sm:text-xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                <span class="text-2xl">📋</span>
+                <span>คิวชงกาแฟ & ออเดอร์รอส่ง</span>
+              </h2>
+              <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+                <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                <span>ซิงค์สด Realtime ข้ามเครื่อง</span>
+              </span>
+            </div>
+            <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">
+              ระบบจัดการคิวหน้าบาร์ ชงเสร็จทีละแก้วสามารถติ๊กถูกได้ เมื่อครบทุกแก้วกดส่งมอบ ยอดแก้วและบิลจะอัปเดตให้ทุกเครื่องเห็นทันที
+            </p>
+          </div>
+
+          <!-- Summary Metric Cards -->
+          <div class="flex items-center flex-wrap gap-2 sm:gap-3">
+            <!-- Total Cups Waiting -->
+            <div class="px-3.5 py-2 rounded-xl bg-amber-500/10 border border-amber-500/30 flex items-center gap-2.5 shadow-xs">
+              <span class="text-2xl">☕</span>
+              <div>
+                <div class="text-[10px] font-bold text-amber-700 dark:text-amber-400 uppercase tracking-wider">ต้องทำทั้งหมด</div>
+                <div id="queueStatsCupsWaiting" class="text-base sm:text-lg font-black text-amber-600 dark:text-amber-300 leading-tight">0 แก้ว</div>
+              </div>
+            </div>
+
+            <!-- Total Bills Waiting -->
+            <div class="px-3.5 py-2 rounded-xl bg-blue-500/10 border border-blue-500/30 flex items-center gap-2.5 shadow-xs">
+              <span class="text-2xl">📋</span>
+              <div>
+                <div class="text-[10px] font-bold text-blue-700 dark:text-blue-400 uppercase tracking-wider">บิลค้างส่ง</div>
+                <div id="queueStatsBillsWaiting" class="text-base sm:text-lg font-black text-blue-600 dark:text-blue-300 leading-tight">0 บิล</div>
+              </div>
+            </div>
+
+            <!-- Longest Wait Time -->
+            <div class="px-3.5 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 flex items-center gap-2.5 shadow-xs">
+              <span class="text-2xl">⏱️</span>
+              <div>
+                <div class="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">รอนานสุด</div>
+                <div id="queueStatsLongestWait" class="text-sm sm:text-base font-bold text-slate-800 dark:text-slate-200 leading-tight">-</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Filter Tabs & Quick Action Toolbar -->
+        <div class="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+          <!-- Filter Buttons: Waiting vs Served vs Held -->
+          <div class="flex items-center space-x-1.5 bg-slate-200/80 dark:bg-slate-800/80 p-1 rounded-xl self-start overflow-x-auto no-scrollbar">
+            <button type="button" id="btnQueueFilterWaiting" onclick="setQueueFilter('waiting')" class="px-3 sm:px-4 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-xs whitespace-nowrap">
+              <span>⏳ รอชง / รอส่ง</span>
+              <span id="queueFilterWaitingBadge" class="px-1.5 py-0.2 rounded-full text-[10px] font-black bg-amber-500 text-slate-950">0</span>
+            </button>
+            <button type="button" id="btnQueueFilterServed" onclick="setQueueFilter('served')" class="px-3 sm:px-4 py-1.5 rounded-lg text-xs font-semibold transition flex items-center gap-1.5 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white whitespace-nowrap">
+              <span>✅ ส่งแล้ววันนี้</span>
+              <span id="queueFilterServedBadge" class="px-1.5 py-0.2 rounded-full text-[10px] font-bold bg-slate-300 dark:bg-slate-700 text-slate-700 dark:text-slate-300">0</span>
+            </button>
+            <button type="button" onclick="openHeldBillsModal()" class="px-3 sm:px-4 py-1.5 rounded-lg text-xs font-semibold transition flex items-center gap-1.5 text-amber-700 dark:text-amber-400 hover:bg-amber-500/10 whitespace-nowrap" title="ดูบิลที่พักไว้">
+              <span>⏸️ บิลพัก</span>
+              <span id="queueFilterHeldBadge" class="px-1.5 py-0.2 rounded-full text-[10px] font-bold bg-amber-500/20 text-amber-800 dark:text-amber-300">0</span>
+            </button>
+          </div>
+
+          <!-- Search & Sound Toggle -->
+          <div class="flex items-center gap-2">
+            <div class="relative flex-1 sm:w-64">
+              <input type="text" id="queueSearchInput" oninput="filterBarQueue()" placeholder="ค้นหาเลขบิล / เมนู..." class="w-full pl-8 pr-3 py-1.5 rounded-xl border border-slate-300 dark:border-slate-700 text-xs bg-white dark:bg-slate-900 text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-amber-500">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5 absolute left-2.5 top-2.5 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
+            </div>
+            <button type="button" id="btnQueueSoundToggle" onclick="toggleQueueSound()" class="px-2.5 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800 text-xs font-semibold flex items-center gap-1.5 transition shadow-xs flex-shrink-0" title="เปิด/ปิดเสียงเตือนเมื่อมีออเดอร์ใหม่">
+              <span id="queueSoundIcon">🔔</span>
+              <span class="hidden sm:inline" id="queueSoundText">เสียงเตือน: เปิด</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Ticket Cards Grid Container -->
+        <div id="barQueueCardsGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-3.5">
+          <!-- Dynamic order cards rendered here -->
         </div>
       </div>
     </div>
