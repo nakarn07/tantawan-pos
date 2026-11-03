@@ -2704,32 +2704,60 @@ function renderBarQueue() {
     const elapsedText = formatOrderElapsedTime(orderTime);
     const elapsedMin = Math.floor((Date.now() - orderTime) / 60000);
     const isUrgent = (status === 'waiting' && elapsedMin >= 10);
-    const totalCups = (order.items || []).reduce((sum, it) => sum + (Number(it.qty) || 1), 0);
 
+    // Breakdown order items into individual cups (e.g. 10 แก้ว = 10 แถว ชงเสร็จติ๊กทีละแก้วได้แม่นยำ)
+    const cupsList = [];
+    (order.items || []).forEach((item, itemIdx) => {
+      const qty = Number(item.qty) || 1;
+      for (let q = 1; q <= qty; q++) {
+        cupsList.push({
+          item: item,
+          itemIdx: itemIdx,
+          cupSubIdx: q,
+          totalInGroup: qty,
+          cupKey: `${itemIdx}_${q}`
+        });
+      }
+    });
+
+    const totalCups = cupsList.length;
     const progressForOrder = barQueueCupProgress[order.id] || {};
     let doneCupsCount = 0;
 
-    const itemsHtml = (order.items || []).map((item, itemIdx) => {
-      const isCupDone = !!progressForOrder[itemIdx];
-      if (isCupDone) doneCupsCount += (Number(item.qty) || 1);
+    cupsList.forEach(cup => {
+      const isDone = !!progressForOrder[cup.cupKey] || (cup.totalInGroup === 1 && !!progressForOrder[cup.itemIdx]);
+      if (isDone) doneCupsCount++;
+    });
 
-      const modsBadgeHtml = getItemModifiersBadgesHtml(item, { isCompact: true });
-      const customNoteHtml = (item.customPriceNote || item.customNotes)
-        ? `<div class="text-[11px] text-amber-700 dark:text-amber-400 font-semibold italic mt-0.5">📝 ${item.customPriceNote || item.customNotes}</div>`
+    const allCupsDone = (doneCupsCount >= totalCups && totalCups > 0);
+    const progressPercent = totalCups > 0 ? Math.round((doneCupsCount / totalCups) * 100) : 0;
+
+    const itemsHtml = cupsList.map((cup, cupIdx) => {
+      const isCupDone = !!progressForOrder[cup.cupKey] || (cup.totalInGroup === 1 && !!progressForOrder[cup.itemIdx]);
+      const modsBadgeHtml = getItemModifiersBadgesHtml(cup.item, { isCompact: true });
+      const customNoteHtml = (cup.item.customPriceNote || cup.item.customNotes)
+        ? `<div class="text-[11px] text-amber-700 dark:text-amber-400 font-semibold italic mt-0.5">📝 ${cup.item.customPriceNote || cup.item.customNotes}</div>`
+        : '';
+
+      const subBadgeHtml = cup.totalInGroup > 1
+        ? `<span class="text-[10px] font-bold px-1.5 py-0.2 rounded-full ${isCupDone ? 'bg-emerald-500/20 text-emerald-700 dark:text-emerald-300' : 'bg-amber-500/20 text-amber-900 dark:text-amber-300'} whitespace-nowrap">แก้ว ${cup.cupSubIdx}/${cup.totalInGroup}</span>`
         : '';
 
       return `
-        <div onclick="toggleCupProgress('${order.id}', ${itemIdx})" class="group cursor-pointer p-2.5 rounded-xl border transition flex items-start gap-2.5 ${isCupDone ? 'bg-emerald-500/10 border-emerald-500/30 dark:bg-emerald-950/30' : 'bg-slate-50 dark:bg-slate-800/60 border-slate-200/70 dark:border-slate-700/60 hover:border-amber-400 dark:hover:border-amber-500'}">
-          <button type="button" class="mt-0.5 flex-shrink-0 w-5 h-5 rounded-md border flex items-center justify-center text-xs font-bold transition ${isCupDone ? 'bg-emerald-600 border-emerald-600 text-white shadow-xs' : 'border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-transparent group-hover:border-amber-500'}">
+        <div onclick="toggleCupProgress('${order.id}', '${cup.cupKey}')" class="group cursor-pointer p-2.5 rounded-xl border transition flex items-start gap-2.5 ${isCupDone ? 'bg-emerald-500/10 border-emerald-500/40 dark:bg-emerald-950/40 ring-1 ring-emerald-500/30' : 'bg-slate-50 dark:bg-slate-800/60 border-slate-200/80 dark:border-slate-700/70 hover:border-amber-400 dark:hover:border-amber-500'}">
+          <button type="button" class="mt-0.5 flex-shrink-0 w-5 h-5 rounded-md border flex items-center justify-center text-xs font-black transition ${isCupDone ? 'bg-emerald-600 border-emerald-600 text-white shadow-xs' : 'border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-transparent group-hover:border-amber-500'}">
             ✓
           </button>
           <div class="flex-1 min-w-0">
-            <div class="flex items-center justify-between gap-1">
-              <span class="text-xs sm:text-sm font-bold text-slate-900 dark:text-white leading-tight ${isCupDone ? 'line-through opacity-70 text-emerald-900 dark:text-emerald-300' : ''}">
-                ${item.name}
-              </span>
-              <span class="text-xs font-black px-1.5 py-0.5 rounded-md ${isCupDone ? 'bg-emerald-500/20 text-emerald-700 dark:text-emerald-300' : 'bg-amber-500/20 text-amber-900 dark:text-amber-300'} flex-shrink-0">
-                x${item.qty || 1}
+            <div class="flex items-center justify-between gap-1.5">
+              <div class="flex items-center gap-1.5 min-w-0 flex-wrap">
+                <span class="text-xs sm:text-sm font-bold text-slate-900 dark:text-white leading-tight ${isCupDone ? 'line-through opacity-70 text-emerald-900 dark:text-emerald-300' : ''}">
+                  ${cup.item.name}
+                </span>
+                ${subBadgeHtml}
+              </div>
+              <span class="text-[10px] font-bold px-1.5 py-0.2 rounded ${isCupDone ? 'bg-emerald-500/20 text-emerald-700 dark:text-emerald-300' : 'bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300'} flex-shrink-0">
+                #${cupIdx + 1}
               </span>
             </div>
             ${modsBadgeHtml}
@@ -2738,8 +2766,6 @@ function renderBarQueue() {
         </div>
       `;
     }).join('');
-
-    const allCupsDone = (doneCupsCount >= totalCups && totalCups > 0);
 
     return `
       <div class="bg-white dark:bg-slate-900 rounded-2xl border ${isUrgent ? 'border-rose-400 dark:border-rose-600 shadow-rose-500/10 ring-1 ring-rose-400' : 'border-slate-200 dark:border-slate-800'} shadow-sm flex flex-col justify-between overflow-hidden transition hover:shadow-md animate-fade-in">
@@ -2763,14 +2789,21 @@ function renderBarQueue() {
             <span class="inline-flex items-center gap-1 font-semibold ${isUrgent ? 'text-rose-600 dark:text-rose-400 font-bold animate-pulse' : 'text-slate-500 dark:text-slate-400'}">
               <span>⏱️</span><span>${elapsedText}</span>
             </span>
-            <span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded font-bold text-[10px] bg-slate-200/80 dark:bg-slate-800 text-slate-700 dark:text-slate-300">
-              <span>☕</span><span>${totalCups} แก้ว</span>
+            <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full font-bold text-[10px] ${allCupsDone ? 'bg-emerald-500/20 text-emerald-600 dark:text-emerald-300 border border-emerald-500/30 font-black' : (doneCupsCount > 0 ? 'bg-amber-500/20 text-amber-900 dark:text-amber-300 border border-amber-500/30' : 'bg-slate-200/80 dark:bg-slate-800 text-slate-700 dark:text-slate-300')}">
+              <span>☕</span>
+              <span>${doneCupsCount}/${totalCups} แก้ว</span>
+              ${allCupsDone ? '<span>✨ ครบ</span>' : ''}
             </span>
+          </div>
+
+          <!-- Mini Cup Progress Bar -->
+          <div class="w-full bg-slate-200/70 dark:bg-slate-800 rounded-full h-1.5 mt-2 overflow-hidden">
+            <div class="h-full rounded-full transition-all duration-300 ${allCupsDone ? 'bg-emerald-500' : 'bg-amber-500'}" style="width: ${progressPercent}%"></div>
           </div>
         </div>
 
-        <!-- Card Items Body -->
-        <div class="p-3 space-y-2 flex-1 overflow-y-auto max-h-[360px]">
+        <!-- Card Items Body (Scrollable individual cups list) -->
+        <div class="p-3 space-y-2 flex-1 overflow-y-auto max-h-[460px]">
           ${itemsHtml}
         </div>
 
@@ -2779,12 +2812,12 @@ function renderBarQueue() {
           ${status === 'waiting' ? `
             <button type="button" onclick="markOrderAsServed('${order.id}')" class="w-full py-2.5 px-3 rounded-xl font-black text-xs sm:text-sm shadow-md transition flex items-center justify-center gap-2 ${allCupsDone ? 'bg-emerald-600 hover:bg-emerald-700 text-white animate-bounce-subtle' : 'bg-coffee-600 hover:bg-coffee-700 text-white'}">
               <span>✅</span>
-              <span>${allCupsDone ? 'ครบทุกแก้วแล้ว! ส่งมอบออเดอร์' : 'ทำเสร็จ & ส่งมอบแล้ว'}</span>
+              <span>${allCupsDone ? `ครบ ${totalCups} แก้วแล้ว! ส่งมอบออเดอร์` : `ทำเสร็จ & ส่งมอบแล้ว (${doneCupsCount}/${totalCups} แก้ว)`}</span>
             </button>
           ` : `
             <div class="flex items-center justify-between gap-2">
               <span class="text-[11px] text-emerald-600 dark:text-emerald-400 font-bold flex items-center gap-1">
-                <span>✅</span><span>ส่งมอบแล้ว</span>
+                <span>✅</span><span>ส่งมอบแล้ว (${totalCups} แก้ว)</span>
               </span>
               <button type="button" onclick="restoreOrderToQueue('${order.id}')" class="text-xs text-amber-600 dark:text-amber-400 hover:underline font-semibold flex items-center gap-1">
                 <span>↩️</span><span>กู้คืนเป็นรอส่ง</span>
@@ -2855,12 +2888,12 @@ function restoreOrderToQueue(orderId) {
   renderBarQueue();
 }
 
-function toggleCupProgress(orderId, itemIndex) {
+function toggleCupProgress(orderId, cupKey) {
   if (!barQueueCupProgress[orderId]) {
     barQueueCupProgress[orderId] = {};
   }
-  const current = !!barQueueCupProgress[orderId][itemIndex];
-  barQueueCupProgress[orderId][itemIndex] = !current;
+  const current = !!barQueueCupProgress[orderId][cupKey];
+  barQueueCupProgress[orderId][cupKey] = !current;
 
   try {
     localStorage.setItem('coffeeshop_queue_cup_progress', JSON.stringify(barQueueCupProgress));
@@ -2870,7 +2903,8 @@ function toggleCupProgress(orderId, itemIndex) {
     broadcastStaffCart({
       type: 'QUEUE_CUP_PROGRESS',
       orderId: orderId,
-      itemIndex: itemIndex,
+      cupKey: cupKey,
+      itemIndex: cupKey,
       isDone: !current
     });
   }
@@ -3216,9 +3250,13 @@ function addToCartDirectly(product) {
 // --------------------------------------------------------------------------
 // DYNAMIC DRINK & PRODUCT CUSTOMIZATION MODAL
 // --------------------------------------------------------------------------
-function openCustomizationModal(product) {
+function openCustomizationModal(product, editCartIndex = null) {
   currentCustomizingProduct = product;
-  modalQty = 1;
+  const isEditMode = (editCartIndex !== null && editCartIndex >= 0 && editCartIndex < cart.length);
+  editingCartItemIndex = isEditMode ? editCartIndex : null;
+  const existingItem = isEditMode ? cart[editCartIndex] : null;
+
+  modalQty = isEditMode ? (existingItem.qty || 1) : 1;
   modalSelectedOptions = {};
 
   // Find linked option groups strictly from product.optionGroupIds
@@ -3244,24 +3282,105 @@ function openCustomizationModal(product) {
     }
   }
 
-  // If there are no linked option groups, add directly to cart without opening modal
-  if (linkedGroups.length === 0) {
+  // If there are no linked option groups and not in edit mode, add directly to cart
+  if (linkedGroups.length === 0 && !isEditMode) {
     addToCartDirectly(product);
     return;
   }
 
   currentCustomizingProduct._resolvedOptionGroups = linkedGroups;
 
-  // Set default initial selections
-  linkedGroups.forEach(group => {
-    if (group.type === 'single') {
-      modalSelectedOptions[group.id] = (group.options && group.options.length > 0) ? group.options[0].id : null;
-    } else {
-      modalSelectedOptions[group.id] = [];
-    }
-  });
+  if (isEditMode) {
+    // Pre-populate selections from existingItem
+    linkedGroups.forEach(group => {
+      if (group.type === 'single') {
+        const match = (existingItem.selectedOptions || []).find(o => 
+          o.groupId === group.id || 
+          (group.options || []).some(go => go.id === o.optId || go.name === o.optName)
+        );
+        if (match) {
+          const found = group.options.find(o => o.id === match.optId || o.name === match.optName);
+          modalSelectedOptions[group.id] = found ? found.id : (group.options[0]?.id || null);
+        } else {
+          if (group.id === 'optgrp-sweet' && existingItem.selectedSweetness) {
+            const found = group.options.find(o => o.name.includes(existingItem.selectedSweetness) || existingItem.selectedSweetness.includes(o.name.split(' ')[0]));
+            modalSelectedOptions[group.id] = found ? found.id : (group.options[0]?.id || null);
+          } else if (group.id === 'optgrp-temp' && existingItem.selectedTemp) {
+            const found = group.options.find(o => o.name.includes(existingItem.selectedTemp));
+            modalSelectedOptions[group.id] = found ? found.id : (group.options[0]?.id || null);
+          } else {
+            modalSelectedOptions[group.id] = (group.options && group.options.length > 0) ? group.options[0].id : null;
+          }
+        }
+      } else {
+        const selectedIds = [];
+        (group.options || []).forEach(go => {
+          const isSel = (existingItem.selectedOptions || []).some(o => o.optId === go.id || o.optName === go.name) ||
+                        (Array.isArray(existingItem.selectedExtras) && existingItem.selectedExtras.some(e => (e.name || '').includes(go.name.split(' ')[0])));
+          if (isSel) selectedIds.push(go.id);
+        });
+        modalSelectedOptions[group.id] = selectedIds;
+      }
+    });
 
-  document.getElementById('customModalTitle').innerText = product.name;
+    document.getElementById('customModalTitle').innerHTML = `
+      <span class="text-amber-800 dark:text-amber-300 font-bold text-xs mr-1 bg-amber-100 dark:bg-amber-950/80 px-2 py-0.5 rounded-md border border-amber-300 dark:border-amber-700">✏️ แก้ไขรายการ</span>
+      <span>${product.name}</span>
+    `;
+
+    if (existingItem.isCustomPrice) {
+      modalCustomPrice = existingItem.pricePerItem;
+      modalCustomPriceNote = existingItem.customPriceNote || existingItem.customNotes || '';
+      const chkCustom = document.getElementById('toggleCustomPriceCheckbox');
+      if (chkCustom) chkCustom.checked = true;
+      const areaCustom = document.getElementById('modalCustomPriceInputArea');
+      if (areaCustom) areaCustom.classList.remove('hidden');
+      const btnResetCustom = document.getElementById('btnResetModalCustomPrice');
+      if (btnResetCustom) btnResetCustom.classList.remove('hidden');
+      const inpCustomPrice = document.getElementById('modalCustomPriceInput');
+      if (inpCustomPrice) inpCustomPrice.value = modalCustomPrice;
+      const inpCustomNote = document.getElementById('modalCustomPriceNote');
+      if (inpCustomNote) inpCustomNote.value = modalCustomPriceNote;
+    } else {
+      modalCustomPrice = null;
+      modalCustomPriceNote = '';
+      const chkCustom = document.getElementById('toggleCustomPriceCheckbox');
+      if (chkCustom) chkCustom.checked = false;
+      const areaCustom = document.getElementById('modalCustomPriceInputArea');
+      if (areaCustom) areaCustom.classList.add('hidden');
+      const btnResetCustom = document.getElementById('btnResetModalCustomPrice');
+      if (btnResetCustom) btnResetCustom.classList.add('hidden');
+      const inpCustomPrice = document.getElementById('modalCustomPriceInput');
+      if (inpCustomPrice) inpCustomPrice.value = '';
+      const inpCustomNote = document.getElementById('modalCustomPriceNote');
+      if (inpCustomNote) inpCustomNote.value = '';
+    }
+  } else {
+    // Set default initial selections
+    linkedGroups.forEach(group => {
+      if (group.type === 'single') {
+        modalSelectedOptions[group.id] = (group.options && group.options.length > 0) ? group.options[0].id : null;
+      } else {
+        modalSelectedOptions[group.id] = [];
+      }
+    });
+
+    document.getElementById('customModalTitle').innerText = product.name;
+
+    modalCustomPrice = null;
+    modalCustomPriceNote = '';
+    const chkCustom = document.getElementById('toggleCustomPriceCheckbox');
+    if (chkCustom) chkCustom.checked = false;
+    const areaCustom = document.getElementById('modalCustomPriceInputArea');
+    if (areaCustom) areaCustom.classList.add('hidden');
+    const btnResetCustom = document.getElementById('btnResetModalCustomPrice');
+    if (btnResetCustom) btnResetCustom.classList.add('hidden');
+    const inpCustomPrice = document.getElementById('modalCustomPriceInput');
+    if (inpCustomPrice) inpCustomPrice.value = '';
+    const inpCustomNote = document.getElementById('modalCustomPriceNote');
+    if (inpCustomNote) inpCustomNote.value = '';
+  }
+
   document.getElementById('modalQtyDisplay').innerText = modalQty;
 
   // Toggle stock button in modal for shop owner
@@ -3279,20 +3398,6 @@ function openCustomizationModal(product) {
       stockBtn.classList.add('hidden');
     }
   }
-
-  // Reset price override state & UI
-  modalCustomPrice = null;
-  modalCustomPriceNote = '';
-  const chkCustom = document.getElementById('toggleCustomPriceCheckbox');
-  if (chkCustom) chkCustom.checked = false;
-  const areaCustom = document.getElementById('modalCustomPriceInputArea');
-  if (areaCustom) areaCustom.classList.add('hidden');
-  const btnResetCustom = document.getElementById('btnResetModalCustomPrice');
-  if (btnResetCustom) btnResetCustom.classList.add('hidden');
-  const inpCustomPrice = document.getElementById('modalCustomPriceInput');
-  if (inpCustomPrice) inpCustomPrice.value = '';
-  const inpCustomNote = document.getElementById('modalCustomPriceNote');
-  if (inpCustomNote) inpCustomNote.value = '';
 
   renderCustomizationModalOptions(linkedGroups);
   updateModalPrice();
@@ -3576,6 +3681,7 @@ function closeCustomizationModal(isConfirmed = false) {
   currentCustomizingProduct = null;
   modalCustomPrice = null;
   modalCustomPriceNote = '';
+  editingCartItemIndex = null;
 }
 
 // --------------------------------------------------------------------------
@@ -3702,7 +3808,12 @@ function updateModalPrice() {
   const totalPrice = pricePerItem * modalQty;
   const isCustom = (modalCustomPrice !== null);
   const tag = (pricePerItem === 0 && isCustom) ? ' (ฟรี ฿0.00)' : ` (฿${totalPrice.toFixed(2)})`;
-  document.getElementById('modalAddButtonText').innerText = `ใส่ตะกร้า${tag}`;
+  const isEditMode = (editingCartItemIndex !== null && editingCartItemIndex >= 0);
+  const actionLabel = isEditMode ? 'บันทึกการแก้ไข' : 'ใส่ตะกร้า';
+  const btnEl = document.getElementById('modalAddButtonText');
+  if (btnEl) {
+    btnEl.innerText = `${actionLabel}${tag}`;
+  }
 }
 
 function broadcastCustomerCustomization(action, linkedGroups = null) {
@@ -3891,6 +4002,27 @@ function addModalItemToCart() {
     itemTotal: pricePerItem * modalQty
   };
 
+  // If in edit mode, update that exact cart item in-place!
+  if (editingCartItemIndex !== null && editingCartItemIndex >= 0 && editingCartItemIndex < cart.length) {
+    newCartItem.id = cart[editingCartItemIndex].id;
+    cart[editingCartItemIndex] = newCartItem;
+    saveToStorage('coffeeshop_cart', cart);
+    showToast(`แก้ไข "${newCartItem.name}" เรียบร้อยแล้ว`, 'success');
+    editingCartItemIndex = null;
+    renderCart();
+    if (typeof broadcastStaffCartUpdate === 'function') {
+      broadcastStaffCartUpdate();
+    }
+    if (typeof syncCustomerDisplay === 'function') {
+      syncCustomerDisplay('CART_UPDATED', { cart: cart, ...getCartCalculation() });
+    }
+    if (typeof broadcastCustomerCustomization === 'function') {
+      broadcastCustomerCustomization('END');
+    }
+    closeCustomizationModal(true);
+    return;
+  }
+
   // Check if item with exact same options already exists in cart (skip merge if custom price)
   const existingItemIndex = isCustomPrice ? -1 : cart.findIndex(item => {
     if (item.isCustomPrice || item.id !== newCartItem.id) return false;
@@ -4064,8 +4196,21 @@ function addCustomItemToCart() {
 // --------------------------------------------------------------------------
 function openEditCartItemModal(index) {
   if (index < 0 || index >= cart.length) return;
-  editingCartItemIndex = index;
   const item = cart[index];
+
+  // If item corresponds to a catalog product with customizable options, open full customization modal in EDIT mode!
+  const prod = products.find(p => p.id === item.id);
+  const hasOptionGroups = prod && Array.isArray(prod.optionGroupIds) && prod.optionGroupIds.length > 0;
+  const hasLegacyOptions = prod && (prod.hasTemp || prod.hasSweetness || prod.hasExtras);
+  const itemHasOptions = Array.isArray(item.selectedOptions) && item.selectedOptions.length > 0;
+
+  if (prod && (hasOptionGroups || hasLegacyOptions || itemHasOptions)) {
+    openCustomizationModal(prod, index);
+    return;
+  }
+
+  // Fallback for simple items without option groups (or open custom items)
+  editingCartItemIndex = index;
 
   const modal = document.getElementById('editCartItemModal');
   if (!modal) return;
@@ -4160,9 +4305,16 @@ function saveEditCartItem() {
     item.customNotes = newNote;
   }
 
+  saveToStorage('coffeeshop_cart', cart);
   renderCart();
   closeEditCartItemModal();
-  showToast(`อัปเดต ${item.name} ในตะกร้าแล้ว`);
+  showToast(`อัปเดต ${item.name} ในตะกร้าแล้ว`, 'success');
+  if (typeof broadcastStaffCartUpdate === 'function') {
+    broadcastStaffCartUpdate();
+  }
+  if (typeof syncCustomerDisplay === 'function') {
+    syncCustomerDisplay('CART_UPDATED', { cart: cart, ...getCartCalculation() });
+  }
 }
 
 // --------------------------------------------------------------------------
@@ -4214,9 +4366,12 @@ function renderCart() {
 
     itemEl.innerHTML = `
       <div class="flex justify-between items-start">
-        <div class="space-y-0.5 max-w-[70%]">
+        <div class="space-y-0.5 max-w-[70%] cursor-pointer group" onclick="openEditCartItemModal(${index})" title="แตะเพื่อแก้ไขความหวานหรือตัวเลือก">
           <div class="flex items-center flex-wrap gap-1">
-            <h5 class="font-bold text-slate-900 dark:text-slate-100 text-sm leading-tight">${item.name}</h5>
+            <h5 class="font-bold text-slate-900 dark:text-slate-100 text-sm leading-tight group-hover:text-amber-600 dark:group-hover:text-amber-400 transition flex items-center gap-1.5">
+              <span>${item.name}</span>
+              <span class="text-[11px] text-amber-500 font-semibold opacity-70 group-hover:opacity-100 transition">✏️</span>
+            </h5>
             ${zeroBahtBadge}
           </div>
           ${modsHtml}
@@ -4230,10 +4385,11 @@ function renderCart() {
       <div class="flex justify-between items-center pt-0.5">
         <!-- Item action buttons: Edit & Delete -->
         <div class="flex items-center space-x-1">
-          <button type="button" onclick="openEditCartItemModal(${index})" title="แก้ไขราคา / หมายเหตุ / แลกแต้ม" class="text-slate-400 hover:text-amber-600 dark:hover:text-amber-400 p-1 rounded hover:bg-amber-50 dark:hover:bg-amber-950/40 transition">
+          <button type="button" onclick="openEditCartItemModal(${index})" title="แก้ไขความหวาน / ตัวเลือก / ราคา" class="text-slate-400 hover:text-amber-600 dark:hover:text-amber-400 p-1 rounded hover:bg-amber-50 dark:hover:bg-amber-950/40 transition flex items-center gap-1 text-[11px] font-semibold text-amber-600/90 dark:text-amber-400/90">
             <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
               <path stroke-linecap="round" stroke-linejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
             </svg>
+            <span>แก้ไข</span>
           </button>
           <button onclick="removeCartItem(${index})" title="ลบออกจากตะกร้า" class="text-slate-400 dark:text-slate-500 hover:text-red-500 dark:hover:text-red-400 p-1 rounded hover:bg-slate-100 dark:hover:bg-slate-800 transition">
             <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
@@ -4444,11 +4600,12 @@ window.handleStaffCartSync = function(payload) {
       }
     }
   } else if (payload.type === 'QUEUE_CUP_PROGRESS') {
-    if (payload.orderId && payload.itemIndex !== undefined) {
+    const key = (payload.cupKey !== undefined) ? payload.cupKey : payload.itemIndex;
+    if (payload.orderId && key !== undefined) {
       if (!barQueueCupProgress[payload.orderId]) {
         barQueueCupProgress[payload.orderId] = {};
       }
-      barQueueCupProgress[payload.orderId][payload.itemIndex] = !!payload.isDone;
+      barQueueCupProgress[payload.orderId][key] = !!payload.isDone;
       try {
         localStorage.setItem('coffeeshop_queue_cup_progress', JSON.stringify(barQueueCupProgress));
       } catch(e) {}
