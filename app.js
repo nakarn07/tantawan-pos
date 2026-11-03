@@ -2633,6 +2633,14 @@ function renderBarQueue() {
   const container = document.getElementById('barQueueCardsGrid');
   if (!container) return;
 
+  // Capture scroll positions before re-rendering so scroll never resets or jumps to top
+  const mainScroll = document.getElementById('content-queue') ? document.getElementById('content-queue').scrollTop : 0;
+  const cardScrolls = {};
+  document.querySelectorAll('[data-order-scroll]').forEach(el => {
+    const oId = el.getAttribute('data-order-scroll');
+    if (oId) cardScrolls[oId] = el.scrollTop;
+  });
+
   const todayOrders = getTodayQueueOrders();
   
   let filtered = todayOrders.filter(o => {
@@ -2739,24 +2747,25 @@ function renderBarQueue() {
         ? `<div class="text-[11px] text-amber-700 dark:text-amber-400 font-semibold italic mt-0.5">📝 ${cup.item.customPriceNote || cup.item.customNotes}</div>`
         : '';
 
+      const subBadgeText = cup.totalInGroup > 1 ? `แก้ว ${cup.cupSubIdx}/${cup.totalInGroup}` : '';
       const subBadgeHtml = cup.totalInGroup > 1
-        ? `<span class="text-[10px] font-bold px-1.5 py-0.2 rounded-full ${isCupDone ? 'bg-emerald-500/20 text-emerald-700 dark:text-emerald-300' : 'bg-amber-500/20 text-amber-900 dark:text-amber-300'} whitespace-nowrap">แก้ว ${cup.cupSubIdx}/${cup.totalInGroup}</span>`
+        ? `<span id="cup-subbadge-${order.id}-${cup.cupKey}" class="text-[10px] font-bold px-1.5 py-0.2 rounded-full ${isCupDone ? 'bg-emerald-500/20 text-emerald-700 dark:text-emerald-300' : 'bg-amber-500/20 text-amber-900 dark:text-amber-300'} whitespace-nowrap">${subBadgeText}</span>`
         : '';
 
       return `
-        <div onclick="toggleCupProgress('${order.id}', '${cup.cupKey}')" class="group cursor-pointer p-2.5 rounded-xl border transition flex items-start gap-2.5 ${isCupDone ? 'bg-emerald-500/10 border-emerald-500/40 dark:bg-emerald-950/40 ring-1 ring-emerald-500/30' : 'bg-slate-50 dark:bg-slate-800/60 border-slate-200/80 dark:border-slate-700/70 hover:border-amber-400 dark:hover:border-amber-500'}">
-          <button type="button" class="mt-0.5 flex-shrink-0 w-5 h-5 rounded-md border flex items-center justify-center text-xs font-black transition ${isCupDone ? 'bg-emerald-600 border-emerald-600 text-white shadow-xs' : 'border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-transparent group-hover:border-amber-500'}">
+        <div id="cup-row-${order.id}-${cup.cupKey}" onclick="toggleCupProgress('${order.id}', '${cup.cupKey}', event)" class="group cursor-pointer p-2.5 rounded-xl border transition flex items-start gap-2.5 ${isCupDone ? 'bg-emerald-500/10 border-emerald-500/40 dark:bg-emerald-950/40 ring-1 ring-emerald-500/30' : 'bg-slate-50 dark:bg-slate-800/60 border-slate-200/80 dark:border-slate-700/70 hover:border-amber-400 dark:hover:border-amber-500'}">
+          <button id="cup-check-${order.id}-${cup.cupKey}" type="button" class="mt-0.5 flex-shrink-0 w-5 h-5 rounded-md border flex items-center justify-center text-xs font-black transition ${isCupDone ? 'bg-emerald-600 border-emerald-600 text-white shadow-xs' : 'border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-transparent group-hover:border-amber-500'}">
             ✓
           </button>
           <div class="flex-1 min-w-0">
             <div class="flex items-center justify-between gap-1.5">
               <div class="flex items-center gap-1.5 min-w-0 flex-wrap">
-                <span class="text-xs sm:text-sm font-bold text-slate-900 dark:text-white leading-tight ${isCupDone ? 'line-through opacity-70 text-emerald-900 dark:text-emerald-300' : ''}">
+                <span id="cup-name-${order.id}-${cup.cupKey}" class="text-xs sm:text-sm font-bold text-slate-900 dark:text-white leading-tight ${isCupDone ? 'line-through opacity-70 text-emerald-900 dark:text-emerald-300' : ''}">
                   ${cup.item.name}
                 </span>
                 ${subBadgeHtml}
               </div>
-              <span class="text-[10px] font-bold px-1.5 py-0.2 rounded ${isCupDone ? 'bg-emerald-500/20 text-emerald-700 dark:text-emerald-300' : 'bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300'} flex-shrink-0">
+              <span id="cup-pill-${order.id}-${cup.cupKey}" class="text-[10px] font-bold px-1.5 py-0.2 rounded ${isCupDone ? 'bg-emerald-500/20 text-emerald-700 dark:text-emerald-300' : 'bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300'} flex-shrink-0">
                 #${cupIdx + 1}
               </span>
             </div>
@@ -2789,7 +2798,7 @@ function renderBarQueue() {
             <span class="inline-flex items-center gap-1 font-semibold ${isUrgent ? 'text-rose-600 dark:text-rose-400 font-bold animate-pulse' : 'text-slate-500 dark:text-slate-400'}">
               <span>⏱️</span><span>${elapsedText}</span>
             </span>
-            <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full font-bold text-[10px] ${allCupsDone ? 'bg-emerald-500/20 text-emerald-600 dark:text-emerald-300 border border-emerald-500/30 font-black' : (doneCupsCount > 0 ? 'bg-amber-500/20 text-amber-900 dark:text-amber-300 border border-amber-500/30' : 'bg-slate-200/80 dark:bg-slate-800 text-slate-700 dark:text-slate-300')}">
+            <span id="card-cup-badge-${order.id}" class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full font-bold text-[10px] ${allCupsDone ? 'bg-emerald-500/20 text-emerald-600 dark:text-emerald-300 border border-emerald-500/30 font-black' : (doneCupsCount > 0 ? 'bg-amber-500/20 text-amber-900 dark:text-amber-300 border border-amber-500/30' : 'bg-slate-200/80 dark:bg-slate-800 text-slate-700 dark:text-slate-300')}">
               <span>☕</span>
               <span>${doneCupsCount}/${totalCups} แก้ว</span>
               ${allCupsDone ? '<span>✨ ครบ</span>' : ''}
@@ -2798,19 +2807,19 @@ function renderBarQueue() {
 
           <!-- Mini Cup Progress Bar -->
           <div class="w-full bg-slate-200/70 dark:bg-slate-800 rounded-full h-1.5 mt-2 overflow-hidden">
-            <div class="h-full rounded-full transition-all duration-300 ${allCupsDone ? 'bg-emerald-500' : 'bg-amber-500'}" style="width: ${progressPercent}%"></div>
+            <div id="card-progress-bar-${order.id}" class="h-full rounded-full transition-all duration-300 ${allCupsDone ? 'bg-emerald-500' : 'bg-amber-500'}" style="width: ${progressPercent}%"></div>
           </div>
         </div>
 
-        <!-- Card Items Body (Scrollable individual cups list) -->
-        <div class="p-3 space-y-2 flex-1 overflow-y-auto max-h-[460px]">
+        <!-- Card Items Body (Scrollable individual cups list with scroll retention) -->
+        <div id="order-cups-${order.id}" data-order-scroll="${order.id}" class="p-3 space-y-2 flex-1 overflow-y-auto max-h-[460px]">
           ${itemsHtml}
         </div>
 
         <!-- Card Footer Actions -->
         <div class="p-3 pt-2 border-t border-slate-100 dark:border-slate-800 bg-slate-50/40 dark:bg-slate-800/20">
           ${status === 'waiting' ? `
-            <button type="button" onclick="markOrderAsServed('${order.id}')" class="w-full py-2.5 px-3 rounded-xl font-black text-xs sm:text-sm shadow-md transition flex items-center justify-center gap-2 ${allCupsDone ? 'bg-emerald-600 hover:bg-emerald-700 text-white animate-bounce-subtle' : 'bg-coffee-600 hover:bg-coffee-700 text-white'}">
+            <button id="card-footer-btn-${order.id}" type="button" onclick="markOrderAsServed('${order.id}')" class="w-full py-2.5 px-3 rounded-xl font-black text-xs sm:text-sm shadow-md transition flex items-center justify-center gap-2 ${allCupsDone ? 'bg-emerald-600 hover:bg-emerald-700 text-white animate-bounce-subtle ring-2 ring-emerald-400' : 'bg-coffee-600 hover:bg-coffee-700 text-white'}">
               <span>✅</span>
               <span>${allCupsDone ? `ครบ ${totalCups} แก้วแล้ว! ส่งมอบออเดอร์` : `ทำเสร็จ & ส่งมอบแล้ว (${doneCupsCount}/${totalCups} แก้ว)`}</span>
             </button>
@@ -2828,6 +2837,17 @@ function renderBarQueue() {
       </div>
     `;
   }).join('');
+
+  // Restore scroll positions immediately after DOM replacement
+  if (document.getElementById('content-queue')) {
+    document.getElementById('content-queue').scrollTop = mainScroll;
+  }
+  document.querySelectorAll('[data-order-scroll]').forEach(el => {
+    const oId = el.getAttribute('data-order-scroll');
+    if (oId && cardScrolls[oId] !== undefined) {
+      el.scrollTop = cardScrolls[oId];
+    }
+  });
 }
 
 function setQueueFilter(mode) {
@@ -2888,12 +2908,16 @@ function restoreOrderToQueue(orderId) {
   renderBarQueue();
 }
 
-function toggleCupProgress(orderId, cupKey) {
+function toggleCupProgress(orderId, cupKey, event = null) {
+  if (event) {
+    if (typeof event.stopPropagation === 'function') event.stopPropagation();
+  }
+
   if (!barQueueCupProgress[orderId]) {
     barQueueCupProgress[orderId] = {};
   }
-  const current = !!barQueueCupProgress[orderId][cupKey];
-  barQueueCupProgress[orderId][cupKey] = !current;
+  const isDone = !barQueueCupProgress[orderId][cupKey];
+  barQueueCupProgress[orderId][cupKey] = isDone;
 
   try {
     localStorage.setItem('coffeeshop_queue_cup_progress', JSON.stringify(barQueueCupProgress));
@@ -2905,11 +2929,80 @@ function toggleCupProgress(orderId, cupKey) {
       orderId: orderId,
       cupKey: cupKey,
       itemIndex: cupKey,
-      isDone: !current
+      isDone: isDone
     });
   }
 
-  renderBarQueue();
+  // 1. In-place DOM update for the specific cup row: ZERO SCROLL JUMP!
+  const rowEl = document.getElementById(`cup-row-${orderId}-${cupKey}`);
+  const checkBtn = document.getElementById(`cup-check-${orderId}-${cupKey}`);
+  const nameEl = document.getElementById(`cup-name-${orderId}-${cupKey}`);
+  const subBadgeEl = document.getElementById(`cup-subbadge-${orderId}-${cupKey}`);
+  const pillEl = document.getElementById(`cup-pill-${orderId}-${cupKey}`);
+
+  if (rowEl && checkBtn && nameEl) {
+    if (isDone) {
+      rowEl.className = 'group cursor-pointer p-2.5 rounded-xl border transition flex items-start gap-2.5 bg-emerald-500/10 border-emerald-500/40 dark:bg-emerald-950/40 ring-1 ring-emerald-500/30';
+      checkBtn.className = 'mt-0.5 flex-shrink-0 w-5 h-5 rounded-md border flex items-center justify-center text-xs font-black transition bg-emerald-600 border-emerald-600 text-white shadow-xs';
+      nameEl.classList.add('line-through', 'opacity-70', 'text-emerald-900', 'dark:text-emerald-300');
+      if (subBadgeEl) {
+        subBadgeEl.className = 'text-[10px] font-bold px-1.5 py-0.2 rounded-full bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 whitespace-nowrap';
+      }
+      if (pillEl) {
+        pillEl.className = 'text-[10px] font-bold px-1.5 py-0.2 rounded bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 flex-shrink-0';
+      }
+    } else {
+      rowEl.className = 'group cursor-pointer p-2.5 rounded-xl border transition flex items-start gap-2.5 bg-slate-50 dark:bg-slate-800/60 border-slate-200/80 dark:border-slate-700/70 hover:border-amber-400 dark:hover:border-amber-500';
+      checkBtn.className = 'mt-0.5 flex-shrink-0 w-5 h-5 rounded-md border flex items-center justify-center text-xs font-black transition border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-transparent group-hover:border-amber-500';
+      nameEl.classList.remove('line-through', 'opacity-70', 'text-emerald-900', 'dark:text-emerald-300');
+      if (subBadgeEl) {
+        subBadgeEl.className = 'text-[10px] font-bold px-1.5 py-0.2 rounded-full bg-amber-500/20 text-amber-900 dark:text-amber-300 whitespace-nowrap';
+      }
+      if (pillEl) {
+        pillEl.className = 'text-[10px] font-bold px-1.5 py-0.2 rounded bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300 flex-shrink-0';
+      }
+    }
+  }
+
+  // 2. In-place update for that card's header counter, progress bar & footer button
+  const order = orders.find(o => o.id === orderId);
+  if (order) {
+    let totalCups = 0;
+    let doneCount = 0;
+    (order.items || []).forEach((item, itemIdx) => {
+      const qty = Number(item.qty) || 1;
+      for (let q = 1; q <= qty; q++) {
+        totalCups++;
+        const k = `${itemIdx}_${q}`;
+        if (barQueueCupProgress[orderId]?.[k] || (qty === 1 && barQueueCupProgress[orderId]?.[itemIdx])) {
+          doneCount++;
+        }
+      }
+    });
+
+    const allDone = (doneCount >= totalCups && totalCups > 0);
+    const pct = totalCups > 0 ? Math.round((doneCount / totalCups) * 100) : 0;
+
+    const badgeEl = document.getElementById(`card-cup-badge-${orderId}`);
+    if (badgeEl) {
+      badgeEl.className = `inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full font-bold text-[10px] ${allDone ? 'bg-emerald-500/20 text-emerald-600 dark:text-emerald-300 border border-emerald-500/30 font-black' : (doneCount > 0 ? 'bg-amber-500/20 text-amber-900 dark:text-amber-300 border border-amber-500/30' : 'bg-slate-200/80 dark:bg-slate-800 text-slate-700 dark:text-slate-300')}`;
+      badgeEl.innerHTML = `<span>☕</span><span>${doneCount}/${totalCups} แก้ว</span>${allDone ? '<span>✨ ครบ</span>' : ''}`;
+    }
+
+    const barEl = document.getElementById(`card-progress-bar-${orderId}`);
+    if (barEl) {
+      barEl.className = `h-full rounded-full transition-all duration-300 ${allDone ? 'bg-emerald-500' : 'bg-amber-500'}`;
+      barEl.style.width = `${pct}%`;
+    }
+
+    const btnEl = document.getElementById(`card-footer-btn-${orderId}`);
+    if (btnEl) {
+      btnEl.className = `w-full py-2.5 px-3 rounded-xl font-black text-xs sm:text-sm shadow-md transition flex items-center justify-center gap-2 ${allDone ? 'bg-emerald-600 hover:bg-emerald-700 text-white animate-bounce-subtle ring-2 ring-emerald-400' : 'bg-coffee-600 hover:bg-coffee-700 text-white'}`;
+      btnEl.innerHTML = `<span>✅</span><span>${allDone ? `ครบ ${totalCups} แก้วแล้ว! ส่งมอบออเดอร์` : `ทำเสร็จ & ส่งมอบแล้ว (${doneCount}/${totalCups} แก้ว)`}</span>`;
+    }
+  } else {
+    renderBarQueue();
+  }
 }
 
 function toggleQueueSound() {
