@@ -129,6 +129,12 @@
             <input type="file" accept=".json" onchange="importFullPOSBackup(this)" class="hidden">
           </label>
 
+          <!-- Quick Expense Button -->
+          <button id="btnQuickExpense" onclick="openExpenseModal()" title="บันทึกรายจ่ายด่วน (ค่าน้ำแข็ง, นมสด, ของใช้)" class="px-2.5 sm:px-3 py-1.5 sm:py-2 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 text-rose-600 dark:text-rose-400 border border-rose-500/30 shadow-sm transition flex items-center gap-1 text-xs font-bold whitespace-nowrap flex-shrink-0">
+            <span>💸</span>
+            <span class="hidden sm:inline">บันทึกรายจ่าย</span>
+          </button>
+
           <!-- Customer Display Button -->
           <button id="btnCustomerDisplay" onclick="openCustomerDisplayWindow()" title="เปิดหน้าจอฝั่งลูกค้า (Customer Display)" class="px-2 sm:px-2.5 py-1.5 sm:py-2 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 text-amber-700 dark:text-amber-400 border border-amber-500/30 shadow-sm transition flex items-center gap-1 text-xs font-semibold whitespace-nowrap flex-shrink-0">
             <span>🖥️</span>
@@ -307,6 +313,10 @@
             </div>
           </div>
 
+          <button type="button" onclick="openExpenseModal()" class="w-full py-2 px-3 mb-2 rounded-xl bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/40 dark:hover:bg-rose-900/60 text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-800/60 font-bold text-xs flex items-center justify-center gap-1.5 transition shadow-xs" title="บันทึกค่าน้ำแข็ง, นมสด, ของใช้ ที่จ่ายจากเก๊ะทันที">
+            <span>💸 บันทึกรายจ่าย (ค่าน้ำแข็ง, นมสด)</span>
+          </button>
+
           <div class="grid grid-cols-3 gap-2">
             <button type="button" id="btnHoldBill" onclick="openHoldBillPromptModal()" disabled class="col-span-1 bg-amber-50 hover:bg-amber-100 dark:bg-amber-950/50 dark:hover:bg-amber-900/60 text-amber-900 dark:text-amber-300 border border-amber-300 dark:border-amber-700/80 font-bold py-3 px-2 rounded-xl transition flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-1.5 text-xs sm:text-sm disabled:opacity-40 disabled:cursor-not-allowed shadow-sm" title="พักบิลนี้ไว้ชั่วคราว เพื่อรับออเดอร์ลูกค้าท่านอื่น">
               <span class="text-base leading-none">⏸️</span>
@@ -476,13 +486,13 @@
         </div>
       </div>
 
-        <!-- Primary Financial Cards: Cash vs. QR Breakdown -->
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <!-- Primary Financial Cards: Revenue, Expenses, Net Profit & Drawer Cash -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
           <!-- Card 1: ยอดขายรวมทั้งหมด -->
-          <div onclick="setPaymentLedgerFilter('all')" id="card-filter-all" class="cursor-pointer bg-white dark:bg-slate-900 p-5 rounded-2xl shadow-sm border-2 border-coffee-600 dark:border-amber-500/80 ring-4 ring-coffee-100 dark:ring-amber-950/40 transition-all group relative">
+          <div onclick="setPaymentLedgerFilter('all'); switchReportSubTab('orders');" id="card-filter-all" class="cursor-pointer bg-white dark:bg-slate-900 p-5 rounded-2xl shadow-sm border-2 border-coffee-600 dark:border-amber-500/80 ring-4 ring-coffee-100 dark:ring-amber-950/40 transition-all group relative">
             <div class="flex justify-between items-start">
               <div>
-                <span class="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider block">ยอดขายรวมทั้งหมด</span>
+                <span class="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider block">ยอดขายรวม</span>
                 <span class="text-[10px] text-slate-400 dark:text-slate-500">ทุกช่องทางชำระเงิน</span>
               </div>
               <span id="badgeTotalAllOrders" class="bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-[10px] font-bold px-2.5 py-0.5 rounded-full border border-slate-200 dark:border-slate-700">
@@ -490,7 +500,7 @@
               </span>
             </div>
             <div class="mt-3">
-              <div class="text-3xl font-black text-slate-900 dark:text-white" id="metricTotalSales">฿0.00</div>
+              <div class="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white" id="metricTotalSales">฿0.00</div>
             </div>
             <div class="mt-3 pt-3 border-t border-slate-100 dark:border-slate-800 flex justify-between items-center text-xs">
               <span class="text-slate-500 dark:text-slate-400" id="metricTotalSalesCount">0 รายการสำเร็จ</span>
@@ -498,60 +508,92 @@
             </div>
           </div>
 
-          <!-- Card 2: รายรับเงินสด (Cash) -->
-          <div onclick="setPaymentLedgerFilter('cash')" id="card-filter-cash" class="cursor-pointer bg-amber-50/50 dark:bg-amber-950/20 hover:bg-amber-50 dark:hover:bg-amber-950/30 p-5 rounded-2xl shadow-sm border-2 border-amber-200 dark:border-amber-800/60 hover:border-amber-400 dark:hover:border-amber-600 transition-all group relative overflow-hidden">
+          <!-- Card 2: รายจ่ายรวม (Total Expenses) -->
+          <div onclick="switchReportSubTab('expenses')" id="card-filter-expenses" class="cursor-pointer bg-rose-50/50 dark:bg-rose-950/20 hover:bg-rose-50 dark:hover:bg-rose-950/30 p-5 rounded-2xl shadow-sm border-2 border-rose-200 dark:border-rose-800/60 hover:border-rose-400 dark:hover:border-rose-600 transition-all group relative overflow-hidden">
+            <div class="flex justify-between items-start">
+              <div class="flex items-center space-x-2">
+                <div class="w-8 h-8 rounded-xl bg-rose-500 text-white flex items-center justify-center font-bold text-sm shadow-sm">
+                  💸
+                </div>
+                <div>
+                  <span class="text-xs font-bold text-rose-950 dark:text-rose-200 uppercase tracking-wider block">รายจ่ายรวม</span>
+                  <span class="text-[10px] text-rose-700 dark:text-rose-400 font-medium">ทุกหมวดหมู่รายจ่าย</span>
+                </div>
+              </div>
+              <span id="badgeExpenseCount" class="bg-rose-100 dark:bg-rose-900/60 text-rose-900 dark:text-rose-200 text-[10px] font-bold px-2.5 py-0.5 rounded-full border border-rose-300 dark:border-rose-700">
+                0 รายการ
+              </span>
+            </div>
+            <div class="mt-3">
+              <div class="text-2xl sm:text-3xl font-black text-rose-600 dark:text-rose-400" id="metricTotalExpenses">฿0.00</div>
+            </div>
+            <div class="mt-3 pt-3 border-t border-rose-100 dark:border-rose-900/40 flex justify-between items-center text-xs">
+              <span class="text-rose-800 dark:text-rose-300 font-medium truncate" id="metricExpenseSplit">หักเก๊ะ ฿0 | โอน ฿0</span>
+              <span class="text-[11px] font-semibold text-rose-700 dark:text-rose-400 group-hover:text-rose-900 dark:group-hover:text-rose-200 flex items-center gap-1">
+                ดูสมุดรายจ่าย ➔
+              </span>
+            </div>
+          </div>
+
+          <!-- Card 3: กำไรสุทธิ (Net Profit) -->
+          <div onclick="switchReportSubTab('expenses')" id="card-metric-profit" class="cursor-pointer bg-emerald-50/50 dark:bg-emerald-950/20 p-5 rounded-2xl shadow-sm border-2 border-emerald-200 dark:border-emerald-800/60 hover:border-emerald-400 dark:hover:border-emerald-600 transition-all group relative overflow-hidden">
+            <div class="flex justify-between items-start">
+              <div class="flex items-center space-x-2">
+                <div class="w-8 h-8 rounded-xl bg-emerald-600 text-white flex items-center justify-center font-bold text-sm shadow-sm">
+                  📈
+                </div>
+                <div>
+                  <span class="text-xs font-bold text-emerald-950 dark:text-emerald-200 uppercase tracking-wider block">กำไรสุทธิ (Net Profit)</span>
+                  <span class="text-[10px] text-emerald-700 dark:text-emerald-400 font-medium">ยอดขาย - รายจ่าย</span>
+                </div>
+              </div>
+              <span id="badgeProfitMargin" class="bg-emerald-100 dark:bg-emerald-900/60 text-emerald-900 dark:text-emerald-200 text-[10px] font-bold px-2.5 py-0.5 rounded-full border border-emerald-300 dark:border-emerald-700">
+                0% มาร์จิ้น
+              </span>
+            </div>
+            <div class="mt-3">
+              <div class="text-2xl sm:text-3xl font-black text-emerald-600 dark:text-emerald-400" id="metricNetProfit">฿0.00</div>
+            </div>
+            <div class="mt-3 pt-3 border-t border-emerald-100 dark:border-emerald-900/40 flex justify-between items-center text-xs">
+              <span class="text-slate-500 dark:text-slate-400 truncate" id="metricProfitFormula">ยอดขาย - รายจ่าย</span>
+              <span class="font-semibold text-emerald-700 dark:text-emerald-300 text-[11px]" id="metricProfitStatus">กำไร</span>
+            </div>
+          </div>
+
+          <!-- Card 4: เงินสดในลิ้นชักที่ต้องมีจริง (Expected Drawer Cash) -->
+          <div onclick="setPaymentLedgerFilter('cash'); switchReportSubTab('orders');" id="card-filter-cash" class="cursor-pointer bg-amber-50/50 dark:bg-amber-950/20 hover:bg-amber-50 dark:hover:bg-amber-950/30 p-5 rounded-2xl shadow-sm border-2 border-amber-200 dark:border-amber-800/60 hover:border-amber-400 dark:hover:border-amber-600 transition-all group relative overflow-hidden">
             <div class="flex justify-between items-start">
               <div class="flex items-center space-x-2">
                 <div class="w-8 h-8 rounded-xl bg-amber-500 text-white flex items-center justify-center font-bold text-sm shadow-sm">
                   💵
                 </div>
                 <div>
-                  <span class="text-xs font-bold text-amber-950 dark:text-amber-200 uppercase tracking-wider block">รายรับเงินสด</span>
-                  <span class="text-[10px] text-amber-700 dark:text-amber-400 font-medium">เงินสดในลิ้นชัก</span>
+                  <span class="text-xs font-bold text-amber-950 dark:text-amber-200 uppercase tracking-wider block">เงินสดในเก๊ะที่ต้องมี</span>
+                  <span class="text-[10px] text-amber-700 dark:text-amber-400 font-medium">ขายเงินสด - จ่ายจากเก๊ะ</span>
                 </div>
               </div>
               <span id="badgeCashShare" class="bg-amber-100 dark:bg-amber-900/60 text-amber-900 dark:text-amber-200 text-[10px] font-bold px-2.5 py-0.5 rounded-full border border-amber-300 dark:border-amber-700">
-                0% ของยอดขาย
+                0 บิล
               </span>
             </div>
             <div class="mt-3">
-              <div class="text-3xl font-black text-amber-950 dark:text-amber-300" id="metricCashSales">฿0.00</div>
+              <div class="text-2xl sm:text-3xl font-black text-amber-950 dark:text-amber-300" id="metricExpectedDrawerCash">฿0.00</div>
             </div>
             <div class="mt-3 pt-3 border-t border-amber-100 dark:border-amber-900/40 flex justify-between items-center text-xs">
-              <span id="metricCashOrdersCount" class="font-bold text-amber-900 dark:text-amber-200">0 บิลเงินสด</span>
+              <span id="metricCashDrawerFormula" class="text-amber-800 dark:text-amber-300 text-[11px] font-medium truncate">รับ ฿0 - จ่าย ฿0</span>
               <span class="text-[11px] font-semibold text-amber-700 dark:text-amber-400 group-hover:text-amber-900 dark:group-hover:text-amber-200 flex items-center gap-1">
-                คลิกดูเฉพาะเงินสด ➔
-              </span>
-            </div>
-          </div>
-
-          <!-- Card 3: รายรับโอนเงิน / QR Code (Bank Transfer & QR) -->
-          <div onclick="setPaymentLedgerFilter('transfer')" id="card-filter-transfer" class="cursor-pointer bg-emerald-50/50 dark:bg-emerald-950/20 hover:bg-emerald-50 dark:hover:bg-emerald-950/30 p-5 rounded-2xl shadow-sm border-2 border-emerald-200 dark:border-emerald-800/60 hover:border-emerald-400 dark:hover:border-emerald-600 transition-all group relative overflow-hidden">
-            <div class="flex justify-between items-start">
-              <div class="flex items-center space-x-2">
-                <div class="w-8 h-8 rounded-xl bg-emerald-600 text-white flex items-center justify-center font-bold text-sm shadow-sm">
-                  📱
-                </div>
-                <div>
-                  <span class="text-xs font-bold text-emerald-950 dark:text-emerald-200 uppercase tracking-wider block">รายรับโอนเงิน / QR Code</span>
-                  <span class="text-[10px] text-emerald-700 dark:text-emerald-400 font-medium">เข้าบัญชีธนาคาร</span>
-                </div>
-              </div>
-              <span id="badgeTransferShare" class="bg-emerald-100 dark:bg-emerald-900/60 text-emerald-900 dark:text-emerald-200 text-[10px] font-bold px-2.5 py-0.5 rounded-full border border-emerald-300 dark:border-emerald-700">
-                0% ของยอดขาย
-              </span>
-            </div>
-            <div class="mt-3">
-              <div class="text-3xl font-black text-emerald-950 dark:text-emerald-300" id="metricPromptPaySales">฿0.00</div>
-            </div>
-            <div class="mt-3 pt-3 border-t border-emerald-100 dark:border-emerald-900/40 flex justify-between items-center text-xs">
-              <span id="metricTransferOrdersCount" class="font-bold text-emerald-900 dark:text-emerald-200">0 บิลโอนเงิน/QR</span>
-              <span class="text-[11px] font-semibold text-emerald-700 dark:text-emerald-400 group-hover:text-emerald-900 dark:group-hover:text-emerald-200 flex items-center gap-1">
-                คลิกดูเฉพาะโอนเงิน ➔
+                ตรวจนับ ➔
               </span>
             </div>
           </div>
         </div>
+
+        <!-- Hidden elements to preserve backward compatibility with existing JS selectors -->
+        <span id="metricCashSales" class="hidden">฿0.00</span>
+        <span id="metricPromptPaySales" class="hidden">฿0.00</span>
+        <span id="metricCashOrdersCount" class="hidden">0</span>
+        <span id="metricTransferOrdersCount" class="hidden">0</span>
+        <span id="badgeTransferShare" class="hidden">0%</span>
 
         <!-- สัดส่วนรายรับเงินสด vs โอนเงิน (Visual Ratio Split Bar) -->
         <div class="bg-white dark:bg-slate-900 p-4 sm:p-5 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 space-y-2">
@@ -633,8 +675,27 @@
           </div>
         </div>
 
-        <!-- Transactions Ledger Table -->
-        <div class="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 overflow-hidden">
+        <!-- Reports Sub-navigation: Sales Orders vs Expenses vs Installments -->
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-200 dark:border-slate-800 pb-2">
+          <div class="flex items-center space-x-2 overflow-x-auto scrollbar-thin pb-1">
+            <button type="button" id="subtab-btn-orders" onclick="switchReportSubTab('orders')" class="px-4 py-2 rounded-xl text-xs sm:text-sm font-bold bg-white dark:bg-slate-800 text-coffee-700 dark:text-amber-400 shadow-sm border border-slate-200 dark:border-slate-700 flex items-center gap-2 whitespace-nowrap transition">
+              <span>📋 รายการบิลขาย (Orders)</span>
+            </button>
+            <button type="button" id="subtab-btn-expenses" onclick="switchReportSubTab('expenses')" class="px-4 py-2 rounded-xl text-xs sm:text-sm font-bold text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition flex items-center gap-2 whitespace-nowrap">
+              <span>💸 สมุดรายจ่าย (Expenses)</span>
+              <span id="subTabExpenseCountBadge" class="px-1.5 py-0.2 rounded-full text-[10px] bg-rose-500 text-white font-black">0</span>
+            </button>
+            <button type="button" id="subtab-btn-installments" onclick="switchReportSubTab('installments')" class="px-4 py-2 rounded-xl text-xs sm:text-sm font-bold text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition flex items-center gap-2 whitespace-nowrap">
+              <span>📅 ผ่อนชำระ & สต็อกระยะยาว (Installments)</span>
+            </button>
+          </div>
+          <button type="button" onclick="openExpenseModal()" class="self-start sm:self-auto px-3.5 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold shadow-sm transition flex items-center gap-1.5 whitespace-nowrap">
+            <span>+ บันทึกรายจ่าย</span>
+          </button>
+        </div>
+
+        <!-- SECTION 1: Transactions Ledger Table (Sales Orders) -->
+        <div id="reportSection-orders" class="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 overflow-hidden">
           <div class="px-6 py-4 border-b border-slate-200 dark:border-slate-800 flex flex-col xl:flex-row xl:items-center justify-between gap-4 bg-slate-50/70 dark:bg-slate-900/90">
             <div>
               <h3 class="font-bold text-slate-900 dark:text-white text-base">บันทึกบัญชี / ประวัติการขาย</h3>
@@ -686,6 +747,84 @@
                 <!-- Dynamic transaction rows -->
               </tbody>
             </table>
+          </div>
+        </div>
+
+        <!-- SECTION 2: Expense Ledger Table (สมุดบันทึกรายจ่าย) -->
+        <div id="reportSection-expenses" class="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 overflow-hidden hidden">
+          <div class="px-6 py-4 border-b border-slate-200 dark:border-slate-800 flex flex-col xl:flex-row xl:items-center justify-between gap-4 bg-slate-50/70 dark:bg-slate-900/90">
+            <div>
+              <h3 class="font-bold text-slate-900 dark:text-white text-base flex items-center gap-2">
+                <span>💸</span>
+                <span>สมุดบันทึกรายจ่าย (Expense Ledger)</span>
+              </h3>
+              <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">ค่าน้ำแข็ง, นมสด, วัตถุดิบ, ของใช้, ค่าเช่า/ค่าไฟ และรายจ่ายอื่นๆ</p>
+            </div>
+            
+            <div class="flex flex-wrap items-center gap-2">
+              <!-- Source Filter Pills -->
+              <div class="inline-flex rounded-xl bg-slate-200/80 dark:bg-slate-800 p-1 text-xs font-semibold shadow-inner">
+                <button type="button" onclick="setExpenseSourceFilter('all')" id="btn-expfilter-all" class="px-3 py-1.5 rounded-lg bg-rose-600 text-white shadow-sm transition">
+                  ทั้งหมด (<span id="expCountAll">0</span>)
+                </button>
+                <button type="button" onclick="setExpenseSourceFilter('cash')" id="btn-expfilter-cash" class="px-3 py-1.5 rounded-lg text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white transition flex items-center space-x-1">
+                  <span>💵 เงินสดในเก๊ะ (<span id="expCountCash">0</span>)</span>
+                </button>
+                <button type="button" onclick="setExpenseSourceFilter('transfer')" id="btn-expfilter-transfer" class="px-3 py-1.5 rounded-lg text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white transition flex items-center space-x-1">
+                  <span>📱 โอนเงิน (<span id="expCountTransfer">0</span>)</span>
+                </button>
+              </div>
+
+              <!-- Category Filter Dropdown -->
+              <div class="flex items-center bg-slate-100 dark:bg-slate-800 px-2.5 py-1 rounded-xl border border-slate-200 dark:border-slate-700 text-xs font-medium">
+                <span class="text-slate-400 mr-1.5">🏷️ หมวดหมู่:</span>
+                <select id="selectExpenseCategoryFilter" onchange="setExpenseCategoryFilter(this.value)" class="bg-transparent border-0 text-slate-800 dark:text-slate-200 font-bold focus:ring-0 focus:outline-none cursor-pointer py-1">
+                  <option value="all">ทุกหมวดหมู่ (All)</option>
+                  <!-- Populated dynamically -->
+                </select>
+              </div>
+
+              <span class="text-xs text-slate-500 dark:text-slate-400 font-medium pl-1 hidden sm:inline" id="expenseCountDisplay">0 รายการ</span>
+            </div>
+          </div>
+          <div class="overflow-x-auto">
+            <table class="w-full text-left text-sm border-collapse">
+              <thead>
+                <tr class="bg-slate-50 dark:bg-slate-950 text-slate-500 dark:text-slate-400 border-b border-slate-200 dark:border-slate-800 text-xs uppercase font-semibold">
+                  <th class="px-5 py-3">วัน-เวลา</th>
+                  <th class="px-4 py-3">หมวดหมู่</th>
+                  <th class="px-5 py-3">รายละเอียด / หมายเหตุ</th>
+                  <th class="px-4 py-3 text-center">ช่องทางจ่าย</th>
+                  <th class="px-4 py-3 text-right">จำนวนเงิน</th>
+                  <th class="px-4 py-3 text-center">ผู้บันทึก</th>
+                  <th class="px-4 py-3 text-center">จัดการ</th>
+                </tr>
+              </thead>
+              <tbody id="expenseTableBody" class="divide-y divide-slate-100 dark:divide-slate-800">
+                <!-- Dynamic expense rows rendered by app.js -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- SECTION 3: Installments & Periodic Restock Tracker -->
+        <div id="reportSection-installments" class="space-y-4 hidden">
+          <div class="bg-white dark:bg-slate-900 p-5 sm:p-6 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div>
+              <h3 class="font-bold text-slate-900 dark:text-white text-base flex items-center gap-2">
+                <span>📅</span>
+                <span>ระบบติดตามการผ่อนชำระ & สต็อกระยะยาว (Installments & Restock Tracker)</span>
+              </h3>
+              <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">ติดตามการผ่อนเครื่องชงกาแฟ Shopee, ค่าเช่าร้าน, สต็อกไอติมเอเต้ และรายจ่ายหนักๆ ของร้าน</p>
+            </div>
+            <button type="button" onclick="openInstallmentModal()" class="px-3.5 py-2 rounded-xl bg-amber-500 hover:bg-amber-600 text-slate-950 text-xs font-bold shadow-sm transition flex items-center gap-1.5 self-start sm:self-auto">
+              <span>+ เพิ่มรายการผ่อน/สต็อก</span>
+            </button>
+          </div>
+
+          <!-- Installment Cards Grid -->
+          <div id="installmentCardsGrid" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <!-- Dynamic installment cards rendered by app.js -->
           </div>
         </div>
       </div>
@@ -2574,6 +2713,173 @@
       <p class="text-[11px] text-center text-slate-400 dark:text-slate-500">
         เฉพาะผู้ได้รับอนุญาตจากร้านทานตะวันเท่านั้น
       </p>
+    </div>
+  </div>
+
+  <!-- =========================================================================
+       MODAL: QUICK EXPENSE ENTRY (บันทึกรายจ่ายด่วน)
+       ========================================================================= -->
+  <div id="expenseModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+    <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-5 sm:p-7 max-w-lg w-full shadow-2xl space-y-4 fade-in-scale relative overflow-hidden max-h-[92vh] flex flex-col">
+      <!-- Glow effect -->
+      <div class="absolute -top-20 -right-20 w-48 h-48 bg-rose-500/10 rounded-full blur-3xl pointer-events-none"></div>
+
+      <!-- Modal Header -->
+      <div class="flex items-center justify-between flex-shrink-0">
+        <div class="flex items-center gap-2.5">
+          <div class="w-10 h-10 rounded-2xl bg-rose-500/15 text-rose-500 flex items-center justify-center text-xl font-bold">
+            💸
+          </div>
+          <div>
+            <h3 class="text-lg sm:text-xl font-black text-slate-900 dark:text-white" id="expenseModalTitle">บันทึกรายจ่ายร้าน</h3>
+            <p class="text-xs text-slate-500 dark:text-slate-400">ค่าน้ำแข็ง, นมสด, ของใช้ หรือค่าใช้จ่ายประจำวัน</p>
+          </div>
+        </div>
+        <button type="button" onclick="closeExpenseModal()" class="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 flex items-center justify-center transition">
+          ✕
+        </button>
+      </div>
+
+      <input type="hidden" id="expenseEditId" value="">
+      <input type="hidden" id="expenseLinkedInstallmentId" value="">
+
+      <div class="flex-1 overflow-y-auto space-y-4 pr-1 scrollbar-thin">
+        <!-- Quick Category Selection -->
+        <div class="space-y-1.5">
+          <label class="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">เลือกหมวดหมู่ด่วน</label>
+          <div class="grid grid-cols-2 sm:grid-cols-3 gap-1.5 sm:gap-2" id="expenseCategoryPills">
+            <!-- Dynamically populated pills -->
+          </div>
+        </div>
+
+        <!-- Amount Input -->
+        <div class="space-y-1.5">
+          <label class="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">จำนวนเงิน (บาท) *</label>
+          <div class="relative">
+            <span class="absolute left-3.5 top-2 text-slate-400 font-bold text-xl">฿</span>
+            <input type="number" id="expenseAmountInput" placeholder="0.00" step="any" min="0" class="w-full pl-9 pr-4 py-2.5 bg-slate-50 dark:bg-slate-800/80 border border-slate-300 dark:border-slate-700 rounded-xl text-2xl font-black text-slate-900 dark:text-white focus:ring-2 focus:ring-rose-500 focus:outline-none">
+          </div>
+          <!-- Quick Amount Shortcuts -->
+          <div class="flex flex-wrap gap-1.5 pt-1">
+            <button type="button" onclick="setExpenseAmount(50)" class="px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-xs font-semibold text-slate-700 dark:text-slate-300 transition">฿50</button>
+            <button type="button" onclick="setExpenseAmount(100)" class="px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-xs font-semibold text-slate-700 dark:text-slate-300 transition">฿100</button>
+            <button type="button" onclick="setExpenseAmount(150)" class="px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-xs font-semibold text-slate-700 dark:text-slate-300 transition">฿150</button>
+            <button type="button" onclick="setExpenseAmount(200)" class="px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-xs font-semibold text-slate-700 dark:text-slate-300 transition">฿200</button>
+            <button type="button" onclick="setExpenseAmount(300)" class="px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-xs font-semibold text-slate-700 dark:text-slate-300 transition">฿300</button>
+            <button type="button" onclick="setExpenseAmount(500)" class="px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-xs font-semibold text-slate-700 dark:text-slate-300 transition">฿500</button>
+            <button type="button" onclick="setExpenseAmount(1000)" class="px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-xs font-semibold text-slate-700 dark:text-slate-300 transition">฿1,000</button>
+          </div>
+        </div>
+
+        <!-- Payment Source (เก๊ะ vs โอน) -->
+        <div class="space-y-1.5">
+          <label class="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">จ่ายจากช่องทางไหน? *</label>
+          <div class="grid grid-cols-2 gap-2.5">
+            <label id="lbl-source-cash" onclick="updateExpenseSourceUI('cash')" class="cursor-pointer flex items-center gap-2.5 p-3 rounded-2xl border-2 border-amber-500 bg-amber-500/10 text-amber-900 dark:text-amber-200 font-bold text-xs transition">
+              <input type="radio" name="expenseSourceRadio" value="cash" checked class="hidden">
+              <span class="text-xl">💵</span>
+              <div>
+                <div class="leading-tight">เงินสดในเก๊ะ</div>
+                <div class="text-[10px] text-amber-600 dark:text-amber-400 font-normal">หักเงินในลิ้นชักทันที</div>
+              </div>
+            </label>
+            <label id="lbl-source-transfer" onclick="updateExpenseSourceUI('transfer')" class="cursor-pointer flex items-center gap-2.5 p-3 rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-400 font-semibold text-xs transition">
+              <input type="radio" name="expenseSourceRadio" value="transfer" class="hidden">
+              <span class="text-xl">📱</span>
+              <div>
+                <div class="leading-tight">โอนเงิน / บัญชีร้าน</div>
+                <div class="text-[10px] text-slate-400 font-normal">ไม่กระทบเงินในเก๊ะ</div>
+              </div>
+            </label>
+          </div>
+        </div>
+
+        <!-- Note / Description -->
+        <div class="space-y-1.5">
+          <label class="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">รายละเอียด / หมายเหตุ</label>
+          <input type="text" id="expenseNoteInput" placeholder="เช่น น้ำแข็งหลอด 2 ถุง, นม Meiji 4 ลิตร" class="w-full px-3.5 py-2.5 bg-slate-50 dark:bg-slate-800/80 border border-slate-300 dark:border-slate-700 rounded-xl text-sm font-medium text-slate-900 dark:text-white focus:ring-2 focus:ring-rose-500 focus:outline-none">
+        </div>
+
+        <!-- Date & Time Override -->
+        <div class="flex items-center justify-between text-xs text-slate-400 pt-1">
+          <div class="flex items-center gap-1.5">
+            <span>📅 วันที่ทำรายการ:</span>
+            <input type="date" id="expenseDateInput" class="border border-slate-300 dark:border-slate-700 bg-transparent rounded-lg px-2 py-0.5 text-xs text-slate-700 dark:text-slate-300">
+          </div>
+          <span id="expenseStaffDisplay" class="text-[11px] font-medium text-slate-400">โดย: แคชเชียร์</span>
+        </div>
+      </div>
+
+      <!-- Action Buttons -->
+      <div class="flex items-center gap-2.5 pt-2 flex-shrink-0 border-t border-slate-100 dark:border-slate-800">
+        <button type="button" onclick="closeExpenseModal()" class="w-1/3 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 font-bold text-sm transition">
+          ยกเลิก
+        </button>
+        <button type="button" onclick="submitExpenseForm()" class="w-2/3 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-bold text-sm shadow-md shadow-rose-600/30 transition flex items-center justify-center gap-2">
+          <span>💾 บันทึกรายจ่าย</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- =========================================================================
+       MODAL: INSTALLMENT & PERIODIC ITEM SETUP (ตั้งค่ารายการผ่อนชำระ/ระยะยาว)
+       ========================================================================= -->
+  <div id="installmentModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+    <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-5 sm:p-7 max-w-md w-full shadow-2xl space-y-4 fade-in-scale relative overflow-hidden">
+      <div class="flex items-center justify-between">
+        <div class="flex items-center gap-2.5">
+          <div class="w-10 h-10 rounded-2xl bg-amber-500/15 text-amber-600 dark:text-amber-400 flex items-center justify-center text-xl font-bold">
+            📅
+          </div>
+          <div>
+            <h3 class="text-lg font-black text-slate-900 dark:text-white" id="installmentModalTitle">จัดการรายการผ่อน/สต็อก</h3>
+            <p class="text-xs text-slate-500 dark:text-slate-400">เครื่องชงกาแฟ Shopee, ค่าเช่า, หรือไอติมเอเต้</p>
+          </div>
+        </div>
+        <button type="button" onclick="closeInstallmentModal()" class="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 flex items-center justify-center transition">
+          ✕
+        </button>
+      </div>
+
+      <input type="hidden" id="installmentEditId" value="">
+
+      <div class="space-y-3 text-sm">
+        <div>
+          <label class="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">ชื่อรายการ *</label>
+          <input type="text" id="installmentTitleInput" placeholder="เช่น เครื่องชงกาแฟ Shopee, ค่าเช่าร้าน" class="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white font-medium focus:ring-2 focus:ring-amber-500 focus:outline-none">
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">จำนวนงวดทั้งหมด *</label>
+            <input type="number" id="installmentTotalMonthsInput" value="12" min="1" max="120" class="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white font-bold focus:ring-2 focus:ring-amber-500 focus:outline-none">
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">จ่ายไปแล้ว (งวด) *</label>
+            <input type="number" id="installmentPaidMonthsInput" value="4" min="0" max="120" class="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white font-bold focus:ring-2 focus:ring-amber-500 focus:outline-none">
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">ค่างวดต่อเดือน (บาท)</label>
+          <input type="number" id="installmentMonthlyAmountInput" placeholder="เช่น 2500" min="0" class="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white font-bold focus:ring-2 focus:ring-amber-500 focus:outline-none">
+        </div>
+
+        <div>
+          <label class="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">หมายเหตุ / ช่องทางชำระ</label>
+          <input type="text" id="installmentNotesInput" placeholder="เช่น ผ่อนผ่าน Shopee ตัดบัญชีทุกวันที่ 15" class="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white font-medium focus:ring-2 focus:ring-amber-500 focus:outline-none">
+        </div>
+      </div>
+
+      <div class="flex items-center gap-2 pt-2 border-t border-slate-100 dark:border-slate-800">
+        <button type="button" onclick="closeInstallmentModal()" class="w-1/3 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 font-bold text-xs transition">
+          ยกเลิก
+        </button>
+        <button type="button" onclick="saveInstallmentModal()" class="w-2/3 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold text-xs shadow transition flex items-center justify-center gap-1.5">
+          <span>💾 บันทึกรายการ</span>
+        </button>
+      </div>
     </div>
   </div>
 

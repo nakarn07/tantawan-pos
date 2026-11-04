@@ -757,7 +757,7 @@
           <span>สรุปรายการสั่งซื้อ</span>
           <span id="customerCashItemCountBadge" class="text-amber-400 font-bold">0 รายการ</span>
         </div>
-        <div id="customerCashItemsPreview" class="bg-slate-950/70 rounded-2xl p-3 overflow-y-auto border border-slate-800 divide-y divide-slate-800/60 max-h-36 sm:max-h-44 space-y-2">
+        <div id="customerCashItemsPreview" class="bg-slate-950/70 rounded-2xl p-3 overflow-y-auto border border-slate-800 divide-y divide-slate-800/60 max-h-36 sm:max-h-44 space-y-2 scroll-smooth">
           <!-- Dynamically populated -->
         </div>
       </div>
@@ -1192,12 +1192,103 @@
       }
     }
 
+    let customerCashScrollTimer = null;
+    let customerCashScrollRaf = null;
+
+    function stopCustomerCashAutoScroll() {
+      if (customerCashScrollTimer) {
+        clearTimeout(customerCashScrollTimer);
+        customerCashScrollTimer = null;
+      }
+      if (customerCashScrollRaf) {
+        cancelAnimationFrame(customerCashScrollRaf);
+        customerCashScrollRaf = null;
+      }
+      const container = document.getElementById('customerCashItemsPreview');
+      if (container) {
+        container.scrollTop = 0;
+      }
+    }
+
+    function startCustomerCashAutoScroll() {
+      stopCustomerCashAutoScroll();
+      const container = document.getElementById('customerCashItemsPreview');
+      if (!container) return;
+
+      setTimeout(() => {
+        const modal = document.getElementById('customerCashModal');
+        if (!modal || modal.classList.contains('hidden')) return;
+
+        const maxScroll = container.scrollHeight - container.clientHeight;
+        if (maxScroll <= 4) return; // Only scroll if content overflows and needs scrolling
+
+        let isUserInteracting = false;
+        let pauseUntil = Date.now() + 2000; // Pause 2s at top so customer can read first items
+        let isResettingToTop = false;
+
+        const onTouchOrHover = () => { isUserInteracting = true; };
+        const onEndTouchOrHover = () => { isUserInteracting = false; };
+
+        container.onmouseenter = onTouchOrHover;
+        container.onmouseleave = onEndTouchOrHover;
+        container.ontouchstart = onTouchOrHover;
+        container.ontouchend = onEndTouchOrHover;
+
+        let lastTimestamp = performance.now();
+        const scrollSpeed = 26; // pixels per second (smooth, comfortable reading speed)
+
+        function scrollStep(currentTimestamp) {
+          const liveModal = document.getElementById('customerCashModal');
+          if (!liveModal || liveModal.classList.contains('hidden')) {
+            stopCustomerCashAutoScroll();
+            return;
+          }
+
+          const delta = Math.min((currentTimestamp - lastTimestamp) / 1000, 0.1);
+          lastTimestamp = currentTimestamp;
+
+          if (!isUserInteracting && !isResettingToTop && Date.now() > pauseUntil) {
+            const currentMax = container.scrollHeight - container.clientHeight;
+            if (currentMax > 4) {
+              container.scrollTop += scrollSpeed * delta;
+
+              // Check if reached bottom
+              if (container.scrollTop >= currentMax - 1) {
+                // Pause at bottom for 2.2 seconds so customer can read bottom items
+                isResettingToTop = true;
+                pauseUntil = Date.now() + 2200;
+
+                customerCashScrollTimer = setTimeout(() => {
+                  // Smoothly glide back to top
+                  container.scrollTo({ top: 0, behavior: 'smooth' });
+
+                  // Wait for smooth glide to finish + pause 1.8s at top
+                  setTimeout(() => {
+                    isResettingToTop = false;
+                    pauseUntil = Date.now() + 1800;
+                  }, 600);
+                }, 2200);
+              }
+            }
+          }
+
+          customerCashScrollRaf = requestAnimationFrame(scrollStep);
+        }
+
+        customerCashScrollRaf = requestAnimationFrame((ts) => {
+          lastTimestamp = ts;
+          scrollStep(ts);
+        });
+      }, 150);
+    }
+
     function renderCustomerCashItemsPreview(items) {
       const container = document.getElementById('customerCashItemsPreview');
       const countBadge = document.getElementById('customerCashItemCountBadge');
       if (!container) return;
 
       if (!items || items.length === 0) {
+        stopCustomerCashAutoScroll();
         container.innerHTML = `<div class="text-slate-400 text-xs py-3 text-center">ไม่มีรายการสินค้า</div>`;
         if (countBadge) countBadge.innerText = '0 รายการ';
         return;
@@ -1243,9 +1334,13 @@
         `;
         container.appendChild(row);
       });
+
+      // Start automatic gentle scrolling loop if items overflow
+      startCustomerCashAutoScroll();
     }
 
     function hideCustomerCash() {
+      stopCustomerCashAutoScroll();
       const modal = document.getElementById('customerCashModal');
       if (modal) modal.classList.add('hidden');
     }

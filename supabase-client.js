@@ -103,6 +103,9 @@ function initRealtimeChannel() {
         if (status === 'SUBSCRIBED') {
           console.log('📡 Connected to Supabase Realtime Channel: tantawan-pos-realtime');
           notifyCloudStatus(true);
+          if (typeof window.requestRemoteStaffCart === 'function') {
+            setTimeout(window.requestRemoteStaffCart, 600);
+          }
         } else if (status === 'CLOSED' || status === 'CHANNEL_ERROR') {
           console.warn('📡 Realtime status:', status);
         }
@@ -276,21 +279,45 @@ function broadcastToCustomerScreen(eventData) {
 }
 
 // 3.4 BROADCAST STAFF CART SYNC (ซิงค์ตะกร้าหน้าจอพนักงานข้ามเครื่องแบบ Realtime)
-function broadcastStaffCart(eventData) {
-  if (!eventData || !realtimeChannel || !isCloudConnected) return;
-  try {
-    realtimeChannel.send({
-      type: 'broadcast',
-      event: 'staff-cart-sync',
-      payload: {
-        ...eventData,
-        senderDeviceId: currentDeviceId,
-        timestamp: Date.now()
+let localStaffBroadcastChannel = null;
+try {
+  if (typeof window !== 'undefined' && typeof window.BroadcastChannel === 'function') {
+    localStaffBroadcastChannel = new BroadcastChannel('tantawan-staff-cart-sync');
+    localStaffBroadcastChannel.onmessage = (e) => {
+      if (e && e.data && typeof window.handleStaffCartSync === 'function') {
+        window.handleStaffCartSync(e.data);
       }
-    }).catch(err => console.warn('broadcastStaffCart error:', err));
-  } catch (e) {
-    console.warn('broadcastStaffCart exception:', e);
+    };
   }
+} catch (e) {}
+
+function broadcastStaffCart(eventData) {
+  if (!eventData) return;
+  const payloadData = {
+    ...eventData,
+    senderDeviceId: currentDeviceId,
+    timestamp: Date.now()
+  };
+
+  // 1. ส่งผ่าน Supabase Realtime ข้ามเครื่อง (Tablet <-> PC ผ่าน Cloud)
+  if (realtimeChannel && isCloudConnected) {
+    try {
+      realtimeChannel.send({
+        type: 'broadcast',
+        event: 'staff-cart-sync',
+        payload: payloadData
+      }).catch(err => console.warn('broadcastStaffCart error:', err));
+    } catch (e) {
+      console.warn('broadcastStaffCart exception:', e);
+    }
+  }
+
+  // 2. ส่งผ่าน Local BroadcastChannel สำหรับกรณีเปิดหลายแท็บบนเครื่องเดียวกัน
+  try {
+    if (localStaffBroadcastChannel) {
+      localStaffBroadcastChannel.postMessage(payloadData);
+    }
+  } catch (e) {}
 }
 
 // 4. CLOUD DATABASE SYNC: ORDERS (บันทึกและซิงค์บิลขาย)
@@ -782,6 +809,107 @@ async function fetchSettingsFromCloud() {
   } catch (e) {
     console.error('fetchSettingsFromCloud error:', e);
   }
+  return null;
+}
+
+// 8.4 SYNC & FETCH EXPENSES (รายจ่ายร้าน)
+async function syncExpensesToCloud(expList) {
+  if (!dbClient || !isCloudConnected || !Array.isArray(expList)) return;
+  try {
+    await dbClient.from('shop_settings').upsert({
+      key: 'expenses',
+      value: expList,
+      updated_at: new Date().toISOString()
+    });
+    console.log('☁️ Expenses synced to Supabase (' + expList.length + ' records)');
+  } catch (e) {
+    console.warn('Sync expenses error:', e);
+  }
+}
+
+async function fetchExpensesFromCloud() {
+  if (!dbClient || !isCloudConnected) return null;
+  try {
+    const { data: row, error } = await dbClient
+      .from('shop_settings')
+      .select('value')
+      .eq('key', 'expenses')
+      .maybeSingle();
+
+    if (!error && row && Array.isArray(row.value)) {
+      localStorage.setItem('coffeeshop_expenses', JSON.stringify(row.value));
+      console.log('☁️ Expenses loaded from Supabase (' + row.value.length + ' records)');
+      return row.value;
+    }
+  } catch (e) {
+    console.warn('Fetch expenses error:', e);
+  }
+  return null;
+}
+
+// 8.5 SYNC & FETCH INSTALLMENTS & PERIODIC (ผ่อนชำระ & สต็อกระยะยาว)
+async function syncInstallmentsToCloud(instList) {
+  if (!dbClient || !isCloudConnected || !Array.isArray(instList)) return;
+  try {
+    await dbClient.from('shop_settings').upsert({
+      key: 'installments',
+      value: instList,
+      updated_at: new Date().toISOString()
+    });
+    console.log('☁️ Installments synced to Supabase (' + instList.length + ' trackers)');
+  } catch (e) {
+    console.warn('Sync installments error:', e);
+  }
+}
+
+async function fetchInstallmentsFromCloud() {
+  if (!dbClient || !isCloudConnected) return null;
+  try {
+    const { data: row, error } = await dbClient
+      .from('shop_settings')
+      .select('value')
+      .eq('key', 'installments')
+      .maybeSingle();
+
+    if (!error && row && Array.isArray(row.value)) {
+      localStorage.setItem('coffeeshop_installments', JSON.stringify(row.value));
+      console.log('☁️ Installments loaded from Supabase (' + row.value.length + ' trackers)');
+      return row.value;
+    }
+  } catch (e) {
+    console.warn('Fetch installments error:', e);
+  }
+  return null;
+}
+
+// 8.6 SYNC & FETCH EXPENSE CATEGORIES
+async function syncExpenseCategoriesToCloud(catList) {
+  if (!dbClient || !isCloudConnected || !Array.isArray(catList)) return;
+  try {
+    await dbClient.from('shop_settings').upsert({
+      key: 'expense_categories',
+      value: catList,
+      updated_at: new Date().toISOString()
+    });
+  } catch (e) {
+    console.warn('Sync expense categories error:', e);
+  }
+}
+
+async function fetchExpenseCategoriesFromCloud() {
+  if (!dbClient || !isCloudConnected) return null;
+  try {
+    const { data: row, error } = await dbClient
+      .from('shop_settings')
+      .select('value')
+      .eq('key', 'expense_categories')
+      .maybeSingle();
+
+    if (!error && row && Array.isArray(row.value)) {
+      localStorage.setItem('coffeeshop_expense_categories', JSON.stringify(row.value));
+      return row.value;
+    }
+  } catch (e) {}
   return null;
 }
 

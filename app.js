@@ -18,6 +18,16 @@ let heldBills = [];
 let pendingRestoreBillId = null;
 let soldOutProductIds = []; // IDs of products currently marked as unavailable/sold out
 
+// Expenses & Installments State
+let expenses = [];
+let expenseCategories = [];
+let installments = [];
+let selectedExpenseModalSource = 'cash'; // 'cash' or 'transfer'
+let selectedModalCategory = 'ค่าน้ำแข็ง';
+let selectedExpenseSourceFilter = 'all'; // 'all', 'cash', 'transfer'
+let selectedExpenseCategoryFilter = 'all'; // 'all' or category title
+let currentReportSubTab = 'orders'; // 'orders', 'expenses', 'installments'
+
 let currentActiveTab = 'cashier';
 let selectedCategory = 'all';
 let selectedDateRange = 'today';
@@ -84,6 +94,41 @@ const DEFAULT_CATEGORIES = [
   'ของกินอื่นๆ',
   'Ice Cream - ETE',
   'รายการอื่นๆ'
+];
+
+const DEFAULT_EXPENSE_CATEGORIES = [
+  { id: 'cat-ice', name: 'ค่าน้ำแข็ง', icon: '🧊', freq: 'รายวัน', defaultSource: 'cash' },
+  { id: 'cat-milk', name: 'นมสด / นมผสม', icon: '🥛', freq: 'รายวัน/2-3 วัน', defaultSource: 'cash' },
+  { id: 'cat-cups', name: 'แก้ว / หลอด / บรรจุภัณฑ์', icon: '🥤', freq: 'รายสัปดาห์', defaultSource: 'cash' },
+  { id: 'cat-beans', name: 'เมล็ดกาแฟ / ชา / วัตถุดิบ', icon: '☕', freq: 'รายสัปดาห์', defaultSource: 'transfer' },
+  { id: 'cat-ete', name: 'สต็อกไอติม ETE', icon: '🍨', freq: 'ทุก 2-3 เดือน', defaultSource: 'transfer' },
+  { id: 'cat-snacks', name: 'ขนมฝากขาย / ของแห้ง', icon: '🥐', freq: 'ตามรอบ', defaultSource: 'cash' },
+  { id: 'cat-rent', name: 'ค่าเช่าร้าน / ค่าน้ำ-ค่าไฟ', icon: '💡', freq: 'รายเดือน', defaultSource: 'transfer' },
+  { id: 'cat-shopee', name: 'ผ่อนเครื่องชง Shopee', icon: '⚙️', freq: 'รายเดือน (12 งวด)', defaultSource: 'transfer' },
+  { id: 'cat-other', name: 'เบ็ดเตล็ด / อื่นๆ', icon: '📦', freq: 'ทั่วไป', defaultSource: 'cash' }
+];
+
+const DEFAULT_INSTALLMENTS = [
+  {
+    id: 'inst-shopee-coffee',
+    title: 'ผ่อนเครื่องชงกาแฟ Shopee (12 งวด)',
+    category: 'ผ่อนเครื่องชง Shopee',
+    totalMonths: 12,
+    paidMonths: 4, // เดือน ต.ค. จ่ายงวด 4 แล้ว, พ.ย. เข้างวด 5
+    monthlyAmount: 2500,
+    notes: 'ผ่อน Shopee หักบัญชีทุกเดือน (งวด 4/12 จ่ายแล้วในเดือน ต.ค.)',
+    createdAt: new Date().toISOString()
+  },
+  {
+    id: 'inst-ete-icecream',
+    title: 'สต็อกไอติมเอเต้ (ETE Ice Cream)',
+    category: 'สต็อกไอติม ETE',
+    totalMonths: 4,
+    paidMonths: 1,
+    monthlyAmount: 3200,
+    notes: 'รีสต็อกไอติมเอเต้ทุก 2-3 เดือน (รอบสั่งใหญ่)',
+    createdAt: new Date().toISOString()
+  }
 ];
 
 const DEFAULT_OPTION_GROUPS = [
@@ -1942,6 +1987,20 @@ function loadFromLocalStorage() {
     }
     // Legacy auto-migrate prices removed to prevent overwriting user-configured prices
     orders = JSON.parse(localStorage.getItem('coffeeshop_orders')) || [];
+    expenses = JSON.parse(localStorage.getItem('coffeeshop_expenses')) || [];
+    installments = JSON.parse(localStorage.getItem('coffeeshop_installments')) || DEFAULT_INSTALLMENTS;
+    expenseCategories = JSON.parse(localStorage.getItem('coffeeshop_expense_categories')) || DEFAULT_EXPENSE_CATEGORIES;
+
+    if (!localStorage.getItem('coffeeshop_installments')) {
+      localStorage.setItem('coffeeshop_installments', JSON.stringify(DEFAULT_INSTALLMENTS));
+    }
+    if (!localStorage.getItem('coffeeshop_expense_categories')) {
+      localStorage.setItem('coffeeshop_expense_categories', JSON.stringify(DEFAULT_EXPENSE_CATEGORIES));
+    }
+
+    window.expenses = expenses;
+    window.installments = installments;
+    window.expenseCategories = expenseCategories;
     settings = JSON.parse(localStorage.getItem('coffeeshop_settings')) || DEFAULT_SETTINGS;
     if (settings.shopName && settings.shopName.includes('(TANTAWAN COFFEE & CAFÉ)')) {
       settings.shopName = 'ร้านทานตะวัน';
@@ -2009,6 +2068,29 @@ function loadFromLocalStorage() {
           window.soldOutProductIds = soldOutProductIds;
           if (typeof renderProductsGrid === 'function') renderProductsGrid();
           if (typeof renderMenuConfigTable === 'function') renderMenuConfigTable();
+        }
+      }).catch(() => {});
+    }
+
+    // Sync remote expenses from Supabase on startup
+    if (typeof fetchExpensesFromCloud === 'function') {
+      fetchExpensesFromCloud().then(cloudExpenses => {
+        if (cloudExpenses && Array.isArray(cloudExpenses)) {
+          expenses = cloudExpenses;
+          window.expenses = expenses;
+          if (typeof calculateReportStats === 'function') calculateReportStats();
+          if (typeof renderExpenseTable === 'function') renderExpenseTable();
+        }
+      }).catch(() => {});
+    }
+
+    // Sync remote installments from Supabase on startup
+    if (typeof fetchInstallmentsFromCloud === 'function') {
+      fetchInstallmentsFromCloud().then(cloudInst => {
+        if (cloudInst && Array.isArray(cloudInst) && cloudInst.length > 0) {
+          installments = cloudInst;
+          window.installments = installments;
+          if (typeof renderInstallmentCards === 'function') renderInstallmentCards();
         }
       }).catch(() => {});
     }
@@ -2254,6 +2336,12 @@ function saveToStorage(key, data) {
       syncOptionGroupsToCloud(data);
     } else if (key === 'coffeeshop_settings' && typeof syncSettingsToCloud === 'function') {
       syncSettingsToCloud(data);
+    } else if (key === 'coffeeshop_expenses' && typeof syncExpensesToCloud === 'function') {
+      syncExpensesToCloud(data);
+    } else if (key === 'coffeeshop_installments' && typeof syncInstallmentsToCloud === 'function') {
+      syncInstallmentsToCloud(data);
+    } else if (key === 'coffeeshop_expense_categories' && typeof syncExpenseCategoriesToCloud === 'function') {
+      syncExpenseCategoriesToCloud(data);
     }
   } catch (err) {}
 }
@@ -6498,22 +6586,85 @@ function calculateReportStats() {
   const cashPct = totalSales > 0 ? ((cashTotal / totalSales) * 100).toFixed(1) : '0.0';
   const transferPct = totalSales > 0 ? ((promptPayTotal / totalSales) * 100).toFixed(1) : '0.0';
 
+  // Expense & Cash Drawer Calculations
+  const filteredExp = (typeof getFilteredExpenses === 'function') ? getFilteredExpenses() : [];
+  let totalExpenses = 0;
+  let cashExpenses = 0;
+  let transferExpenses = 0;
+
+  filteredExp.forEach(e => {
+    const amt = parseFloat(e.amount) || 0;
+    totalExpenses += amt;
+    if (e.source === 'cash') {
+      cashExpenses += amt;
+    } else {
+      transferExpenses += amt;
+    }
+  });
+
+  const netProfit = totalSales - totalExpenses;
+  const expectedDrawerCash = Math.max(0, cashTotal - cashExpenses);
+  const profitMargin = totalSales > 0 ? ((netProfit / totalSales) * 100).toFixed(1) : '0.0';
+
   // Render Stats Card Values
   document.getElementById('metricTotalSales').innerText = `฿${totalSales.toFixed(2)}`;
   document.getElementById('metricTotalSalesCount').innerText = `${normalOrdersCount} รายการสำเร็จ (ยกเลิก ${voidedOrdersCount})`;
   const badgeAll = document.getElementById('badgeTotalAllOrders');
   if (badgeAll) badgeAll.innerText = `${filtered.length} ออเดอร์`;
   document.getElementById('metricAvgTicket').innerText = `เฉลี่ย ฿${avgTicket.toFixed(2)}/บิล`;
+
+  // Expense Card (Card 2)
+  const elTotalExp = document.getElementById('metricTotalExpenses');
+  if (elTotalExp) elTotalExp.innerText = `฿${totalExpenses.toFixed(2)}`;
+  const elBadgeExpCount = document.getElementById('badgeExpenseCount');
+  if (elBadgeExpCount) elBadgeExpCount.innerText = `${filteredExp.length} รายการ`;
+  const elMetricExpSplit = document.getElementById('metricExpenseSplit');
+  if (elMetricExpSplit) elMetricExpSplit.innerText = `หักเก๊ะ ฿${cashExpenses.toFixed(2)} | โอน ฿${transferExpenses.toFixed(2)}`;
+
+  // Net Profit Card (Card 3)
+  const elNetProfit = document.getElementById('metricNetProfit');
+  if (elNetProfit) {
+    elNetProfit.innerText = `฿${netProfit.toFixed(2)}`;
+    elNetProfit.className = netProfit < 0 
+      ? 'text-2xl sm:text-3xl font-black text-rose-600 dark:text-rose-400' 
+      : 'text-2xl sm:text-3xl font-black text-emerald-600 dark:text-emerald-400';
+  }
+  const elBadgeProfitMargin = document.getElementById('badgeProfitMargin');
+  if (elBadgeProfitMargin) {
+    elBadgeProfitMargin.innerText = `${profitMargin}% มาร์จิ้น`;
+    elBadgeProfitMargin.className = netProfit < 0
+      ? 'bg-rose-100 dark:bg-rose-900/60 text-rose-900 dark:text-rose-200 text-[10px] font-bold px-2.5 py-0.5 rounded-full border border-rose-300 dark:border-rose-700'
+      : 'bg-emerald-100 dark:bg-emerald-900/60 text-emerald-900 dark:text-emerald-200 text-[10px] font-bold px-2.5 py-0.5 rounded-full border border-emerald-300 dark:border-emerald-700';
+  }
+  const elProfitStatus = document.getElementById('metricProfitStatus');
+  if (elProfitStatus) {
+    elProfitStatus.innerText = netProfit >= 0 ? 'กำไร' : 'ขาดทุน';
+    elProfitStatus.className = netProfit >= 0 
+      ? 'font-semibold text-emerald-700 dark:text-emerald-300 text-[11px]' 
+      : 'font-semibold text-rose-600 dark:text-rose-400 text-[11px]';
+  }
+
+  // Expected Cash in Drawer Card (Card 4)
+  const elExpectedDrawer = document.getElementById('metricExpectedDrawerCash');
+  if (elExpectedDrawer) elExpectedDrawer.innerText = `฿${expectedDrawerCash.toFixed(2)}`;
+  const elCashDrawerFormula = document.getElementById('metricCashDrawerFormula');
+  if (elCashDrawerFormula) elCashDrawerFormula.innerText = `รับ ฿${cashTotal.toFixed(2)} - หักจ่าย ฿${cashExpenses.toFixed(2)}`;
   
-  // Cash stats card
-  document.getElementById('metricCashSales').innerText = `฿${cashTotal.toFixed(2)}`;
-  document.getElementById('metricCashOrdersCount').innerText = `${cashOrdersCount} บิลเงินสด`;
-  document.getElementById('badgeCashShare').innerText = `${cashPct}% ของยอดขาย`;
+  // Backward compatibility selectors
+  const elCashSales = document.getElementById('metricCashSales');
+  if (elCashSales) elCashSales.innerText = `฿${cashTotal.toFixed(2)}`;
+  const elCashOrdersCount = document.getElementById('metricCashOrdersCount');
+  if (elCashOrdersCount) elCashOrdersCount.innerText = `${cashOrdersCount} บิลเงินสด`;
+  const elBadgeCashShare = document.getElementById('badgeCashShare');
+  if (elBadgeCashShare) elBadgeCashShare.innerText = `${cashOrdersCount} บิล (${cashPct}%)`;
 
   // Bank Transfer / QR stats card
-  document.getElementById('metricPromptPaySales').innerText = `฿${promptPayTotal.toFixed(2)}`;
-  document.getElementById('metricTransferOrdersCount').innerText = `${promptPayOrdersCount} บิลโอนเงิน/QR`;
-  document.getElementById('badgeTransferShare').innerText = `${transferPct}% ของยอดขาย`;
+  const elPromptPaySales = document.getElementById('metricPromptPaySales');
+  if (elPromptPaySales) elPromptPaySales.innerText = `฿${promptPayTotal.toFixed(2)}`;
+  const elTransferOrdersCount = document.getElementById('metricTransferOrdersCount');
+  if (elTransferOrdersCount) elTransferOrdersCount.innerText = `${promptPayOrdersCount} บิลโอนเงิน/QR`;
+  const elBadgeTransferShare = document.getElementById('badgeTransferShare');
+  if (elBadgeTransferShare) elBadgeTransferShare.innerText = `${transferPct}% ของยอดขาย`;
 
   // Visual Split Ratio Bar
   const ratioCashAmount = document.getElementById('ratioCashAmount');
@@ -6575,6 +6726,10 @@ function calculateReportStats() {
 
   // Render SVG Chart graph
   renderSVGChart(filtered);
+
+  // Render expenses table & installment cards if active
+  if (typeof renderExpenseTable === 'function') renderExpenseTable();
+  if (typeof renderInstallmentCards === 'function') renderInstallmentCards();
 }
 
 // --------------------------------------------------------------------------
@@ -10711,3 +10866,635 @@ function deleteStaff(userId) {
   }
 }
 
+
+
+// ==========================================================================
+// EXPENSE & CASH DRAWER & INSTALLMENT SYSTEM
+// ==========================================================================
+
+function getFilteredExpenses() {
+  const startInput = document.getElementById('reportStartDate');
+  const endInput = document.getElementById('reportEndDate');
+  if (!startInput || !endInput) return expenses;
+
+  const startStr = startInput.value;
+  const endStr = endInput.value;
+  if (!startStr || !endStr) return expenses;
+
+  const startTS = new Date(startStr + 'T00:00:00').getTime();
+  const endTS = new Date(endStr + 'T23:59:59').getTime();
+
+  return expenses.filter(e => {
+    const ts = e.timestamp || (e.date ? new Date(e.date + 'T12:00:00').getTime() : (e.createdAt ? new Date(e.createdAt).getTime() : 0));
+    return ts >= startTS && ts <= endTS;
+  });
+}
+
+function switchReportSubTab(subTabName) {
+  currentReportSubTab = subTabName;
+
+  const btnOrders = document.getElementById('subtab-btn-orders');
+  const btnExpenses = document.getElementById('subtab-btn-expenses');
+  const btnInstallments = document.getElementById('subtab-btn-installments');
+
+  const secOrders = document.getElementById('reportSection-orders');
+  const secExpenses = document.getElementById('reportSection-expenses');
+  const secInstallments = document.getElementById('reportSection-installments');
+
+  const baseBtn = 'px-3.5 py-2 rounded-xl text-xs font-bold text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition flex items-center space-x-1.5 whitespace-nowrap';
+
+  if (btnOrders) btnOrders.className = baseBtn;
+  if (btnExpenses) btnExpenses.className = baseBtn;
+  if (btnInstallments) btnInstallments.className = baseBtn;
+
+  if (secOrders) secOrders.classList.add('hidden');
+  if (secExpenses) secExpenses.classList.add('hidden');
+  if (secInstallments) secInstallments.classList.add('hidden');
+
+  if (subTabName === 'orders') {
+    if (btnOrders) btnOrders.className = 'px-3.5 py-2 rounded-xl bg-amber-600 text-white text-xs font-bold shadow-sm transition flex items-center space-x-1.5 whitespace-nowrap';
+    if (secOrders) secOrders.classList.remove('hidden');
+  } else if (subTabName === 'expenses') {
+    if (btnExpenses) btnExpenses.className = 'px-3.5 py-2 rounded-xl bg-rose-600 text-white text-xs font-bold shadow-sm transition flex items-center space-x-1.5 whitespace-nowrap';
+    if (secExpenses) secExpenses.classList.remove('hidden');
+    renderExpenseTable();
+  } else if (subTabName === 'installments') {
+    if (btnInstallments) btnInstallments.className = 'px-3.5 py-2 rounded-xl bg-amber-500 text-slate-950 text-xs font-bold shadow-sm transition flex items-center space-x-1.5 whitespace-nowrap';
+    if (secInstallments) secInstallments.classList.remove('hidden');
+    renderInstallmentCards();
+  }
+}
+
+function setExpenseSourceFilter(source) {
+  selectedExpenseSourceFilter = source;
+  updateExpenseFilterButtonsUI();
+  renderExpenseTable();
+}
+
+function setExpenseCategoryFilter(cat) {
+  selectedExpenseCategoryFilter = cat;
+  renderExpenseTable();
+}
+
+function updateExpenseFilterButtonsUI() {
+  const btnAll = document.getElementById('btn-expfilter-all');
+  const btnCash = document.getElementById('btn-expfilter-cash');
+  const btnTransfer = document.getElementById('btn-expfilter-transfer');
+
+  const baseInactive = 'px-3 py-1.5 rounded-lg text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white transition flex items-center space-x-1';
+
+  if (btnAll) {
+    btnAll.className = (selectedExpenseSourceFilter === 'all') 
+      ? 'px-3 py-1.5 rounded-lg bg-rose-600 text-white shadow-sm transition' 
+      : baseInactive;
+  }
+  if (btnCash) {
+    btnCash.className = (selectedExpenseSourceFilter === 'cash') 
+      ? 'px-3 py-1.5 rounded-lg bg-amber-500 text-slate-950 font-bold shadow-sm transition flex items-center space-x-1' 
+      : baseInactive;
+  }
+  if (btnTransfer) {
+    btnTransfer.className = (selectedExpenseSourceFilter === 'transfer') 
+      ? 'px-3 py-1.5 rounded-lg bg-emerald-600 text-white shadow-sm transition flex items-center space-x-1' 
+      : baseInactive;
+  }
+}
+
+function renderExpenseTable() {
+  const body = document.getElementById('expenseTableBody');
+  if (!body) return;
+  body.innerHTML = '';
+
+  const filtered = getFilteredExpenses();
+
+  // Update counts
+  const totalCount = filtered.length;
+  const cashCount = filtered.filter(e => e.source === 'cash').length;
+  const transferCount = filtered.filter(e => e.source !== 'cash').length;
+
+  const countAll = document.getElementById('expCountAll');
+  const countCash = document.getElementById('expCountCash');
+  const countTransfer = document.getElementById('expCountTransfer');
+  const countDisplay = document.getElementById('expenseCountDisplay');
+
+  if (countAll) countAll.innerText = String(totalCount);
+  if (countCash) countCash.innerText = String(cashCount);
+  if (countTransfer) countTransfer.innerText = String(transferCount);
+  if (countDisplay) countDisplay.innerText = `${totalCount} รายการ`;
+
+  // Populate category filter dropdown
+  const catSelect = document.getElementById('selectExpenseCategoryFilter');
+  if (catSelect) {
+    const currentVal = selectedExpenseCategoryFilter;
+    const catsInFiltered = Array.from(new Set(expenses.map(e => e.category).filter(Boolean)));
+    DEFAULT_EXPENSE_CATEGORIES.forEach(c => {
+      if (!catsInFiltered.includes(c.name)) catsInFiltered.push(c.name);
+    });
+
+    catSelect.innerHTML = '<option value="all">ทุกหมวดหมู่ (All)</option>';
+    catsInFiltered.forEach(cat => {
+      const opt = document.createElement('option');
+      opt.value = cat;
+      opt.innerText = cat;
+      if (cat === currentVal) opt.selected = true;
+      catSelect.appendChild(opt);
+    });
+  }
+
+  // Filter expenses
+  let displayed = filtered;
+  if (selectedExpenseSourceFilter === 'cash') {
+    displayed = displayed.filter(e => e.source === 'cash');
+  } else if (selectedExpenseSourceFilter === 'transfer') {
+    displayed = displayed.filter(e => e.source !== 'cash');
+  }
+
+  if (selectedExpenseCategoryFilter !== 'all') {
+    displayed = displayed.filter(e => e.category === selectedExpenseCategoryFilter);
+  }
+
+  // Sort newest first
+  displayed.sort((a, b) => {
+    const tsA = a.timestamp || (a.date ? new Date(a.date).getTime() : 0);
+    const tsB = b.timestamp || (b.date ? new Date(b.date).getTime() : 0);
+    return tsB - tsA;
+  });
+
+  if (displayed.length === 0) {
+    body.innerHTML = `
+      <tr>
+        <td colspan="7" class="text-center py-10 text-slate-400 dark:text-slate-500 text-sm">
+          ยังไม่มีรายการรายจ่ายในช่วงเวลานี้ (คลิก "+ บันทึกรายจ่าย" เพื่อเพิ่มรายการ)
+        </td>
+      </tr>
+    `;
+    return;
+  }
+
+  displayed.forEach(e => {
+    const tr = document.createElement('tr');
+    tr.className = 'hover:bg-slate-50/60 dark:hover:bg-slate-800/40 text-slate-700 dark:text-slate-300 border-b border-slate-100 dark:border-slate-800 transition text-sm';
+
+    const ts = e.timestamp || (e.date ? new Date(e.date + 'T12:00:00').getTime() : Date.now());
+    const dateFormatted = new Date(ts).toLocaleString('th-TH', {
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+
+    const isCash = (e.source === 'cash');
+    const sourceBadge = isCash
+      ? `<span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-100 text-amber-900 dark:bg-amber-950/80 dark:text-amber-300 border border-amber-300 dark:border-amber-700">💵 ในเก๊ะ</span>`
+      : `<span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-100 text-emerald-900 dark:bg-emerald-950/80 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-700">📱 โอนเงิน</span>`;
+
+    const matchedCat = DEFAULT_EXPENSE_CATEGORIES.find(c => c.name === e.category);
+    const catIcon = matchedCat ? matchedCat.icon : '💸';
+
+    const linkedBadge = e.linkedInstallmentId 
+      ? `<span class="ml-1.5 px-1.5 py-0.5 rounded text-[10px] bg-amber-100 text-amber-800 dark:bg-amber-950/80 dark:text-amber-300 font-bold border border-amber-300 dark:border-amber-700">ผ่อน Shopee</span>` 
+      : '';
+
+    tr.innerHTML = `
+      <td class="px-5 py-3 text-xs text-slate-500 dark:text-slate-400 font-medium whitespace-nowrap">
+        ${dateFormatted}
+      </td>
+      <td class="px-4 py-3 font-semibold text-slate-800 dark:text-slate-200 text-xs whitespace-nowrap">
+        <span class="inline-flex items-center gap-1.5">
+          <span>${catIcon}</span>
+          <span>${e.category || 'เบ็ดเตล็ด'}</span>
+        </span>
+      </td>
+      <td class="px-5 py-3 text-xs text-slate-600 dark:text-slate-300">
+        ${e.note || '-'}${linkedBadge}
+      </td>
+      <td class="px-4 py-3 text-center whitespace-nowrap">
+        ${sourceBadge}
+      </td>
+      <td class="px-4 py-3 text-right font-black text-rose-600 dark:text-rose-400 text-sm whitespace-nowrap">
+        -฿${parseFloat(e.amount).toFixed(2)}
+      </td>
+      <td class="px-4 py-3 text-center text-xs text-slate-500 dark:text-slate-400 whitespace-nowrap">
+        ${e.cashierName || 'แคชเชียร์'}
+      </td>
+      <td class="px-4 py-3 text-center whitespace-nowrap">
+        <button type="button" onclick="deleteExpense('${e.id}')" title="ลบรายการ" class="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/50 transition">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+          </svg>
+        </button>
+      </td>
+    `;
+    body.appendChild(tr);
+  });
+}
+
+function openExpenseModal(presetCat, defaultSource, linkedInstallmentId, existingExpense) {
+  const modal = document.getElementById('expenseModal');
+  if (!modal) return;
+
+  const titleHeader = document.getElementById('expenseModalTitle');
+  const editIdInput = document.getElementById('expenseEditId');
+  const linkedInstInput = document.getElementById('expenseLinkedInstallmentId');
+  const amtInput = document.getElementById('expenseAmountInput');
+  const noteInput = document.getElementById('expenseNoteInput');
+  const dateInput = document.getElementById('expenseDateInput');
+  const staffDisplay = document.getElementById('expenseStaffDisplay');
+
+  if (staffDisplay) {
+    staffDisplay.innerText = `โดย: ${currentUser ? currentUser.name : 'แคชเชียร์'}`;
+  }
+
+  if (existingExpense) {
+    if (titleHeader) titleHeader.innerText = 'แก้ไขรายการรายจ่าย';
+    if (editIdInput) editIdInput.value = existingExpense.id;
+    if (linkedInstInput) linkedInstInput.value = existingExpense.linkedInstallmentId || '';
+    if (amtInput) amtInput.value = existingExpense.amount;
+    if (noteInput) noteInput.value = existingExpense.note || '';
+    if (dateInput) dateInput.value = existingExpense.date || formatLocalDate(new Date());
+    selectedModalCategory = existingExpense.category || 'ค่าน้ำแข็ง';
+    updateExpenseSourceUI(existingExpense.source || 'cash');
+  } else {
+    if (titleHeader) titleHeader.innerText = 'บันทึกรายจ่ายร้าน';
+    if (editIdInput) editIdInput.value = '';
+    if (linkedInstInput) linkedInstInput.value = linkedInstallmentId || '';
+    if (amtInput) amtInput.value = '';
+    if (noteInput) noteInput.value = '';
+    if (dateInput) dateInput.value = formatLocalDate(new Date());
+    selectedModalCategory = presetCat || 'ค่าน้ำแข็ง';
+    updateExpenseSourceUI(defaultSource || 'cash');
+  }
+
+  renderExpenseCategoryPills();
+  modal.classList.remove('hidden');
+
+  setTimeout(() => {
+    if (amtInput) amtInput.focus();
+  }, 100);
+}
+
+function closeExpenseModal() {
+  const modal = document.getElementById('expenseModal');
+  if (modal) modal.classList.add('hidden');
+}
+
+function renderExpenseCategoryPills() {
+  const container = document.getElementById('expenseCategoryPills');
+  if (!container) return;
+  container.innerHTML = '';
+
+  DEFAULT_EXPENSE_CATEGORIES.forEach(cat => {
+    const isSelected = (cat.name === selectedModalCategory);
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = `p-2.5 rounded-xl border text-left transition flex items-center gap-2 ${
+      isSelected 
+        ? 'border-rose-500 bg-rose-500/10 text-rose-700 dark:text-rose-300 font-bold shadow-sm ring-1 ring-rose-500/50' 
+        : 'border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800/60 text-slate-700 dark:text-slate-300 hover:border-slate-300 dark:hover:border-slate-600 text-xs font-semibold'
+    }`;
+    btn.innerHTML = `
+      <span class="text-lg">${cat.icon}</span>
+      <div class="truncate">
+        <div class="truncate text-xs leading-tight">${cat.name}</div>
+        <div class="text-[10px] text-slate-400 font-normal">${cat.freq}</div>
+      </div>
+    `;
+    btn.onclick = () => selectExpenseCategory(cat.name, cat.defaultSource);
+    container.appendChild(btn);
+  });
+}
+
+function selectExpenseCategory(catName, defaultSource) {
+  selectedModalCategory = catName;
+  if (defaultSource) {
+    updateExpenseSourceUI(defaultSource);
+  }
+  renderExpenseCategoryPills();
+}
+
+function setExpenseAmount(amt) {
+  const input = document.getElementById('expenseAmountInput');
+  if (input) {
+    input.value = amt;
+    input.focus();
+  }
+}
+
+function updateExpenseSourceUI(source) {
+  selectedExpenseModalSource = source;
+  const lblCash = document.getElementById('lbl-source-cash');
+  const lblTransfer = document.getElementById('lbl-source-transfer');
+
+  if (lblCash) {
+    lblCash.className = 'cursor-pointer flex items-center gap-2.5 p-3 rounded-2xl border-2 transition ' +
+      (source === 'cash' 
+        ? 'border-amber-500 bg-amber-500/10 text-amber-900 dark:text-amber-200 font-bold text-xs ring-2 ring-amber-500/30' 
+        : 'border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-400 font-semibold text-xs');
+  }
+
+  if (lblTransfer) {
+    lblTransfer.className = 'cursor-pointer flex items-center gap-2.5 p-3 rounded-2xl border-2 transition ' +
+      (source === 'transfer' 
+        ? 'border-emerald-600 bg-emerald-600/10 text-emerald-900 dark:text-emerald-200 font-bold text-xs ring-2 ring-emerald-600/30' 
+        : 'border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-400 font-semibold text-xs');
+  }
+}
+
+function submitExpenseForm() {
+  const editId = document.getElementById('expenseEditId').value;
+  const amountStr = document.getElementById('expenseAmountInput').value;
+  const amount = parseFloat(amountStr);
+
+  if (!amount || isNaN(amount) || amount <= 0) {
+    showToast('⚠️ กรุณาระบุจำนวนเงินที่ถูกต้อง', 'warning');
+    const amtInput = document.getElementById('expenseAmountInput');
+    if (amtInput) amtInput.focus();
+    return;
+  }
+
+  const category = selectedModalCategory || 'เบ็ดเตล็ด / อื่นๆ';
+  const source = selectedExpenseModalSource || 'cash';
+  const note = document.getElementById('expenseNoteInput').value.trim();
+  const date = document.getElementById('expenseDateInput').value || formatLocalDate(new Date());
+  const linkedInstId = document.getElementById('expenseLinkedInstallmentId').value;
+
+  if (editId) {
+    const idx = expenses.findIndex(e => e.id === editId);
+    if (idx >= 0) {
+      expenses[idx] = {
+        ...expenses[idx],
+        category,
+        amount,
+        source,
+        note,
+        date,
+        timestamp: new Date(date + 'T' + new Date().toTimeString().split(' ')[0]).getTime(),
+        updatedAt: new Date().toISOString()
+      };
+      showToast(`แก้ไขรายการรายจ่าย ฿${amount.toFixed(2)} เรียบร้อย`, 'success');
+    }
+  } else {
+    const newExp = {
+      id: 'exp_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5),
+      category: category,
+      amount: amount,
+      source: source,
+      note: note,
+      date: date,
+      timestamp: new Date(date + 'T' + new Date().toTimeString().split(' ')[0]).getTime(),
+      createdAt: new Date().toISOString(),
+      cashierId: currentUser ? currentUser.id : 'user-owner',
+      cashierName: currentUser ? currentUser.name : 'เจ้าของร้าน (Owner)',
+      linkedInstallmentId: linkedInstId || null
+    };
+    expenses.unshift(newExp);
+
+    // If linked to an installment tracker, increment paid months
+    if (linkedInstId) {
+      const inst = installments.find(i => i.id === linkedInstId);
+      if (inst) {
+        inst.paidMonths = Math.min(inst.totalMonths, (inst.paidMonths || 0) + 1);
+        inst.updatedAt = new Date().toISOString();
+        saveToStorage('coffeeshop_installments', installments);
+        if (typeof renderInstallmentCards === 'function') renderInstallmentCards();
+      }
+    }
+
+    const sourceLabel = source === 'cash' ? 'หักเงินในเก๊ะ' : 'โอนเงิน';
+    showToast(`✅ บันทึกรายจ่าย ฿${amount.toFixed(2)} (${sourceLabel}) สำเร็จ`, 'success');
+  }
+
+  saveToStorage('coffeeshop_expenses', expenses);
+  closeExpenseModal();
+  calculateReportStats();
+}
+
+function deleteExpense(id) {
+  const exp = expenses.find(e => e.id === id);
+  if (!exp) return;
+
+  if (confirm(`คุณต้องการลบรายการรายจ่าย "${exp.category} ฿${parseFloat(exp.amount).toFixed(2)}" ใช่หรือไม่?`)) {
+    expenses = expenses.filter(e => e.id !== id);
+    saveToStorage('coffeeshop_expenses', expenses);
+    calculateReportStats();
+    showToast('ลบรายการรายจ่ายเรียบร้อยแล้ว', 'info');
+  }
+}
+
+// --------------------------------------------------------------------------
+// INSTALLMENTS & PERIODIC RESTOCK TRACKER
+// --------------------------------------------------------------------------
+
+function renderInstallmentCards() {
+  const container = document.getElementById('installmentCardsGrid');
+  if (!container) return;
+  container.innerHTML = '';
+
+  if (!installments || installments.length === 0) {
+    container.innerHTML = `
+      <div class="col-span-full py-12 text-center text-slate-400 dark:text-slate-500 bg-white dark:bg-slate-900 rounded-2xl border border-dashed border-slate-200 dark:border-slate-800">
+        <p class="text-sm font-semibold">ยังไม่มีรายการผ่อนชำระหรือสต็อกระยะยาว</p>
+        <p class="text-xs text-slate-400 mt-1">คลิกปุ่ม "+ เพิ่มรายการผ่อน/สต็อก" ด้านบนเพื่อเริ่มติดตาม</p>
+      </div>
+    `;
+    return;
+  }
+
+  installments.forEach(inst => {
+    const totalM = inst.totalMonths || 12;
+    const paidM = inst.paidMonths || 0;
+    const monthly = parseFloat(inst.monthlyAmount) || 0;
+    const pct = Math.min(100, Math.round((paidM / totalM) * 100));
+    const remainingM = Math.max(0, totalM - paidM);
+    const totalContract = totalM * monthly;
+    const totalPaid = paidM * monthly;
+    const totalRemaining = remainingM * monthly;
+    const isFinished = (paidM >= totalM);
+
+    const card = document.createElement('div');
+    card.className = 'bg-white dark:bg-slate-900 rounded-2xl p-5 sm:p-6 shadow-sm border border-slate-200 dark:border-slate-800 space-y-4 relative overflow-hidden transition hover:shadow-md';
+
+    const statusBadge = isFinished
+      ? `<span class="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 dark:bg-emerald-950/80 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-700">✅ ผ่อนครบแล้ว</span>`
+      : `<span class="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-900 dark:bg-amber-950/80 dark:text-amber-300 border border-amber-300 dark:border-amber-700">กำลังผ่อน (งวด ${paidM}/${totalM})</span>`;
+
+    const payActionBtn = isFinished
+      ? `<span class="text-xs text-emerald-600 dark:text-emerald-400 font-bold flex items-center gap-1">🎉 ครบสัญญาแล้ว</span>`
+      : `<button type="button" onclick="payInstallmentPrompt('${inst.id}')" class="px-3.5 py-2 rounded-xl bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold text-xs shadow-sm transition flex items-center gap-1.5">
+          <span>💳 จ่ายงวดถัดไป (งวด ${paidM + 1}/${totalM})</span>
+        </button>`;
+
+    card.innerHTML = `
+      <div class="flex justify-between items-start gap-2">
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 rounded-2xl bg-amber-500/15 text-amber-600 dark:text-amber-400 flex items-center justify-center text-xl font-bold flex-shrink-0">
+            ${inst.title.includes('กาแฟ') ? '⚙️' : (inst.title.includes('ไอติม') ? '🍨' : '📅')}
+          </div>
+          <div>
+            <h4 class="font-bold text-slate-900 dark:text-white text-base leading-tight">${inst.title}</h4>
+            <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">${inst.notes || 'รายการผ่อนชำระ/สต็อกระยะยาว'}</p>
+          </div>
+        </div>
+        <div>${statusBadge}</div>
+      </div>
+
+      <!-- Progress Bar -->
+      <div class="space-y-1.5">
+        <div class="flex justify-between items-center text-xs">
+          <span class="font-bold text-amber-700 dark:text-amber-400">${pct}% ชำระแล้ว (${paidM}/${totalM} งวด)</span>
+          <span class="text-slate-400">${remainingM > 0 ? `เหลืออีก ${remainingM} งวด` : 'สิ้นสุดรายการ'}</span>
+        </div>
+        <div class="w-full bg-slate-100 dark:bg-slate-800 h-3 rounded-full overflow-hidden p-0.5 border border-slate-200 dark:border-slate-700">
+          <div class="bg-gradient-to-r from-amber-500 to-amber-600 h-full rounded-full transition-all duration-500" style="width: ${pct}%"></div>
+        </div>
+      </div>
+
+      <!-- Financial Breakdown -->
+      <div class="grid grid-cols-2 gap-2 p-3 rounded-xl bg-slate-50 dark:bg-slate-950/60 border border-slate-100 dark:border-slate-800/80 text-xs">
+        <div>
+          <div class="text-slate-400 text-[11px]">ค่างวดต่อเดือน:</div>
+          <div class="font-bold text-slate-800 dark:text-slate-200 text-sm">฿${monthly.toLocaleString()}</div>
+        </div>
+        <div>
+          <div class="text-slate-400 text-[11px]">จ่ายไปแล้ว:</div>
+          <div class="font-bold text-emerald-600 dark:text-emerald-400 text-sm">฿${totalPaid.toLocaleString()} / ฿${totalContract.toLocaleString()}</div>
+        </div>
+      </div>
+
+      <!-- Bottom Actions -->
+      <div class="flex items-center justify-between pt-2 border-t border-slate-100 dark:border-slate-800 gap-2">
+        <div>${payActionBtn}</div>
+        <div class="flex items-center gap-1">
+          <button type="button" onclick="openInstallmentModal('${inst.id}')" title="แก้ไข" class="p-2 rounded-xl text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition text-xs font-semibold">
+            ✏️ แก้ไข
+          </button>
+          <button type="button" onclick="deleteInstallment('${inst.id}')" title="ลบรายการ" class="p-2 rounded-xl text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/50 transition text-xs font-semibold">
+            🗑️
+          </button>
+        </div>
+      </div>
+    `;
+    container.appendChild(card);
+  });
+}
+
+function payInstallmentPrompt(instId) {
+  const inst = installments.find(i => i.id === instId);
+  if (!inst) return;
+
+  const nextMonth = (inst.paidMonths || 0) + 1;
+  const presetCategory = inst.category || 'ผ่อนเครื่องชง Shopee';
+  const defaultSource = 'transfer';
+  const linkedInstallmentId = inst.id;
+
+  openExpenseModal(presetCategory, defaultSource, linkedInstallmentId);
+
+  if (inst.monthlyAmount) {
+    const amtInput = document.getElementById('expenseAmountInput');
+    if (amtInput) amtInput.value = inst.monthlyAmount;
+  }
+  const noteInput = document.getElementById('expenseNoteInput');
+  if (noteInput) {
+    noteInput.value = `${inst.title} งวดที่ ${nextMonth}/${inst.totalMonths}`;
+  }
+}
+
+function openInstallmentModal(instId) {
+  const modal = document.getElementById('installmentModal');
+  if (!modal) return;
+
+  const titleHeader = document.getElementById('installmentModalTitle');
+  const editIdInput = document.getElementById('installmentEditId');
+  const titleInput = document.getElementById('installmentTitleInput');
+  const totalMonthsInput = document.getElementById('installmentTotalMonthsInput');
+  const paidMonthsInput = document.getElementById('installmentPaidMonthsInput');
+  const monthlyAmtInput = document.getElementById('installmentMonthlyAmountInput');
+  const notesInput = document.getElementById('installmentNotesInput');
+
+  if (instId) {
+    const inst = installments.find(i => i.id === instId);
+    if (!inst) return;
+    if (titleHeader) titleHeader.innerText = 'แก้ไขรายการผ่อน/สต็อก';
+    if (editIdInput) editIdInput.value = inst.id;
+    if (titleInput) titleInput.value = inst.title || '';
+    if (totalMonthsInput) totalMonthsInput.value = inst.totalMonths || 12;
+    if (paidMonthsInput) paidMonthsInput.value = inst.paidMonths || 0;
+    if (monthlyAmtInput) monthlyAmtInput.value = inst.monthlyAmount || '';
+    if (notesInput) notesInput.value = inst.notes || '';
+  } else {
+    if (titleHeader) titleHeader.innerText = 'เพิ่มรายการผ่อน/สต็อกระยะยาว';
+    if (editIdInput) editIdInput.value = '';
+    if (titleInput) titleInput.value = '';
+    if (totalMonthsInput) totalMonthsInput.value = '12';
+    if (paidMonthsInput) paidMonthsInput.value = '0';
+    if (monthlyAmtInput) monthlyAmtInput.value = '';
+    if (notesInput) notesInput.value = '';
+  }
+
+  modal.classList.remove('hidden');
+}
+
+function closeInstallmentModal() {
+  const modal = document.getElementById('installmentModal');
+  if (modal) modal.classList.add('hidden');
+}
+
+function saveInstallmentModal() {
+  const editId = document.getElementById('installmentEditId').value;
+  const title = document.getElementById('installmentTitleInput').value.trim();
+  const totalMonths = parseInt(document.getElementById('installmentTotalMonthsInput').value) || 1;
+  const paidMonths = parseInt(document.getElementById('installmentPaidMonthsInput').value) || 0;
+  const monthlyAmount = parseFloat(document.getElementById('installmentMonthlyAmountInput').value) || 0;
+  const notes = document.getElementById('installmentNotesInput').value.trim();
+
+  if (!title) {
+    showToast('⚠️ กรุณาระบุชื่อรายการผ่อน/สต็อก', 'warning');
+    return;
+  }
+
+  if (editId) {
+    const idx = installments.findIndex(i => i.id === editId);
+    if (idx >= 0) {
+      installments[idx] = {
+        ...installments[idx],
+        title,
+        totalMonths,
+        paidMonths,
+        monthlyAmount,
+        notes,
+        updatedAt: new Date().toISOString()
+      };
+      showToast('แก้ไขข้อมูลรายการผ่อนเรียบร้อยแล้ว', 'success');
+    }
+  } else {
+    const newInst = {
+      id: 'inst_' + Date.now(),
+      title,
+      totalMonths,
+      paidMonths,
+      monthlyAmount,
+      notes,
+      category: title,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    };
+    installments.push(newInst);
+    showToast('เพิ่มรายการผ่อน/สต็อกเรียบร้อยแล้ว', 'success');
+  }
+
+  saveToStorage('coffeeshop_installments', installments);
+  closeInstallmentModal();
+  renderInstallmentCards();
+}
+
+function deleteInstallment(instId) {
+  const inst = installments.find(i => i.id === instId);
+  if (!inst) return;
+
+  if (confirm(`คุณต้องการลบรายการ "${inst.title}" ใช่หรือไม่?`)) {
+    installments = installments.filter(i => i.id !== instId);
+    saveToStorage('coffeeshop_installments', installments);
+    renderInstallmentCards();
+    showToast('ลบรายการเรียบร้อยแล้ว', 'info');
+  }
+}
