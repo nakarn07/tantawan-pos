@@ -5315,11 +5315,11 @@ function openCheckoutModal() {
     }
   }
 
-  // Set default view (Cash)
-  setCheckoutMethod('cash');
-
-  // Trigger quick cash buttons calculations
+  // Trigger quick cash buttons calculations & reset inputs
   renderQuickCashButtons(total);
+
+  // Set default view (Cash) -> syncs with customer screen
+  setCheckoutMethod('cash');
 
   // Render QR Code (Bank Account / PromptPay / QR Image)
   renderCheckoutQr(total);
@@ -5340,7 +5340,7 @@ function closeCheckoutModal() {
   }, 100);
 
   if (typeof syncCustomerDisplay === 'function') {
-    syncCustomerDisplay('HIDE_QR');
+    syncCustomerDisplay('HIDE_PAYMENT');
   }
 }
 
@@ -5363,8 +5363,8 @@ function setCheckoutMethod(method) {
       document.getElementById('cashReceivedInput').focus();
     }, 150);
 
-    if (typeof syncCustomerDisplay === 'function') {
-      syncCustomerDisplay('HIDE_QR');
+    if (typeof broadcastCustomerCash === 'function') {
+      broadcastCustomerCash();
     }
   } else {
     cashBtn.className = 'flex flex-col items-center justify-center p-4 border border-slate-300 dark:border-slate-700 hover:border-slate-400 dark:hover:border-slate-600 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-xl font-semibold transition';
@@ -5451,6 +5451,16 @@ function calculateCashChange() {
     document.getElementById('cashChangeDisplay').innerText = `เหลืออีก ฿${(total - received).toFixed(2)}`;
     document.getElementById('cashChangeDisplay').parentElement.className = 'bg-amber-100 dark:bg-amber-950/60 p-4 rounded-xl border border-amber-200 dark:border-amber-800/80 text-center mt-4';
     document.getElementById('cashChangeDisplay').className = 'text-xl font-bold text-amber-900 dark:text-amber-200 mt-1 block';
+  }
+
+  // Real-time broadcast to customer display
+  if (checkoutMethod === 'cash' && typeof syncCustomerDisplay === 'function') {
+    syncCustomerDisplay('UPDATE_CASH', {
+      total: total,
+      cashReceived: received,
+      change: change,
+      remaining: Math.max(0, total - received)
+    });
   }
 }
 
@@ -9842,6 +9852,20 @@ function syncCustomerDisplay(type, payload = null) {
       };
     } else if (type === 'HIDE_QR') {
       eventData = { type: 'HIDE_QR' };
+    } else if (type === 'SHOW_CASH') {
+      eventData = {
+        type: 'SHOW_CASH',
+        cashData: payload
+      };
+    } else if (type === 'UPDATE_CASH') {
+      eventData = {
+        type: 'UPDATE_CASH',
+        cashData: payload
+      };
+    } else if (type === 'HIDE_CASH') {
+      eventData = { type: 'HIDE_CASH' };
+    } else if (type === 'HIDE_PAYMENT') {
+      eventData = { type: 'HIDE_PAYMENT' };
     } else if (type === 'PAYMENT_SUCCESS') {
       eventData = { 
         type: 'PAYMENT_SUCCESS',
@@ -9881,11 +9905,47 @@ customerDisplayChannel.onmessage = (e) => {
         broadcastCustomerCustomization('START');
       }
     }
-    if (checkoutMethod === 'promptpay' && !document.getElementById('checkoutModal').classList.contains('hidden')) {
-      broadcastCustomerQr();
+    const checkoutModal = document.getElementById('checkoutModal');
+    if (checkoutModal && !checkoutModal.classList.contains('hidden')) {
+      if (checkoutMethod === 'promptpay') {
+        broadcastCustomerQr();
+      } else if (checkoutMethod === 'cash') {
+        broadcastCustomerCash();
+      }
     }
   }
 };
+
+function broadcastCustomerCash() {
+  const calc = getCartCalculation();
+  const total = calc.total;
+  const cashInput = document.getElementById('cashReceivedInput');
+  const received = parseFloat(cashInput ? cashInput.value : '0') || 0;
+  const change = Math.max(0, received - total);
+  const remaining = Math.max(0, total - received);
+
+  const payload = {
+    total: total,
+    subtotal: calc.subtotal,
+    discount: calc.discount,
+    cashReceived: received,
+    change: change,
+    remaining: remaining,
+    items: cart.map(item => ({
+      name: item.name,
+      qty: item.qty,
+      pricePerItem: item.pricePerItem,
+      itemTotal: item.itemTotal,
+      selectedOptions: item.selectedOptions || [],
+      selectedSweetness: item.selectedSweetness || '',
+      selectedTemp: item.selectedTemp || '',
+      selectedExtras: item.selectedExtras || [],
+      isCustomPrice: item.isCustomPrice || false,
+      customPriceNote: item.customPriceNote || item.customNotes || ''
+    }))
+  };
+  syncCustomerDisplay('SHOW_CASH', payload);
+}
 
 function broadcastCustomerQr() {
   const { total } = getCartCalculation();

@@ -725,6 +725,90 @@
   </div>
 
   <!-- =========================================================================
+       FULLSCREEN MODAL OVERLAY: CASH PAYMENT & LIVE CHANGE DISPLAY
+       ========================================================================= -->
+  <div id="customerCashModal" class="fixed inset-0 bg-slate-950/90 backdrop-blur-md z-50 flex items-center justify-center p-4 hidden">
+    <div class="bg-slate-900 border-2 border-emerald-500/40 rounded-3xl p-5 sm:p-7 max-w-lg w-full shadow-2xl text-left space-y-4 fade-in-scale relative overflow-hidden max-h-[92vh] flex flex-col">
+      <!-- Ambient Glow effects -->
+      <div class="absolute -top-20 -right-20 w-48 h-48 bg-amber-500/15 rounded-full blur-3xl pointer-events-none"></div>
+      <div class="absolute -bottom-20 -left-20 w-48 h-48 bg-emerald-500/15 rounded-full blur-3xl pointer-events-none"></div>
+
+      <!-- Header row: Badge + Live Status -->
+      <div class="flex items-center justify-between flex-shrink-0">
+        <div class="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 text-xs font-bold">
+          <span class="text-sm">💵</span>
+          <span>ชำระด้วยเงินสด (Cash Payment)</span>
+        </div>
+        <div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-800/80 border border-slate-700 text-slate-300 text-[11px] font-medium">
+          <span class="w-2 h-2 rounded-full bg-amber-400 animate-pulse"></span>
+          <span>กำลังคิดเงินที่เคาน์เตอร์</span>
+        </div>
+      </div>
+
+      <!-- Title & Subtitle -->
+      <div class="flex-shrink-0">
+        <h3 class="text-xl sm:text-2xl font-black text-white">ร้านทานตะวัน TANTAWAN CAFÉ</h3>
+        <p class="text-xs text-slate-400 mt-0.5">กรุณาตรวจสอบรายการและเตรียมเงินสดตามยอดชำระค่ะ</p>
+      </div>
+
+      <!-- Items List Box (Scrollable) -->
+      <div class="flex-1 min-h-0 flex flex-col space-y-1.5">
+        <div class="flex items-center justify-between text-xs text-slate-400 font-semibold px-1">
+          <span>สรุปรายการสั่งซื้อ</span>
+          <span id="customerCashItemCountBadge" class="text-amber-400 font-bold">0 รายการ</span>
+        </div>
+        <div id="customerCashItemsPreview" class="bg-slate-950/70 rounded-2xl p-3 overflow-y-auto border border-slate-800 divide-y divide-slate-800/60 max-h-36 sm:max-h-44 space-y-2">
+          <!-- Dynamically populated -->
+        </div>
+      </div>
+
+      <!-- Financial Breakdown Grid -->
+      <div class="space-y-2.5 flex-shrink-0">
+        <!-- Total to Pay (Big Amber Box) -->
+        <div class="bg-slate-950/90 p-3.5 sm:p-4 rounded-2xl border border-amber-500/40 flex items-center justify-between shadow-inner">
+          <div>
+            <span class="text-xs font-bold text-slate-300 block">ยอดเงินที่ต้องชำระ</span>
+            <span class="text-[11px] text-amber-400/80 font-medium">Total Amount</span>
+          </div>
+          <span id="customerCashTotalAmount" class="text-2xl sm:text-3xl font-black text-amber-400 tracking-tight">฿0.00</span>
+        </div>
+
+        <!-- 2-Columns: Received vs Change -->
+        <div class="grid grid-cols-2 gap-2.5">
+          <!-- Received -->
+          <div class="bg-slate-950/90 p-3 rounded-2xl border border-blue-500/30 flex flex-col justify-between">
+            <div class="flex items-center justify-between">
+              <span class="text-xs font-semibold text-slate-400">รับเงินสดมา</span>
+              <span class="text-[10px] text-blue-400 font-mono font-bold">CASH</span>
+            </div>
+            <div class="mt-1">
+              <span id="customerCashReceivedAmount" class="text-xl sm:text-2xl font-black text-blue-400 tracking-tight block">฿0.00</span>
+              <span id="customerCashReceivedStatus" class="text-[11px] font-medium text-slate-400 mt-0.5 block">รอรับเงินสด...</span>
+            </div>
+          </div>
+
+          <!-- Change -->
+          <div id="customerCashChangeBox" class="bg-slate-950/90 p-3 rounded-2xl border border-slate-700/60 flex flex-col justify-between transition-colors duration-300">
+            <div class="flex items-center justify-between">
+              <span class="text-xs font-semibold text-slate-400">เงินทอน</span>
+              <span class="text-[10px] text-emerald-400 font-mono font-bold">CHANGE</span>
+            </div>
+            <div class="mt-1">
+              <span id="customerCashChangeAmount" class="text-xl sm:text-2xl font-black text-slate-400 tracking-tight block transition-colors duration-300">฿0.00</span>
+              <span id="customerCashChangeStatus" class="text-[11px] font-medium text-slate-400 mt-0.5 block">รอคำนวณเงินทอน</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Quick Advice Footer -->
+      <div class="text-center text-[11px] text-slate-400 pt-1 flex-shrink-0">
+        <span>💡 หากสะดวกสแกน QR โอนเงิน แจ้งพนักงานให้เปลี่ยนเป็น QR ได้เลยนะคะ</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- =========================================================================
        FULLSCREEN MODAL OVERLAY: PAYMENT SUCCESS
        ========================================================================= -->
   <div id="customerSuccessModal" class="fixed inset-0 bg-slate-950/95 backdrop-blur-md z-50 flex items-center justify-center p-4 hidden">
@@ -894,7 +978,11 @@
       return html ? `<div class="flex flex-wrap items-center gap-1.5 mt-0.5">${html}</div>` : '';
     }
 
+    let lastCustomerOrderData = null;
+    let currentCustomerCashData = null;
+
     function renderCustomerOrder(data) {
+      lastCustomerOrderData = data;
       const { cart = [], subtotal = 0, discount = 0, total = 0, discountDetail = null } = data;
       
       const emptyState = document.getElementById('emptyOrderState');
@@ -987,6 +1075,7 @@
     // SHOW / HIDE MODALS
     // -----------------------------------------------------------------------
     function showCustomerQr(qrData) {
+      hideCustomerCash();
       const modal = document.getElementById('customerQrModal');
       const canvas = document.getElementById('customerQrCanvas');
       const staticImg = document.getElementById('customerQrStaticImg');
@@ -1017,11 +1106,157 @@
     }
 
     function hideCustomerQr() {
-      document.getElementById('customerQrModal').classList.add('hidden');
+      const modal = document.getElementById('customerQrModal');
+      if (modal) modal.classList.add('hidden');
+    }
+
+    function showCustomerCash(cashData) {
+      hideCustomerQr();
+      const modal = document.getElementById('customerCashModal');
+      if (!modal) return;
+      currentCustomerCashData = cashData;
+
+      const total = Number(cashData.total) || 0;
+      const received = Number(cashData.cashReceived) || 0;
+      const change = Number(cashData.change) || 0;
+      const items = cashData.items || (lastCustomerOrderData && lastCustomerOrderData.cart) || [];
+
+      const totalEl = document.getElementById('customerCashTotalAmount');
+      if (totalEl) totalEl.innerText = `฿${total.toFixed(2)}`;
+
+      renderCustomerCashItemsPreview(items);
+      updateCustomerCashState(total, received, change);
+
+      modal.classList.remove('hidden');
+    }
+
+    function updateCustomerCashState(total, received, change) {
+      const receivedAmountEl = document.getElementById('customerCashReceivedAmount');
+      const receivedStatusEl = document.getElementById('customerCashReceivedStatus');
+      const changeBoxEl = document.getElementById('customerCashChangeBox');
+      const changeAmountEl = document.getElementById('customerCashChangeAmount');
+      const changeStatusEl = document.getElementById('customerCashChangeStatus');
+
+      if (receivedAmountEl) {
+        receivedAmountEl.innerText = `฿${received.toFixed(2)}`;
+      }
+
+      if (received <= 0) {
+        if (receivedStatusEl) {
+          receivedStatusEl.innerHTML = `<span class="text-slate-400">รอรับเงินสด...</span>`;
+        }
+        if (changeBoxEl) {
+          changeBoxEl.className = 'bg-slate-950/90 p-3 rounded-2xl border border-slate-700/60 flex flex-col justify-between transition-colors duration-300';
+        }
+        if (changeAmountEl) {
+          changeAmountEl.innerText = '฿0.00';
+          changeAmountEl.className = 'text-xl sm:text-2xl font-black text-slate-400 tracking-tight block';
+        }
+        if (changeStatusEl) {
+          changeStatusEl.innerHTML = `<span class="text-slate-400">รอคำนวณเงินทอน</span>`;
+        }
+      } else if (received < total) {
+        const diff = total - received;
+        if (receivedStatusEl) {
+          receivedStatusEl.innerHTML = `<span class="text-amber-400 font-semibold">ยังขาดอีก ฿${diff.toFixed(2)}</span>`;
+        }
+        if (changeBoxEl) {
+          changeBoxEl.className = 'bg-slate-950/90 p-3 rounded-2xl border border-amber-500/40 flex flex-col justify-between transition-colors duration-300';
+        }
+        if (changeAmountEl) {
+          changeAmountEl.innerText = '฿0.00';
+          changeAmountEl.className = 'text-xl sm:text-2xl font-black text-amber-400/60 tracking-tight block';
+        }
+        if (changeStatusEl) {
+          changeStatusEl.innerHTML = `<span class="text-amber-400">ยังไม่พอยอดชำระ</span>`;
+        }
+      } else {
+        // received >= total
+        if (receivedStatusEl) {
+          receivedStatusEl.innerHTML = `<span class="text-blue-300 font-semibold">รับเงินมาครบแล้ว</span>`;
+        }
+        if (changeBoxEl) {
+          changeBoxEl.className = 'bg-emerald-950/40 p-3 rounded-2xl border-2 border-emerald-500/60 flex flex-col justify-between shadow-lg shadow-emerald-900/30 transition-colors duration-300';
+        }
+        if (changeAmountEl) {
+          changeAmountEl.innerText = `฿${change.toFixed(2)}`;
+          changeAmountEl.className = 'text-xl sm:text-2xl font-black text-emerald-400 tracking-tight block drop-shadow';
+        }
+        if (changeStatusEl) {
+          if (change === 0) {
+            changeStatusEl.innerHTML = `<span class="text-emerald-300 font-bold">จ่ายพอดี (ไม่มีเงินทอน)</span>`;
+          } else {
+            changeStatusEl.innerHTML = `<span class="text-emerald-300 font-bold">เงินทอนที่ต้องได้รับ</span>`;
+          }
+        }
+      }
+    }
+
+    function renderCustomerCashItemsPreview(items) {
+      const container = document.getElementById('customerCashItemsPreview');
+      const countBadge = document.getElementById('customerCashItemCountBadge');
+      if (!container) return;
+
+      if (!items || items.length === 0) {
+        container.innerHTML = `<div class="text-slate-400 text-xs py-3 text-center">ไม่มีรายการสินค้า</div>`;
+        if (countBadge) countBadge.innerText = '0 รายการ';
+        return;
+      }
+
+      const totalQty = items.reduce((sum, item) => sum + (item.qty || 1), 0);
+      if (countBadge) countBadge.innerText = `${totalQty} รายการ`;
+
+      container.innerHTML = '';
+      items.forEach(item => {
+        const row = document.createElement('div');
+        row.className = 'flex justify-between items-start py-1.5 first:pt-0 last:pb-0';
+
+        const modsHtml = (typeof getCustomerItemModifiersBadgesHtml === 'function')
+          ? getCustomerItemModifiersBadgesHtml(item)
+          : '';
+
+        const zeroBahtBadge = (item.itemTotal === 0 || item.pricePerItem === 0)
+          ? `<span class="px-1.5 py-0.2 rounded text-[10px] font-black bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 ml-1">ฟรี</span>`
+          : '';
+
+        const noteHtml = item.customPriceNote
+          ? `<div class="text-[10px] text-emerald-400 font-medium italic mt-0.5">📝 ${item.customPriceNote}</div>`
+          : '';
+
+        row.innerHTML = `
+          <div class="flex-1 pr-2">
+            <div class="flex items-center gap-1.5 flex-wrap">
+              <span class="px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300 font-bold text-[11px] border border-amber-500/30">
+                ${item.qty}x
+              </span>
+              <span class="text-xs font-bold text-white leading-tight">${item.name}</span>
+              ${zeroBahtBadge}
+            </div>
+            ${modsHtml}
+            ${noteHtml}
+          </div>
+          <div class="text-right flex-shrink-0">
+            <span class="text-xs font-bold ${item.itemTotal === 0 ? 'text-emerald-400' : 'text-amber-400'}">
+              ฿${(item.itemTotal || 0).toFixed(2)}
+            </span>
+          </div>
+        `;
+        container.appendChild(row);
+      });
+    }
+
+    function hideCustomerCash() {
+      const modal = document.getElementById('customerCashModal');
+      if (modal) modal.classList.add('hidden');
+    }
+
+    function hideCustomerPayment() {
+      hideCustomerQr();
+      hideCustomerCash();
     }
 
     function showPaymentSuccess(amount = 0, gender = 'female') {
-      hideCustomerQr();
+      hideCustomerPayment();
       const modal = document.getElementById('customerSuccessModal');
       modal.classList.remove('hidden');
 
@@ -3025,7 +3260,7 @@
           break;
 
         case 'CART_UPDATE':
-          hideCustomerQr();
+          hideCustomerPayment();
           if (activeCustomerCustomization) {
             completeCustomerCustomizing();
           }
@@ -3033,6 +3268,7 @@
           break;
 
         case 'SHOW_QR':
+          hideCustomerCash();
           showCustomerQr(eventData.qrData);
           break;
 
@@ -3040,14 +3276,41 @@
           hideCustomerQr();
           break;
 
+        case 'SHOW_CASH':
+          hideCustomerQr();
+          showCustomerCash(eventData.cashData || eventData);
+          break;
+
+        case 'UPDATE_CASH':
+          hideCustomerQr();
+          {
+            const cashModal = document.getElementById('customerCashModal');
+            if (cashModal && !cashModal.classList.contains('hidden')) {
+              const data = eventData.cashData || eventData;
+              updateCustomerCashState(Number(data.total) || 0, Number(data.cashReceived) || 0, Number(data.change) || 0);
+            } else {
+              showCustomerCash(eventData.cashData || eventData);
+            }
+          }
+          break;
+
+        case 'HIDE_CASH':
+          hideCustomerCash();
+          break;
+
+        case 'HIDE_PAYMENT':
+          hideCustomerPayment();
+          break;
+
         case 'PAYMENT_SUCCESS':
           hideCustomerCustomizing();
+          hideCustomerPayment();
           showPaymentSuccess(eventData.total || 0, eventData.voiceGender || 'female');
           renderCustomerOrder({ cart: [], subtotal: 0, discount: 0, total: 0 });
           break;
 
         case 'CLEAR_CART':
-          hideCustomerQr();
+          hideCustomerPayment();
           hideCustomerCustomizing();
           renderCustomerOrder({ cart: [], subtotal: 0, discount: 0, total: 0 });
           break;
