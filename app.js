@@ -2072,6 +2072,17 @@ function loadFromLocalStorage() {
       }).catch(() => {});
     }
 
+    // Sync remote expense categories from Supabase on startup
+    if (typeof fetchExpenseCategoriesFromCloud === 'function') {
+      fetchExpenseCategoriesFromCloud().then(cloudCats => {
+        if (cloudCats && Array.isArray(cloudCats) && cloudCats.length > 0) {
+          expenseCategories = cloudCats;
+          window.expenseCategories = expenseCategories;
+          if (typeof renderExpenseCategoryPills === 'function') renderExpenseCategoryPills();
+        }
+      }).catch(() => {});
+    }
+
     // Sync remote expenses from Supabase on startup
     if (typeof fetchExpensesFromCloud === 'function') {
       fetchExpensesFromCloud().then(cloudExpenses => {
@@ -11077,9 +11088,12 @@ function renderExpenseTable() {
       <td class="px-4 py-3 text-center text-xs text-slate-500 dark:text-slate-400 whitespace-nowrap">
         ${e.cashierName || 'แคชเชียร์'}
       </td>
-      <td class="px-4 py-3 text-center whitespace-nowrap">
+      <td class="px-4 py-3 text-center whitespace-nowrap space-x-1">
+        <button type="button" onclick="editExpense('${e.id}')" title="แก้ไขรายการ" class="p-1.5 rounded-lg text-slate-400 hover:text-amber-600 hover:bg-amber-50 dark:hover:bg-amber-950/50 transition text-xs font-semibold">
+          ✏️
+        </button>
         <button type="button" onclick="deleteExpense('${e.id}')" title="ลบรายการ" class="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/50 transition">
-          <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 inline" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
           </svg>
         </button>
@@ -11143,7 +11157,11 @@ function renderExpenseCategoryPills() {
   if (!container) return;
   container.innerHTML = '';
 
-  DEFAULT_EXPENSE_CATEGORIES.forEach(cat => {
+  const cats = (Array.isArray(expenseCategories) && expenseCategories.length > 0) 
+    ? expenseCategories 
+    : DEFAULT_EXPENSE_CATEGORIES;
+
+  cats.forEach(cat => {
     const isSelected = (cat.name === selectedModalCategory);
     const btn = document.createElement('button');
     btn.type = 'button';
@@ -11153,15 +11171,29 @@ function renderExpenseCategoryPills() {
         : 'border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800/60 text-slate-700 dark:text-slate-300 hover:border-slate-300 dark:hover:border-slate-600 text-xs font-semibold'
     }`;
     btn.innerHTML = `
-      <span class="text-lg">${cat.icon}</span>
-      <div class="truncate">
+      <span class="text-lg flex-shrink-0">${cat.icon || '🏷️'}</span>
+      <div class="truncate flex-1 min-w-0">
         <div class="truncate text-xs leading-tight">${cat.name}</div>
-        <div class="text-[10px] text-slate-400 font-normal">${cat.freq}</div>
+        <div class="text-[10px] text-slate-400 font-normal truncate">${cat.freq || ''}</div>
       </div>
     `;
     btn.onclick = () => selectExpenseCategory(cat.name, cat.defaultSource);
     container.appendChild(btn);
   });
+
+  // Append "+ เพิ่ม/แก้ไขหมวดหมู่" pill
+  const addBtn = document.createElement('button');
+  addBtn.type = 'button';
+  addBtn.className = 'p-2.5 rounded-xl border border-dashed border-amber-300 dark:border-amber-700 bg-amber-50/50 dark:bg-amber-950/20 hover:bg-amber-100/70 dark:hover:bg-amber-900/40 text-amber-700 dark:text-amber-300 text-left transition flex items-center gap-2 font-bold text-xs';
+  addBtn.innerHTML = `
+    <span class="text-base flex-shrink-0">⚙️</span>
+    <div class="truncate flex-1 min-w-0">
+      <div class="text-xs leading-tight">+ เพิ่ม/แก้ไข</div>
+      <div class="text-[10px] opacity-75 font-normal truncate">จัดการหมวดหมู่</div>
+    </div>
+  `;
+  addBtn.onclick = () => openExpenseCategoryManagerModal();
+  container.appendChild(addBtn);
 }
 
 function selectExpenseCategory(catName, defaultSource) {
@@ -11497,4 +11529,172 @@ function deleteInstallment(instId) {
     renderInstallmentCards();
     showToast('ลบรายการเรียบร้อยแล้ว', 'info');
   }
+}
+
+
+// --------------------------------------------------------------------------
+// EXPENSE CATEGORY MANAGER FUNCTIONS (จัดการ/เพิ่ม/แก้ไข/ลบหมวดหมู่รายจ่าย)
+// --------------------------------------------------------------------------
+
+function openExpenseCategoryManagerModal() {
+  const modal = document.getElementById('expenseCategoryManagerModal');
+  if (!modal) return;
+  cancelEditExpenseCategory();
+  renderExpenseCategoryManagerList();
+  modal.classList.remove('hidden');
+}
+
+function closeExpenseCategoryManagerModal() {
+  const modal = document.getElementById('expenseCategoryManagerModal');
+  if (modal) modal.classList.add('hidden');
+  renderExpenseCategoryPills();
+}
+
+function setExpenseCatEmoji(emoji) {
+  const input = document.getElementById('expenseCatIconInput');
+  if (input) input.value = emoji;
+}
+
+function renderExpenseCategoryManagerList() {
+  const container = document.getElementById('expenseCategoryListContainer');
+  if (!container) return;
+  container.innerHTML = '';
+
+  const cats = (Array.isArray(expenseCategories) && expenseCategories.length > 0) 
+    ? expenseCategories 
+    : DEFAULT_EXPENSE_CATEGORIES;
+
+  cats.forEach(cat => {
+    const item = document.createElement('div');
+    item.className = 'flex items-center justify-between p-2.5 rounded-xl bg-white dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700/80 text-xs shadow-sm hover:border-slate-300 dark:hover:border-slate-600 transition';
+
+    const sourceBadge = (cat.defaultSource === 'transfer')
+      ? '<span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 dark:bg-emerald-950/80 dark:text-emerald-300">📱 โอนเงิน</span>'
+      : '<span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800 dark:bg-amber-950/80 dark:text-amber-300">💵 ในเก๊ะ</span>';
+
+    item.innerHTML = `
+      <div class="flex items-center gap-2.5 min-w-0 flex-1">
+        <span class="text-xl flex-shrink-0">${cat.icon || '🏷️'}</span>
+        <div class="truncate min-w-0">
+          <div class="font-bold text-slate-800 dark:text-slate-100 text-xs truncate">${cat.name}</div>
+          <div class="text-[10px] text-slate-400 flex items-center gap-1.5 mt-0.5">
+            <span>${cat.freq || 'ทั่วไป'}</span>
+            <span>•</span>
+            ${sourceBadge}
+          </div>
+        </div>
+      </div>
+      <div class="flex items-center gap-1 flex-shrink-0 ml-2">
+        <button type="button" onclick="editExpenseCategory('${cat.id}')" title="แก้ไข" class="p-1.5 rounded-lg text-slate-400 hover:text-amber-600 hover:bg-slate-100 dark:hover:bg-slate-700 transition">
+          ✏️
+        </button>
+        <button type="button" onclick="deleteExpenseCategory('${cat.id}')" title="ลบ" class="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/50 transition">
+          🗑️
+        </button>
+      </div>
+    `;
+    container.appendChild(item);
+  });
+}
+
+function editExpenseCategory(catId) {
+  const cat = expenseCategories.find(c => c.id === catId);
+  if (!cat) return;
+
+  document.getElementById('expenseCatEditId').value = cat.id;
+  document.getElementById('expenseCatNameInput').value = cat.name;
+  document.getElementById('expenseCatIconInput').value = cat.icon || '🏷️';
+  document.getElementById('expenseCatFreqInput').value = cat.freq || 'ทั่วไป';
+  document.getElementById('expenseCatDefaultSourceInput').value = cat.defaultSource || 'cash';
+
+  document.getElementById('expenseCatFormTitle').innerText = `✏️ กำลังแก้ไขหมวดหมู่: ${cat.name}`;
+  const cancelBtn = document.getElementById('btnCancelEditCat');
+  if (cancelBtn) cancelBtn.classList.remove('hidden');
+
+  const nameInput = document.getElementById('expenseCatNameInput');
+  if (nameInput) nameInput.focus();
+}
+
+function cancelEditExpenseCategory() {
+  document.getElementById('expenseCatEditId').value = '';
+  document.getElementById('expenseCatNameInput').value = '';
+  document.getElementById('expenseCatIconInput').value = '🏷️';
+  document.getElementById('expenseCatFreqInput').value = 'รายวัน';
+  document.getElementById('expenseCatDefaultSourceInput').value = 'cash';
+
+  document.getElementById('expenseCatFormTitle').innerText = '+ เพิ่มหมวดหมู่ใหม่';
+  const cancelBtn = document.getElementById('btnCancelEditCat');
+  if (cancelBtn) cancelBtn.classList.add('hidden');
+}
+
+function saveExpenseCategory() {
+  const editId = document.getElementById('expenseCatEditId').value;
+  const name = document.getElementById('expenseCatNameInput').value.trim();
+  const icon = document.getElementById('expenseCatIconInput').value.trim() || '🏷️';
+  const freq = document.getElementById('expenseCatFreqInput').value;
+  const defaultSource = document.getElementById('expenseCatDefaultSourceInput').value;
+
+  if (!name) {
+    showToast('⚠️ กรุณาระบุชื่อหมวดหมู่รายจ่าย', 'warning');
+    return;
+  }
+
+  if (editId) {
+    const idx = expenseCategories.findIndex(c => c.id === editId);
+    if (idx >= 0) {
+      expenseCategories[idx] = {
+        ...expenseCategories[idx],
+        name,
+        icon,
+        freq,
+        defaultSource
+      };
+      showToast(`แก้ไขหมวดหมู่ "${name}" เรียบร้อยแล้ว`, 'success');
+    }
+  } else {
+    const newCat = {
+      id: 'cat_' + Date.now(),
+      name,
+      icon,
+      freq,
+      defaultSource
+    };
+    expenseCategories.push(newCat);
+    showToast(`เพิ่มหมวดหมู่ "${name}" เรียบร้อยแล้ว`, 'success');
+  }
+
+  saveToStorage('coffeeshop_expense_categories', expenseCategories);
+  cancelEditExpenseCategory();
+  renderExpenseCategoryManagerList();
+  renderExpenseCategoryPills();
+}
+
+function deleteExpenseCategory(catId) {
+  const cat = expenseCategories.find(c => c.id === catId);
+  if (!cat) return;
+
+  if (confirm(`คุณต้องการลบหมวดหมู่ "${cat.name}" ใช่หรือไม่?`)) {
+    expenseCategories = expenseCategories.filter(c => c.id !== catId);
+    saveToStorage('coffeeshop_expense_categories', expenseCategories);
+    renderExpenseCategoryManagerList();
+    renderExpenseCategoryPills();
+    showToast('ลบหมวดหมู่เรียบร้อยแล้ว', 'info');
+  }
+}
+
+function resetExpenseCategoriesToDefault() {
+  if (confirm('ต้องการคืนค่าหมวดหมู่รายจ่ายเป็นค่าเริ่มต้น (9 หมวดหมู่) ใช่หรือไม่?')) {
+    expenseCategories = JSON.parse(JSON.stringify(DEFAULT_EXPENSE_CATEGORIES));
+    saveToStorage('coffeeshop_expense_categories', expenseCategories);
+    cancelEditExpenseCategory();
+    renderExpenseCategoryManagerList();
+    renderExpenseCategoryPills();
+    showToast('คืนค่าหมวดหมู่รายจ่ายเริ่มต้นเรียบร้อยแล้ว', 'success');
+  }
+}
+
+function editExpense(id) {
+  const exp = expenses.find(e => e.id === id);
+  if (!exp) return;
+  openExpenseModal(null, null, null, exp);
 }
