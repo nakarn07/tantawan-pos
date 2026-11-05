@@ -6738,6 +6738,9 @@ function calculateReportStats() {
   // Render SVG Chart graph
   renderSVGChart(filtered);
 
+  // Render Interactive Pie/Donut Chart
+  if (typeof renderPieChart === 'function') renderPieChart();
+
   // Render expenses table & installment cards if active
   if (typeof renderExpenseTable === 'function') renderExpenseTable();
   if (typeof renderInstallmentCards === 'function') renderInstallmentCards();
@@ -12059,4 +12062,359 @@ function editExpense(id) {
   const exp = expenses.find(e => e.id === id);
   if (!exp) return;
   openExpenseModal(null, null, null, exp);
+}
+
+
+// ==========================================================================
+// INTERACTIVE PIE / DONUT INFOGRAPHIC CHART ENGINE
+// ==========================================================================
+
+let currentPieMode = 'finance'; // 'finance', 'category', 'product'
+let currentPieMetric = 'revenue'; // 'revenue' or 'qty'
+let currentPieSelectedCategory = 'all';
+
+function setPieChartMode(mode) {
+  currentPieMode = mode;
+  ['finance', 'category', 'product'].forEach(m => {
+    const btn = document.getElementById(`btn-piemode-${m}`);
+    if (btn) {
+      if (m === mode) {
+        btn.className = 'flex-1 py-1.5 px-2.5 rounded-lg bg-coffee-600 text-white shadow-sm transition whitespace-nowrap text-center font-bold text-xs';
+      } else {
+        btn.className = 'flex-1 py-1.5 px-2.5 rounded-lg text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition whitespace-nowrap text-center font-bold text-xs';
+      }
+    }
+  });
+
+  const catWrapper = document.getElementById('pieCategoryFilterWrapper');
+  const metricToggle = document.getElementById('pieMetricToggle');
+  const subtitle = document.getElementById('pieChartSubtitle');
+
+  if (catWrapper) {
+    if (mode === 'product') {
+      catWrapper.classList.remove('hidden');
+      updatePieCategoryDropdown();
+    } else {
+      catWrapper.classList.add('hidden');
+    }
+  }
+
+  if (metricToggle) {
+    if (mode === 'finance') {
+      metricToggle.classList.add('hidden');
+    } else {
+      metricToggle.classList.remove('hidden');
+    }
+  }
+
+  if (subtitle) {
+    if (mode === 'finance') subtitle.innerText = 'สัดส่วนกระแสเงินสด: รับเงินสด vs โอนเงิน vs จ่ายในเก๊ะ vs โอนจ่าย';
+    else if (mode === 'category') subtitle.innerText = 'สัดส่วนยอดขายเปรียบเทียบระหว่างแต่ละหมวดหมู่สินค้า';
+    else if (mode === 'product') subtitle.innerText = 'สัดส่วน 5 เมนูขายดีเด่นประจำหมวดหมู่';
+  }
+
+  renderPieChart();
+}
+
+function setPieChartMetric(metric) {
+  currentPieMetric = metric;
+  const btnRev = document.getElementById('btn-piemetric-rev');
+  const btnQty = document.getElementById('btn-piemetric-qty');
+
+  if (btnRev && btnQty) {
+    if (metric === 'revenue') {
+      btnRev.className = 'px-2.5 py-1 rounded-md bg-amber-600 text-white shadow-sm transition font-bold text-[11px]';
+      btnQty.className = 'px-2.5 py-1 rounded-md text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-white transition font-bold text-[11px]';
+    } else {
+      btnQty.className = 'px-2.5 py-1 rounded-md bg-amber-600 text-white shadow-sm transition font-bold text-[11px]';
+      btnRev.className = 'px-2.5 py-1 rounded-md text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-white transition font-bold text-[11px]';
+    }
+  }
+
+  renderPieChart();
+}
+
+function onPieCategoryChange(cat) {
+  currentPieSelectedCategory = cat;
+  renderPieChart();
+}
+
+function updatePieCategoryDropdown() {
+  const select = document.getElementById('pieCategorySelect');
+  if (!select) return;
+  const currentVal = currentPieSelectedCategory;
+  select.innerHTML = '<option value="all">ทุกหมวดหมู่ (All)</option>';
+  (categories || []).forEach(cat => {
+    const opt = document.createElement('option');
+    opt.value = cat;
+    opt.innerText = cat;
+    if (cat === currentVal) opt.selected = true;
+    select.appendChild(opt);
+  });
+}
+
+function getDonutSlicePath(cx, cy, rInner, rOuter, startAngle, endAngle) {
+  const a1 = startAngle - Math.PI / 2;
+  const a2 = endAngle - Math.PI / 2;
+
+  const x1 = cx + rOuter * Math.cos(a1);
+  const y1 = cy + rOuter * Math.sin(a1);
+  const x2 = cx + rOuter * Math.cos(a2);
+  const y2 = cy + rOuter * Math.sin(a2);
+
+  const x3 = cx + rInner * Math.cos(a2);
+  const y3 = cy + rInner * Math.sin(a2);
+  const x4 = cx + rInner * Math.cos(a1);
+  const y4 = cy + rInner * Math.sin(a1);
+
+  const largeArc = (endAngle - startAngle) > Math.PI ? 1 : 0;
+
+  return `M ${x1.toFixed(2)} ${y1.toFixed(2)} A ${rOuter} ${rOuter} 0 ${largeArc} 1 ${x2.toFixed(2)} ${y2.toFixed(2)} L ${x3.toFixed(2)} ${y3.toFixed(2)} A ${rInner} ${rInner} 0 ${largeArc} 0 ${x4.toFixed(2)} ${y4.toFixed(2)} Z`;
+}
+
+function renderPieChart() {
+  const svgWrapper = document.getElementById('pieSvgWrapper');
+  const legendContainer = document.getElementById('pieLegendContainer');
+  if (!svgWrapper || !legendContainer) return;
+
+  svgWrapper.innerHTML = '';
+  legendContainer.innerHTML = '';
+
+  const filteredOrders = getFilteredOrders();
+  const filteredExp = getFilteredExpenses();
+
+  const isDark = document.documentElement.classList.contains('dark');
+  const bgCenter = isDark ? '#0f172a' : '#ffffff';
+  const textColor = isDark ? '#f8fafc' : '#0f172a';
+  const subtextColor = isDark ? '#94a3b8' : '#64748b';
+  const strokeColor = isDark ? '#1e293b' : '#ffffff';
+
+  let chartData = null;
+
+  if (currentPieMode === 'finance') {
+    let cashSales = 0, transferSales = 0;
+    filteredOrders.forEach(o => {
+      if (o.status !== 'voided') {
+        if (o.paymentMethod === 'เงินสด') cashSales += o.total;
+        else transferSales += o.total;
+      }
+    });
+
+    let cashExp = 0, transferExp = 0;
+    filteredExp.forEach(e => {
+      const amt = parseFloat(e.amount) || 0;
+      if (e.source === 'cash') cashExp += amt;
+      else transferExp += amt;
+    });
+
+    const netProfit = (cashSales + transferSales) - (cashExp + transferExp);
+    const profitMargin = (cashSales + transferSales) > 0 ? ((netProfit / (cashSales + transferSales)) * 100).toFixed(1) : '0.0';
+
+    const items = [
+      { label: 'รับเงินสด (Cash Sales)', val: cashSales, color: '#f59e0b', icon: '💵' },
+      { label: 'รับโอน/QR (PromptPay)', val: transferSales, color: '#10b981', icon: '📱' },
+      { label: 'จ่ายในเก๊ะ (Drawer Cash)', val: cashExp, color: '#f43f5e', icon: '💸' },
+      { label: 'โอนจ่ายบัญชี (Transfer Exp)', val: transferExp, color: '#8b5cf6', icon: '🏦' }
+    ].filter(i => i.val > 0);
+
+    const total = items.reduce((sum, i) => sum + i.val, 0);
+
+    chartData = {
+      total,
+      centerLabel: 'กำไรสุทธิ',
+      centerValue: `฿${netProfit.toLocaleString(undefined, {minimumFractionDigits: 0, maximumFractionDigits: 0})}`,
+      centerSub: `${profitMargin}% มาร์จิ้น`,
+      items: items.map(i => ({
+        ...i,
+        pct: total > 0 ? ((i.val / total) * 100).toFixed(1) : '0.0',
+        valFormatted: `฿${i.val.toLocaleString()}`
+      }))
+    };
+  } else if (currentPieMode === 'category') {
+    const catMap = {};
+    filteredOrders.forEach(o => {
+      if (o.status === 'voided') return;
+      (o.items || []).forEach(item => {
+        const prod = products.find(p => p.id === item.id || p.name === item.name);
+        const cat = prod ? prod.category : (item.category || 'เมนูพิเศษ');
+        if (!catMap[cat]) catMap[cat] = { revenue: 0, qty: 0 };
+        catMap[cat].revenue += (item.itemTotal || (item.pricePerItem * item.qty) || 0);
+        catMap[cat].qty += item.qty;
+      });
+    });
+
+    const list = Object.keys(catMap).map(cat => ({
+      label: cat,
+      revenue: catMap[cat].revenue,
+      qty: catMap[cat].qty,
+      val: currentPieMetric === 'qty' ? catMap[cat].qty : catMap[cat].revenue
+    })).filter(i => i.val > 0);
+
+    list.sort((a, b) => b.val - a.val);
+
+    const colors = ['#f59e0b', '#06b6d4', '#10b981', '#8b5cf6', '#ec4899', '#64748b'];
+    const total = list.reduce((sum, i) => sum + i.val, 0);
+
+    chartData = {
+      total,
+      centerLabel: 'รวมทุกหมวด',
+      centerValue: currentPieMetric === 'qty' ? `${total} แก้ว` : `฿${total.toLocaleString(undefined, {maximumFractionDigits: 0})}`,
+      centerSub: `${list.length} หมวดหมู่`,
+      items: list.map((i, idx) => ({
+        ...i,
+        color: colors[idx % colors.length],
+        pct: total > 0 ? ((i.val / total) * 100).toFixed(1) : '0.0',
+        valFormatted: currentPieMetric === 'qty' ? `${i.qty} แก้ว (฿${i.revenue.toLocaleString()})` : `฿${i.revenue.toLocaleString()} (${i.qty} แก้ว)`
+      }))
+    };
+  } else if (currentPieMode === 'product') {
+    const prodMap = {};
+    filteredOrders.forEach(o => {
+      if (o.status === 'voided') return;
+      (o.items || []).forEach(item => {
+        const prod = products.find(p => p.id === item.id || p.name === item.name);
+        const cat = prod ? prod.category : (item.category || 'เมนูพิเศษ');
+        if (currentPieSelectedCategory !== 'all' && cat !== currentPieSelectedCategory) return;
+
+        // Clean main name: ignore add-ons and extra option tags
+        const cleanName = prod ? prod.name : item.name.replace(/\s*\(.*?\)/g, '').replace(/\s*\[.*?\]/g, '').trim();
+        if (!prodMap[cleanName]) prodMap[cleanName] = { revenue: 0, qty: 0 };
+        prodMap[cleanName].revenue += (item.itemTotal || (item.pricePerItem * item.qty) || 0);
+        prodMap[cleanName].qty += item.qty;
+      });
+    });
+
+    const allItems = Object.keys(prodMap).map(name => ({
+      label: name,
+      revenue: prodMap[name].revenue,
+      qty: prodMap[name].qty,
+      val: currentPieMetric === 'qty' ? prodMap[name].qty : prodMap[name].revenue
+    })).filter(i => i.val > 0);
+
+    allItems.sort((a, b) => b.val - a.val);
+
+    const colors = ['#d97706', '#0284c7', '#059669', '#7c3aed', '#db2777', '#64748b'];
+    let finalItems = [];
+
+    if (allItems.length <= 5) {
+      finalItems = allItems;
+    } else {
+      const top5 = allItems.slice(0, 5);
+      const others = allItems.slice(5);
+      const othersRev = others.reduce((s, i) => s + i.revenue, 0);
+      const othersQty = others.reduce((s, i) => s + i.qty, 0);
+      top5.push({
+        label: `อื่นๆ (${others.length} เมนู)`,
+        revenue: othersRev,
+        qty: othersQty,
+        val: currentPieMetric === 'qty' ? othersQty : othersRev
+      });
+      finalItems = top5;
+    }
+
+    const total = finalItems.reduce((sum, i) => sum + i.val, 0);
+
+    chartData = {
+      total,
+      centerLabel: currentPieSelectedCategory === 'all' ? 'รวมยอดขาย' : currentPieSelectedCategory,
+      centerValue: currentPieMetric === 'qty' ? `${total} แก้ว` : `฿${total.toLocaleString(undefined, {maximumFractionDigits: 0})}`,
+      centerSub: `${allItems.length} เมนู`,
+      items: finalItems.map((i, idx) => ({
+        ...i,
+        color: colors[idx % colors.length],
+        pct: total > 0 ? ((i.val / total) * 100).toFixed(1) : '0.0',
+        valFormatted: currentPieMetric === 'qty' ? `${i.qty} แก้ว (฿${i.revenue.toLocaleString()})` : `฿${i.revenue.toLocaleString()} (${i.qty} แก้ว)`
+      }))
+    };
+  }
+
+  // Handle empty data
+  if (!chartData || chartData.items.length === 0 || chartData.total === 0) {
+    svgWrapper.innerHTML = `
+      <div class="flex flex-col items-center justify-center text-slate-400 dark:text-slate-500 text-xs text-center p-4">
+        <span class="text-3xl mb-1 opacity-50">🍩</span>
+        <span>ไม่มีข้อมูลสำหรับแสดงแผนภูมิ</span>
+      </div>
+    `;
+    legendContainer.innerHTML = '<div class="text-center text-xs text-slate-400 py-4">ไม่มีรายการข้อมูลในช่วงเวลานี้</div>';
+    return;
+  }
+
+  // Draw SVG Donut Chart
+  const size = 200;
+  const cx = 100, cy = 100, rOuter = 88, rInner = 52;
+  let currentAngle = 0;
+
+  let svgHtml = `<svg viewBox="0 0 ${size} ${size}" class="w-full h-full transform transition-all duration-300">`;
+
+  chartData.items.forEach((item, idx) => {
+    const sliceAngle = (item.val / chartData.total) * (2 * Math.PI);
+    const startAngle = currentAngle;
+    const endAngle = currentAngle + sliceAngle;
+    currentAngle = endAngle;
+
+    let pathD = '';
+    if (chartData.items.length === 1) {
+      pathD = getDonutSlicePath(cx, cy, rInner, rOuter, 0, Math.PI) + ' ' + getDonutSlicePath(cx, cy, rInner, rOuter, Math.PI, 2 * Math.PI - 0.0001);
+    } else {
+      pathD = getDonutSlicePath(cx, cy, rInner, rOuter, startAngle, endAngle);
+    }
+
+    svgHtml += `
+      <path d="${pathD}" fill="${item.color}" stroke="${strokeColor}" stroke-width="2" class="cursor-pointer hover:opacity-85 transition-all duration-200">
+        <title>${item.label}: ${item.pct}% (${item.valFormatted})</title>
+      </path>
+    `;
+
+    // Percentage text inside slice if slice is large enough (>= 12%)
+    if (parseFloat(item.pct) >= 12 && chartData.items.length > 1) {
+      const midAngle = (startAngle + endAngle) / 2 - Math.PI / 2;
+      const rMid = (rOuter + rInner) / 2;
+      const tx = cx + rMid * Math.cos(midAngle);
+      const ty = cy + rMid * Math.sin(midAngle) + 3;
+      svgHtml += `
+        <text x="${tx.toFixed(1)}" y="${ty.toFixed(1)}" text-anchor="middle" font-size="9" font-weight="900" fill="#ffffff" pointer-events="none" class="drop-shadow-sm">
+          ${Math.round(item.pct)}%
+        </text>
+      `;
+    }
+  });
+
+  // Center circle cutout (Donut hole)
+  svgHtml += `
+    <circle cx="${cx}" cy="${cy}" r="${rInner - 1}" fill="${bgCenter}" stroke="${strokeColor}" stroke-width="1.5" class="drop-shadow-sm" />
+    <text x="${cx}" y="${cy - 8}" text-anchor="middle" font-size="9" font-weight="700" fill="${subtextColor}" class="uppercase tracking-wider">
+      ${chartData.centerLabel.length > 14 ? chartData.centerLabel.slice(0, 12) + '...' : chartData.centerLabel}
+    </text>
+    <text x="${cx}" y="${cy + 8}" text-anchor="middle" font-size="12" font-weight="900" fill="${textColor}">
+      ${chartData.centerValue}
+    </text>
+    ${chartData.centerSub ? `
+      <text x="${cx}" y="${cy + 20}" text-anchor="middle" font-size="8" font-weight="600" fill="${subtextColor}">
+        ${chartData.centerSub}
+      </text>
+    ` : ''}
+  `;
+
+  svgHtml += `</svg>`;
+  svgWrapper.innerHTML = svgHtml;
+
+  // Render Legend Items
+  chartData.items.forEach(item => {
+    const row = document.createElement('div');
+    row.className = 'flex items-center justify-between p-1.5 rounded-lg hover:bg-white dark:hover:bg-slate-800 transition text-xs group';
+    row.innerHTML = `
+      <div class="flex items-center gap-2 min-w-0 flex-1 pr-2">
+        <span class="w-2.5 h-2.5 rounded-full flex-shrink-0" style="background-color: ${item.color};"></span>
+        <span class="font-bold text-slate-800 dark:text-slate-200 truncate group-hover:text-amber-600 dark:group-hover:text-amber-400 transition" title="${item.label}">
+          ${item.label}
+        </span>
+      </div>
+      <div class="flex items-center gap-2 flex-shrink-0">
+        <span class="font-bold text-slate-900 dark:text-white">${item.pct}%</span>
+        <span class="text-[10px] text-slate-400 dark:text-slate-500 font-medium whitespace-nowrap">${item.valFormatted}</span>
+      </div>
+    `;
+    legendContainer.appendChild(row);
+  });
 }
