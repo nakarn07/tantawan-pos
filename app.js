@@ -5242,7 +5242,7 @@ function renderHeldBillsList() {
           <p class="text-[11px] text-slate-400 dark:text-slate-500 flex items-center gap-1">
             <span>🕒 ${bill.formattedTime || ''} (${timeAgo})</span>
             <span>•</span>
-            <span>${bill.itemCount || (bill.cart ? bill.cart.reduce((s, i) => s + i.qty, 0) : 0)} แก้ว/ชิ้น</span>
+            <span>${bill.itemCount || (bill.cart ? bill.cart.reduce((s, i) => s + i.qty, 0) : 0)} หน่วย</span>
           </p>
         </div>
         <div class="text-right flex-shrink-0">
@@ -7090,7 +7090,7 @@ function renderTopItemsList(salesStats = latestProductSalesStats) {
           </div>
         </div>
         <div class="text-right flex-shrink-0">
-          <span class="font-extrabold text-slate-900 dark:text-slate-100 block text-xs">${item.qty} แก้ว/ชิ้น</span>
+          <span class="font-extrabold text-slate-900 dark:text-slate-100 block text-xs">${item.qty} หน่วย</span>
           <span class="text-[10px] text-coffee-700 dark:text-amber-400 font-bold">฿${item.revenue.toFixed(2)}</span>
         </div>
       </div>
@@ -12295,13 +12295,13 @@ function renderPieChart() {
     chartData = {
       total,
       centerLabel: 'รวมทุกหมวด',
-      centerValue: currentPieMetric === 'qty' ? `${total} แก้ว` : `฿${total.toLocaleString(undefined, {maximumFractionDigits: 0})}`,
+      centerValue: currentPieMetric === 'qty' ? `${total} หน่วย` : `฿${total.toLocaleString(undefined, {maximumFractionDigits: 0})}`,
       centerSub: `${list.length} หมวดหมู่`,
       items: list.map((i, idx) => ({
         ...i,
         color: colors[idx % colors.length],
         pct: total > 0 ? ((i.val / total) * 100).toFixed(1) : '0.0',
-        valFormatted: currentPieMetric === 'qty' ? `${i.qty} แก้ว (฿${i.revenue.toLocaleString()})` : `฿${i.revenue.toLocaleString()} (${i.qty} แก้ว)`
+        valFormatted: currentPieMetric === 'qty' ? `${i.qty} หน่วย (฿${i.revenue.toLocaleString()})` : `฿${i.revenue.toLocaleString()} (${i.qty} หน่วย)`
       }))
     };
   } else if (currentPieMode === 'product') {
@@ -12354,13 +12354,13 @@ function renderPieChart() {
     chartData = {
       total,
       centerLabel: currentPieSelectedCategory === 'all' ? 'รวมยอดขาย' : currentPieSelectedCategory,
-      centerValue: currentPieMetric === 'qty' ? `${total} แก้ว` : `฿${total.toLocaleString(undefined, {maximumFractionDigits: 0})}`,
+      centerValue: currentPieMetric === 'qty' ? `${total} หน่วย` : `฿${total.toLocaleString(undefined, {maximumFractionDigits: 0})}`,
       centerSub: `${allItems.length} เมนู`,
       items: finalItems.map((i, idx) => ({
         ...i,
         color: colors[idx % colors.length],
         pct: total > 0 ? ((i.val / total) * 100).toFixed(1) : '0.0',
-        valFormatted: currentPieMetric === 'qty' ? `${i.qty} แก้ว (฿${i.revenue.toLocaleString()})` : `฿${i.revenue.toLocaleString()} (${i.qty} แก้ว)`
+        valFormatted: currentPieMetric === 'qty' ? `${i.qty} หน่วย (฿${i.revenue.toLocaleString()})` : `฿${i.revenue.toLocaleString()} (${i.qty} หน่วย)`
       }))
     };
   }
