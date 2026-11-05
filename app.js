@@ -7492,67 +7492,433 @@ function confirmReassignCashier() {
 // --------------------------------------------------------------------------
 // EXPORT TRANSACTIONS TO EXCEL / CSV FILE
 // --------------------------------------------------------------------------
-function exportToCSV() {
+
+
+// ==========================================================================
+// ACCOUNTING EXPORT ENGINE (FULL P&L STATEMENT / EXPENSES / SALES)
+// ==========================================================================
+
+function openExportReportModal() {
   if (currentUser && currentUser.role !== 'owner') {
-    showToast('⚠️ สิทธิ์ไม่เพียงพอ: ส่งออกข้อมูลยอดขายได้เฉพาะเจ้าของร้าน (Owner) เท่านั้น', 'warning');
+    showToast('⚠️ สิทธิ์ไม่เพียงพอ: ส่งออกข้อมูลบัญชีได้เฉพาะเจ้าของร้าน (Owner) เท่านั้น', 'warning');
     return;
   }
 
+  const modal = document.getElementById('exportReportModal');
+  if (!modal) return;
+
+  const startStr = document.getElementById('reportStartDate').value;
+  const endStr = document.getElementById('reportEndDate').value;
+  const periodDisplay = document.getElementById('exportModalPeriodDisplay');
+  if (periodDisplay) {
+    periodDisplay.innerText = (startStr === endStr) ? `ประจำวันที่: ${startStr}` : `ช่วงเวลา: ${startStr} ถึง ${endStr}`;
+  }
+
+  const filteredOrders = getFilteredOrders().filter(o => o.status !== 'voided');
+  const filteredExp = getFilteredExpenses();
+
+  let totalSales = 0;
+  let cashSales = 0;
+  filteredOrders.forEach(o => {
+    totalSales += o.total;
+    if (o.paymentMethod === 'เงินสด') cashSales += o.total;
+  });
+
+  let totalExp = 0;
+  let cashExp = 0;
+  filteredExp.forEach(e => {
+    const amt = parseFloat(e.amount) || 0;
+    totalExp += amt;
+    if (e.source === 'cash') cashExp += amt;
+  });
+
+  const netProfit = totalSales - totalExp;
+  const expectedDrawer = Math.max(0, cashSales - cashExp);
+
+  const elSales = document.getElementById('exportPreviewSales');
+  if (elSales) elSales.innerText = `฿${totalSales.toFixed(2)}`;
+
+  const elExp = document.getElementById('exportPreviewExpenses');
+  if (elExp) elExp.innerText = `฿${totalExp.toFixed(2)}`;
+
+  const elProfit = document.getElementById('exportPreviewProfit');
+  if (elProfit) elProfit.innerText = `฿${netProfit.toFixed(2)}`;
+
+  const elDrawer = document.getElementById('exportPreviewDrawer');
+  if (elDrawer) elDrawer.innerText = `฿${expectedDrawer.toFixed(2)}`;
+
+  const elExpCount = document.getElementById('exportExpenseCountLabel');
+  if (elExpCount) elExpCount.innerText = `${filteredExp.length} รายการ`;
+
+  const elOrderCount = document.getElementById('exportOrderCountLabel');
+  if (elOrderCount) elOrderCount.innerText = `${filteredOrders.length} บิล`;
+
+  modal.classList.remove('hidden');
+}
+
+function closeExportReportModal() {
+  const modal = document.getElementById('exportReportModal');
+  if (modal) modal.classList.add('hidden');
+}
+
+function exportToCSV() {
+  openExportReportModal();
+}
+
+function exportFullAccountingStatement(format) {
+  if (currentUser && currentUser.role !== 'owner') {
+    showToast('⚠️ สิทธิ์ไม่เพียงพอ: ส่งออกข้อมูลบัญชีได้เฉพาะเจ้าของร้าน (Owner) เท่านั้น', 'warning');
+    return;
+  }
+
+  const startStr = document.getElementById('reportStartDate').value;
+  const endStr = document.getElementById('reportEndDate').value;
+  const filteredOrders = getFilteredOrders();
+  const filteredExp = getFilteredExpenses();
+
+  let totalSales = 0;
+  let cashSales = 0;
+  let transferSales = 0;
+  let cashSalesCount = 0;
+  let transferSalesCount = 0;
+  let normalOrdersCount = 0;
+  let voidedCount = 0;
+
+  filteredOrders.forEach(o => {
+    if (o.status !== 'voided') {
+      totalSales += o.total;
+      normalOrdersCount++;
+      if (o.paymentMethod === 'เงินสด') {
+        cashSales += o.total;
+        cashSalesCount++;
+      } else {
+        transferSales += o.total;
+        transferSalesCount++;
+      }
+    } else {
+      voidedCount++;
+    }
+  });
+
+  let totalExpenses = 0;
+  let cashExpenses = 0;
+  let transferExpenses = 0;
+  const categoryTotals = {};
+
+  filteredExp.forEach(e => {
+    const amt = parseFloat(e.amount) || 0;
+    totalExpenses += amt;
+    if (e.source === 'cash') {
+      cashExpenses += amt;
+    } else {
+      transferExpenses += amt;
+    }
+    const cat = e.category || 'เบ็ดเตล็ด / อื่นๆ';
+    if (!categoryTotals[cat]) {
+      categoryTotals[cat] = { count: 0, total: 0, cash: 0, transfer: 0 };
+    }
+    categoryTotals[cat].count++;
+    categoryTotals[cat].total += amt;
+    if (e.source === 'cash') categoryTotals[cat].cash += amt;
+    else categoryTotals[cat].transfer += amt;
+  });
+
+  const netProfit = totalSales - totalExpenses;
+  const profitMargin = totalSales > 0 ? ((netProfit / totalSales) * 100).toFixed(1) : '0.0';
+  const expectedDrawerCash = Math.max(0, cashSales - cashExpenses);
+
+  if (format === 'xls') {
+    // Generate HTML-based Excel sheet with styled tables and colors
+    let htmlContent = '<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">';
+    htmlContent += '<head><meta charset="utf-8">';
+    htmlContent += '<style>';
+    htmlContent += "body { font-family: 'Tahoma', 'Segoe UI', sans-serif; font-size: 10pt; color: #1e293b; }";
+    htmlContent += ".header-title { font-size: 15pt; font-weight: bold; color: #0f172a; margin-bottom: 2px; }";
+    htmlContent += ".sub-title { font-size: 11pt; font-weight: bold; color: #b45309; margin-bottom: 8px; }";
+    htmlContent += ".meta-info { font-size: 9pt; color: #64748b; margin-bottom: 14px; }";
+    htmlContent += ".section-head { font-size: 11pt; font-weight: bold; background-color: #0f172a; color: #ffffff; padding: 6px 10px; margin-top: 16px; margin-bottom: 6px; }";
+    htmlContent += "table { border-collapse: collapse; width: 100%; margin-bottom: 16px; }";
+    htmlContent += "th { background-color: #1e293b; color: #ffffff; border: 1px solid #94a3b8; padding: 6px 8px; font-weight: bold; font-size: 9pt; }";
+    htmlContent += "td { border: 1px solid #cbd5e1; padding: 5px 8px; font-size: 9pt; }";
+    htmlContent += ".text-right { text-align: right; }";
+    htmlContent += ".text-center { text-align: center; }";
+    htmlContent += ".font-bold { font-weight: bold; }";
+    htmlContent += ".bg-light { background-color: #f8fafc; }";
+    htmlContent += ".bg-summary { background-color: #f1f5f9; font-weight: bold; }";
+    htmlContent += ".profit-pos { color: #059669; font-weight: bold; }";
+    htmlContent += ".profit-neg { color: #e11d48; font-weight: bold; }";
+    htmlContent += ".drawer-cash { color: #b45309; font-weight: bold; }";
+    htmlContent += '</style></head><body>';
+
+    htmlContent += '<div class="header-title">รายงานบัญชีรายรับ-รายจ่าย และกำไรสุทธิ (Profit &amp; Loss Statement)</div>';
+    htmlContent += '<div class="sub-title">ร้านทานตะวัน (TANTAWAN COFFEE &amp; CAFÉ)</div>';
+    htmlContent += `<div class="meta-info">ช่วงเวลา: ${startStr} ถึง ${endStr} | วันที่ออกรายงาน: ${new Date().toLocaleString('th-TH')} | พิมพ์โดย: ${currentUser ? currentUser.name : 'เจ้าของร้าน'}</div>`;
+
+    htmlContent += '<div class="section-head">1. สรุปภาพรวมทางการเงิน (EXECUTIVE FINANCIAL SUMMARY)</div>';
+    htmlContent += '<table><thead><tr><th style="width: 35%;">รายการบัญชี</th><th style="width: 20%;" class="text-center">จำนวนบิล/รายการ</th><th style="width: 20%;" class="text-right">จำนวนเงิน (บาท)</th><th style="width: 25%;">คำอธิบาย / ที่มา</th></tr></thead><tbody>';
+    htmlContent += `<tr class="bg-summary"><td><strong>1. ยอดขายรวม (Total Revenue / Income)</strong></td><td class="text-center"><strong>${normalOrdersCount} บิล</strong></td><td class="text-right font-bold profit-pos">${totalSales.toFixed(2)}</td><td>รวมยอดขายสำเร็จทุกช่องทาง (ยกเลิก ${voidedCount} บิล)</td></tr>`;
+    htmlContent += `<tr><td style="padding-left: 20px;">- รายรับเงินสด (Cash Sales)</td><td class="text-center">${cashSalesCount} บิล</td><td class="text-right drawer-cash">${cashSales.toFixed(2)}</td><td>เงินสดรับเข้าลิ้นชัก</td></tr>`;
+    htmlContent += `<tr><td style="padding-left: 20px;">- รายรับโอนเงิน / PromptPay</td><td class="text-center">${transferSalesCount} บิล</td><td class="text-right">${transferSales.toFixed(2)}</td><td>โอนเข้าบัญชีธนาคารร้าน</td></tr>`;
+    htmlContent += `<tr class="bg-summary"><td><strong>2. รายจ่ายรวม (Total Expenses)</strong></td><td class="text-center"><strong>${filteredExp.length} รายการ</strong></td><td class="text-right font-bold color-red">-${totalExpenses.toFixed(2)}</td><td>รวมค่าใช้จ่ายทั้งหมดของร้าน</td></tr>`;
+    htmlContent += `<tr><td style="padding-left: 20px;">- รายจ่ายหักจากเงินสดในเก๊ะ (Drawer Cash Paid)</td><td class="text-center">${filteredExp.filter(e => e.source === 'cash').length} รายการ</td><td class="text-right color-red">-${cashExpenses.toFixed(2)}</td><td>จ่ายค่าน้ำแข็ง/นมสด/ของใช้ (หักออกจากเก๊ะ)</td></tr>`;
+    htmlContent += `<tr><td style="padding-left: 20px;">- รายจ่ายโอนเงิน / บัญชีร้าน (Bank Transfer Paid)</td><td class="text-center">${filteredExp.filter(e => e.source !== 'cash').length} รายการ</td><td class="text-right color-red">-${transferExpenses.toFixed(2)}</td><td>โอนจ่ายค่าไฟ/วัตถุดิบ/ผ่อนชำระ (ไม่กระทบเก๊ะ)</td></tr>`;
+    htmlContent += `<tr style="background-color: #ecfdf5;"><td><strong style="color: #047857; font-size: 11pt;">3. กำไรสุทธิ (Net Profit)</strong></td><td class="text-center">-</td><td class="text-right font-bold ${netProfit >= 0 ? 'profit-pos' : 'profit-neg'}" style="font-size: 11pt;">${netProfit.toFixed(2)}</td><td><strong>ยอดขายรวม - รายจ่ายรวม (มาร์จิ้น ${profitMargin}%)</strong></td></tr>`;
+    htmlContent += `<tr style="background-color: #fffbeb;"><td><strong style="color: #b45309; font-size: 11pt;">4. เงินสดในเก๊ะที่ต้องมีจริง (Expected Drawer Cash)</strong></td><td class="text-center">-</td><td class="text-right font-bold drawer-cash" style="font-size: 11pt;">${expectedDrawerCash.toFixed(2)}</td><td><strong>ขายเงินสด ${cashSales.toFixed(2)} - จ่ายในเก๊ะ ${cashExpenses.toFixed(2)}</strong></td></tr>`;
+    htmlContent += '</tbody></table>';
+
+    htmlContent += '<div class="section-head">2. สรุปรายจ่ายแยกตามหมวดหมู่ (EXPENSES BY CATEGORY)</div>';
+    htmlContent += '<table><thead><tr><th>หมวดหมู่รายจ่าย</th><th class="text-center">จำนวนครั้ง</th><th class="text-right">ยอดรวม (บาท)</th><th class="text-center">สัดส่วน (%)</th><th class="text-right">จ่ายจากเงินในเก๊ะ</th><th class="text-right">โอนผ่านบัญชี</th></tr></thead><tbody>';
+
+    Object.keys(categoryTotals).forEach(cat => {
+      const data = categoryTotals[cat];
+      const pct = totalExpenses > 0 ? ((data.total / totalExpenses) * 100).toFixed(1) : '0.0';
+      htmlContent += `<tr><td><strong>${cat}</strong></td><td class="text-center">${data.count}</td><td class="text-right font-bold color-red">-${data.total.toFixed(2)}</td><td class="text-center">${pct}%</td><td class="text-right">${data.cash > 0 ? '-' + data.cash.toFixed(2) : '-'}</td><td class="text-right">${data.transfer > 0 ? '-' + data.transfer.toFixed(2) : '-'}</td></tr>`;
+    });
+
+    htmlContent += `<tr class="bg-summary"><td><strong>รวมรายจ่ายทั้งหมด</strong></td><td class="text-center"><strong>${filteredExp.length}</strong></td><td class="text-right font-bold color-red">-${totalExpenses.toFixed(2)}</td><td class="text-center"><strong>100.0%</strong></td><td class="text-right font-bold">-${cashExpenses.toFixed(2)}</td><td class="text-right font-bold">-${transferExpenses.toFixed(2)}</td></tr>`;
+    htmlContent += '</tbody></table>';
+
+    if (installments && installments.length > 0) {
+      htmlContent += '<div class="section-head">3. สถานะการผ่อนชำระ &amp; สต็อกระยะยาว (INSTALLMENTS &amp; RESTOCK TRACKER)</div>';
+      htmlContent += '<table><thead><tr><th>ชื่อรายการ</th><th class="text-center">งวดทั้งหมด</th><th class="text-center">จ่ายแล้ว</th><th class="text-center">คงเหลือ</th><th class="text-right">ค่างวด/เดือน</th><th class="text-right">จ่ายแล้วรวม</th><th class="text-right">ยอดคงเหลือรวม</th><th class="text-center">สถานะ</th></tr></thead><tbody>';
+      installments.forEach(inst => {
+        const totalM = inst.totalMonths || 12;
+        const paidM = inst.paidMonths || 0;
+        const monthly = parseFloat(inst.monthlyAmount) || 0;
+        const remM = Math.max(0, totalM - paidM);
+        const totalP = paidM * monthly;
+        const remAmt = remM * monthly;
+        htmlContent += `<tr><td><strong>${inst.title}</strong> (${inst.notes || ''})</td><td class="text-center">${totalM}</td><td class="text-center font-bold">${paidM}</td><td class="text-center">${remM}</td><td class="text-right">${monthly.toFixed(2)}</td><td class="text-right font-bold color-red">${totalP.toFixed(2)}</td><td class="text-right">${remAmt.toFixed(2)}</td><td class="text-center">${paidM >= totalM ? 'ผ่อนครบแล้ว' : `งวด ${paidM}/${totalM}`}</td></tr>`;
+      });
+      htmlContent += '</tbody></table>';
+    }
+
+    htmlContent += '<div class="section-head">4. สมุดบันทึกรายจ่ายโดยละเอียด (DETAILED EXPENSE LEDGER)</div>';
+    htmlContent += '<table><thead><tr><th class="text-center" style="width: 5%;">#</th><th style="width: 15%;">วัน-เวลา</th><th style="width: 20%;">หมวดหมู่</th><th style="width: 25%;">รายละเอียด / หมายเหตุ</th><th class="text-center" style="width: 15%;">ช่องทางจ่าย</th><th class="text-right" style="width: 10%;">จำนวนเงิน</th><th class="text-center" style="width: 10%;">ผู้บันทึก</th></tr></thead><tbody>';
+    if (filteredExp.length === 0) {
+      htmlContent += '<tr><td colspan="7" class="text-center" style="color: #94a3b8; padding: 20px;">ไม่มีรายการรายจ่ายในช่วงเวลาที่เลือก</td></tr>';
+    } else {
+      filteredExp.forEach((e, idx) => {
+        const ts = e.timestamp || (e.date ? new Date(e.date + 'T12:00:00').getTime() : Date.now());
+        const dStr = new Date(ts).toLocaleString('th-TH');
+        htmlContent += `<tr><td class="text-center">${idx + 1}</td><td>${dStr}</td><td><strong>${e.category}</strong></td><td>${e.note || '-'}</td><td class="text-center">${e.source === 'cash' ? '💵 เงินสดในเก๊ะ' : '📱 โอนเงิน / บัญชีร้าน'}</td><td class="text-right font-bold color-red">-${parseFloat(e.amount).toFixed(2)}</td><td class="text-center">${e.cashierName || 'แคชเชียร์'}</td></tr>`;
+      });
+    }
+    htmlContent += '</tbody></table>';
+
+    htmlContent += '<div class="section-head">5. สมุดบันทึกรายการขายโดยละเอียด (DETAILED SALES ORDERS LEDGER)</div>';
+    htmlContent += '<table><thead><tr><th class="text-center" style="width: 4%;">#</th><th style="width: 10%;">รหัสบิล</th><th style="width: 14%;">วัน-เวลา</th><th style="width: 12%;">แคชเชียร์</th><th style="width: 32%;">รายการสินค้า</th><th class="text-right" style="width: 8%;">ราคารวม</th><th class="text-right" style="width: 6%;">ส่วนลด</th><th class="text-right" style="width: 8%;">ยอดสุทธิ</th><th class="text-center" style="width: 6%;">ช่องทาง</th></tr></thead><tbody>';
+    if (filteredOrders.length === 0) {
+      htmlContent += '<tr><td colspan="9" class="text-center" style="color: #94a3b8; padding: 20px;">ไม่มีรายการขายในช่วงเวลาที่เลือก</td></tr>';
+    } else {
+      filteredOrders.forEach((o, idx) => {
+        const dStr = new Date(o.timestamp).toLocaleString('th-TH');
+        const itemsSummary = o.items.map(i => {
+          let customLabel = '';
+          if (i.selectedTemp) customLabel += `-${i.selectedTemp}`;
+          return `${i.name}${customLabel} (x${i.qty})`;
+        }).join('; ');
+        htmlContent += `<tr><td class="text-center">${idx + 1}</td><td><strong>${o.id}</strong></td><td>${dStr}</td><td>${o.cashierName || 'เจ้าของร้าน'}</td><td>${itemsSummary}</td><td class="text-right">${o.subtotal.toFixed(2)}</td><td class="text-right">${o.discount.toFixed(2)}</td><td class="text-right font-bold profit-pos">${o.total.toFixed(2)}</td><td class="text-center">${o.paymentMethod}</td></tr>`;
+      });
+    }
+    htmlContent += '</tbody></table></body></html>';
+
+    const blob = new Blob([htmlContent], { type: 'application/vnd.ms-excel;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.setAttribute('href', url);
+    link.setAttribute('download', `ร้านทานตะวัน-งบรายรับรายจ่าย-${startStr}-ถึง-${endStr}.xls`);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    showToast('ดาวน์โหลดรายงานงบการเงินแบบตารางสี (.XLS) เรียบร้อยแล้ว', 'success');
+    closeExportReportModal();
+    return;
+  }
+
+  // DEFAULT: Generate UTF-8 BOM CSV
+  const csvLines = [];
+  csvLines.push('====================================================================================================');
+  csvLines.push('รายงานบัญชีรายรับ-รายจ่าย และกำไรสุทธิ (FULL PROFIT & LOSS / CASH FLOW STATEMENT)');
+  csvLines.push('ร้านทานตะวัน (TANTAWAN COFFEE & CAFÉ)');
+  csvLines.push(`ช่วงเวลาที่เลือก: ${startStr} ถึง ${endStr}`);
+  csvLines.push(`วันที่ออกรายงาน: ${new Date().toLocaleString('th-TH')} | พิมพ์โดย: ${currentUser ? currentUser.name : 'เจ้าของร้าน'}`);
+  csvLines.push('====================================================================================================');
+  csvLines.push('');
+
+  // Section 1: Executive Financial Summary
+  csvLines.push('--- ส่วนที่ 1: สรุปภาพรวมทางการเงิน (EXECUTIVE FINANCIAL SUMMARY) ---');
+  csvLines.push('รายการบัญชี,จำนวนบิล/รายการ,จำนวนเงิน (บาท),คำอธิบาย / ที่มา');
+  csvLines.push(`1. ยอดขายรวม (Total Revenue / Income),${normalOrdersCount} บิล,${totalSales.toFixed(2)},รวมยอดขายสำเร็จทุกช่องทาง (ยกเลิก ${voidedCount} บิล)`);
+  csvLines.push(`   - รายรับเงินสด (Cash Sales),${cashSalesCount} บิล,${cashSales.toFixed(2)},เงินสดรับเข้าลิ้นชัก`);
+  csvLines.push(`   - รายรับโอนเงิน / PromptPay,${transferSalesCount} บิล,${transferSales.toFixed(2)},เงินโอนเข้าบัญชีธนาคารร้าน`);
+  csvLines.push(`2. รายจ่ายรวม (Total Expenses),${filteredExp.length} รายการ,${totalExpenses.toFixed(2)},รวมค่าใช้จ่ายทั้งหมดของร้าน`);
+  csvLines.push(`   - รายจ่ายหักจากเงินสดในเก๊ะ (Drawer Cash Paid),${filteredExp.filter(e => e.source === 'cash').length} รายการ,${cashExpenses.toFixed(2)},จ่ายค่าน้ำแข็ง/นมสด/ของใช้ (หักออกจากเก๊ะ)`);
+  csvLines.push(`   - รายจ่ายโอนเงิน / บัญชีร้าน (Bank Transfer Paid),${filteredExp.filter(e => e.source !== 'cash').length} รายการ,${transferExpenses.toFixed(2)},โอนจ่ายค่าไฟ/วัตถุดิบ/ผ่อนชำระ (ไม่กระทบเก๊ะ)`);
+  csvLines.push(`3. กำไรสุทธิ (Net Profit),-,${netProfit.toFixed(2)},ยอดขายรวม - รายจ่ายรวม (กำไรสุทธิ ${profitMargin}%)`);
+  csvLines.push(`4. เงินสดในเก๊ะที่ต้องมีจริง (Expected Drawer Cash),-,${expectedDrawerCash.toFixed(2)},ขายเงินสด ${cashSales.toFixed(2)} - จ่ายในเก๊ะ ${cashExpenses.toFixed(2)} (ตรวจนับเทียบได้ทันที)`);
+  csvLines.push('');
+
+  // Section 2: Expense by Category
+  csvLines.push('--- ส่วนที่ 2: สรุปรายจ่ายแยกตามหมวดหมู่ (EXPENSES BY CATEGORY) ---');
+  csvLines.push('หมวดหมู่รายจ่าย,จำนวนครั้ง,ยอดรวม (บาท),สัดส่วน (%),จ่ายจากเงินในเก๊ะ (บาท),โอนเงินผ่านบัญชี (บาท)');
+  Object.keys(categoryTotals).forEach(cat => {
+    const data = categoryTotals[cat];
+    const pct = totalExpenses > 0 ? ((data.total / totalExpenses) * 100).toFixed(1) : '0.0';
+    csvLines.push(`"${cat}",${data.count},${data.total.toFixed(2)},${pct}%,${data.cash.toFixed(2)},${data.transfer.toFixed(2)}`);
+  });
+  csvLines.push(`รวมรายจ่ายทั้งหมด,${filteredExp.length},${totalExpenses.toFixed(2)},100.0%,${cashExpenses.toFixed(2)},${transferExpenses.toFixed(2)}`);
+  csvLines.push('');
+
+  // Section 3: Installments & Restock
+  if (installments && installments.length > 0) {
+    csvLines.push('--- ส่วนที่ 3: สถานะการผ่อนชำระ & สต็อกระยะยาว (INSTALLMENTS & RESTOCK TRACKER) ---');
+    csvLines.push('ชื่อรายการ,งวดทั้งหมด,จ่ายแล้ว (งวด),คงเหลือ (งวด),ค่างวด/เดือน (บาท),จ่ายแล้วรวม (บาท),ยอดคงเหลือรวม (บาท),สถานะ,หมายเหตุ');
+    installments.forEach(inst => {
+      const totalM = inst.totalMonths || 12;
+      const paidM = inst.paidMonths || 0;
+      const monthly = parseFloat(inst.monthlyAmount) || 0;
+      const remM = Math.max(0, totalM - paidM);
+      const totalP = paidM * monthly;
+      const remAmt = remM * monthly;
+      const statusText = paidM >= totalM ? 'ผ่อนครบสัญญาแล้ว' : `กำลังผ่อนชำระ (งวด ${paidM}/${totalM})`;
+      csvLines.push(`"${inst.title}",${totalM},${paidM},${remM},${monthly.toFixed(2)},${totalP.toFixed(2)},${remAmt.toFixed(2)},"${statusText}","${inst.notes || '-'}"`);
+    });
+    csvLines.push('');
+  }
+
+  // Section 4: Detailed Expense Ledger
+  csvLines.push('--- ส่วนที่ 4: สมุดบันทึกรายจ่ายโดยละเอียด (DETAILED EXPENSE LEDGER) ---');
+  csvLines.push('ลำดับ,วัน-เวลา,หมวดหมู่,รายละเอียด / หมายเหตุ,ช่องทางจ่าย,จำนวนเงิน (บาท),ผู้บันทึก,รหัสอ้างอิง');
+  if (filteredExp.length === 0) {
+    csvLines.push('ไม่มีรายการรายจ่ายในช่วงเวลาที่เลือก');
+  } else {
+    filteredExp.forEach((e, idx) => {
+      const ts = e.timestamp || (e.date ? new Date(e.date + 'T12:00:00').getTime() : Date.now());
+      const dateStr = new Date(ts).toLocaleString('th-TH');
+      const sourceStr = e.source === 'cash' ? '💵 เงินสดในเก๊ะ' : '📱 โอนเงิน / บัญชีร้าน';
+      csvLines.push(`${idx + 1},${dateStr},"${e.category}","${(e.note || '-').replace(/"/g, '""')}","${sourceStr}",-${parseFloat(e.amount).toFixed(2)},"${e.cashierName || 'แคชเชียร์'}",${e.id}`);
+    });
+  }
+  csvLines.push('');
+
+  // Section 5: Detailed Sales Orders Ledger
+  csvLines.push('--- ส่วนที่ 5: สมุดบันทึกรายการขายโดยละเอียด (DETAILED SALES ORDERS LEDGER) ---');
+  csvLines.push('ลำดับ,รหัสบิล,วัน-เวลา,ผู้ขาย/แคชเชียร์,ตำแหน่ง,รายการสินค้า,ยอดรวมสินค้า,ส่วนลด,ยอดสุทธิ (บาท),ช่องทางชำระเงิน,สถานะ');
+  if (filteredOrders.length === 0) {
+    csvLines.push('ไม่มีรายการขายในช่วงเวลาที่เลือก');
+  } else {
+    filteredOrders.forEach((o, idx) => {
+      const dateStr = new Date(o.timestamp).toLocaleString('th-TH');
+      const itemsSummary = o.items.map(i => {
+        let customLabel = '';
+        if (i.selectedTemp) customLabel += `-${i.selectedTemp}`;
+        return `${i.name}${customLabel} (x${i.qty})`;
+      }).join('; ');
+      const roleName = (o.cashierRole === 'owner') ? 'เจ้าของร้าน (Owner)' : 'พนักงาน (Staff)';
+      const statusStr = o.status === 'completed' ? 'สำเร็จ' : 'ยกเลิก (Void)';
+      csvLines.push(`${idx + 1},${o.id},${dateStr},"${o.cashierName || 'เจ้าของร้าน'}","${roleName}","${itemsSummary.replace(/"/g, '""')}",${o.subtotal.toFixed(2)},${o.discount.toFixed(2)},${o.total.toFixed(2)},"${o.paymentMethod}","${statusStr}"`);
+    });
+  }
+
+  const csvContent = '\uFEFF' + csvLines.join('\r\n');
+  const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.setAttribute('href', url);
+  link.setAttribute('download', `ร้านทานตะวัน-งบรายรับรายจ่าย-${startStr}-ถึง-${endStr}.csv`);
+  link.style.visibility = 'hidden';
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+
+  showToast('ดาวน์โหลดงบรายรับ-รายจ่ายเต็มรูปแบบ (CSV) เรียบร้อยแล้ว', 'success');
+  closeExportReportModal();
+}
+
+function exportExpensesToCSV() {
+  if (currentUser && currentUser.role !== 'owner') {
+    showToast('⚠️ สิทธิ์ไม่เพียงพอ: ส่งออกข้อมูลได้เฉพาะเจ้าของร้าน (Owner) เท่านั้น', 'warning');
+    return;
+  }
+  const filtered = getFilteredExpenses();
+  if (filtered.length === 0) {
+    showToast('ไม่มีข้อมูลรายจ่ายสำหรับส่งออกในช่วงเวลานี้', 'warning');
+    return;
+  }
+  const csvLines = [];
+  csvLines.push('ลำดับ,วัน-เวลา,หมวดหมู่,รายละเอียด / หมายเหตุ,ช่องทางจ่าย,จำนวนเงิน (บาท),ผู้บันทึก,รหัสอ้างอิง');
+  filtered.forEach((e, idx) => {
+    const ts = e.timestamp || (e.date ? new Date(e.date + 'T12:00:00').getTime() : Date.now());
+    const dateStr = new Date(ts).toLocaleString('th-TH');
+    const sourceStr = e.source === 'cash' ? '💵 เงินสดในเก๊ะ' : '📱 โอนเงิน / บัญชีร้าน';
+    csvLines.push(`${idx + 1},${dateStr},"${e.category}","${(e.note || '-').replace(/"/g, '""')}","${sourceStr}",-${parseFloat(e.amount).toFixed(2)},"${e.cashierName || 'แคชเชียร์'}",${e.id}`);
+  });
+  const csvContent = '\uFEFF' + csvLines.join('\r\n');
+  const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  const startStr = document.getElementById('reportStartDate').value;
+  const endStr = document.getElementById('reportEndDate').value;
+  link.setAttribute('href', url);
+  link.setAttribute('download', `ร้านทานตะวัน-สมุดรายจ่าย-${startStr}-ถึง-${endStr}.csv`);
+  link.style.visibility = 'hidden';
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  showToast('ดาวน์โหลดไฟล์สมุดรายจ่าย (CSV) เรียบร้อยแล้ว', 'success');
+  closeExportReportModal();
+}
+
+function exportOrdersToCSV() {
+  if (currentUser && currentUser.role !== 'owner') {
+    showToast('⚠️ สิทธิ์ไม่เพียงพอ: ส่งออกข้อมูลได้เฉพาะเจ้าของร้าน (Owner) เท่านั้น', 'warning');
+    return;
+  }
   const filtered = getFilteredOrders();
   let ordersToExport = filtered;
-
   if (selectedPaymentFilter === 'cash') {
     ordersToExport = filtered.filter(o => o.paymentMethod === 'เงินสด');
   } else if (selectedPaymentFilter === 'transfer') {
     ordersToExport = filtered.filter(o => o.paymentMethod !== 'เงินสด');
   }
-
   if (selectedCashierFilter !== 'all') {
     ordersToExport = ordersToExport.filter(o => (o.cashierId || 'user-owner') === selectedCashierFilter);
   }
-
   if (ordersToExport.length === 0) {
     showToast('ไม่มีข้อมูลยอดขายสำหรับส่งออกในช่วงเวลานี้', 'warning');
     return;
   }
-
-  // BOM header to support Excel Thai characters rendering encoding correctly
-  let csvContent = '\uFEFF';
-  csvContent += 'รหัสออเดอร์,วัน-เวลา,ผู้ขาย/แคชเชียร์,ตำแหน่ง,รายการสินค้า,ราคารวมสินค้า,ส่วนลด,ยอดสุทธิ,ช่องทางชำระเงิน,สถานะ\r\n';
-
-  ordersToExport.forEach(o => {
+  const csvLines = [];
+  csvLines.push('ลำดับ,รหัสออเดอร์,วัน-เวลา,ผู้ขาย/แคชเชียร์,ตำแหน่ง,รายการสินค้า,ราคารวมสินค้า,ส่วนลด,ยอดสุทธิ,ช่องทางชำระเงิน,สถานะ');
+  ordersToExport.forEach((o, idx) => {
     const dateStr = new Date(o.timestamp).toLocaleString('th-TH');
-    
-    // Compile items text list
     const itemsSummary = o.items.map(i => {
       let customLabel = '';
       if (i.selectedTemp) customLabel += `-${i.selectedTemp}`;
       return `${i.name}${customLabel} (x${i.qty})`;
     }).join('; ');
-
     const roleName = (o.cashierRole === 'owner') ? 'เจ้าของร้าน (Owner)' : 'พนักงาน (Staff)';
-
     const row = [
+      idx + 1,
       o.id,
       dateStr,
       `"${o.cashierName || 'เจ้าของร้าน'}"`,
       `"${roleName}"`,
-      `"${itemsSummary}"`,
+      `"${itemsSummary.replace(/"/g, '""')}"`,
       o.subtotal.toFixed(2),
       o.discount.toFixed(2),
       o.total.toFixed(2),
       o.paymentMethod,
       o.status === 'completed' ? 'สำเร็จ' : 'ยกเลิก'
     ];
-    
-    csvContent += row.join(',') + '\r\n';
+    csvLines.push(row.join(','));
   });
-
-  // Create temporary link element to trigger downloads
+  const csvContent = '\uFEFF' + csvLines.join('\r\n');
   const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
   const url = URL.createObjectURL(blob);
   const link = document.createElement('a');
-  
   const startStr = document.getElementById('reportStartDate').value;
   const endStr = document.getElementById('reportEndDate').value;
   let filterTag = selectedPaymentFilter === 'cash' ? 'เฉพาะเงินสด' : selectedPaymentFilter === 'transfer' ? 'เฉพาะโอนเงิน-QR' : 'รวมทั้งหมด';
@@ -7560,20 +7926,16 @@ function exportToCSV() {
     const matched = users.find(u => u.id === selectedCashierFilter);
     if (matched) filterTag += `-พนักงาน-${matched.name}`;
   }
-  
   link.setAttribute('href', url);
-  link.setAttribute('download', `ร้านทานตะวัน-ยอดขาย-${filterTag}-${startStr}-ถึง-${endStr}.csv`);
+  link.setAttribute('download', `ร้านทานตะวัน-สมุดบิลขาย-${filterTag}-${startStr}-ถึง-${endStr}.csv`);
   link.style.visibility = 'hidden';
   document.body.appendChild(link);
   link.click();
   document.body.removeChild(link);
-  
-  showToast(`ดาวน์โหลดไฟล์ CSV (${filterTag}) เรียบร้อยแล้ว`);
+  showToast(`ดาวน์โหลดไฟล์บิลขาย (${filterTag}) เรียบร้อยแล้ว`);
+  closeExportReportModal();
 }
 
-// --------------------------------------------------------------------------
-// FULL POS BACKUP & RESTORE / CLOUD MIGRATION
-// --------------------------------------------------------------------------
 function exportFullPOSBackup() {
   try {
     const backup = {

@@ -469,10 +469,11 @@
             </div>
 
             <!-- Export Button (hidden for staff) -->
-            <button id="btnExportReport" onclick="exportToCSV()" class="historical-date-ctrl bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-1.5 text-xs font-semibold rounded-xl shadow-sm flex items-center space-x-1.5 transition ml-auto xl:ml-0">
+            <button id="btnExportReport" onclick="openExportReportModal()" class="historical-date-ctrl bg-emerald-600 hover:bg-emerald-700 text-white px-3.5 py-2 text-xs font-bold rounded-xl shadow-sm flex items-center space-x-1.5 transition ml-auto xl:ml-0">
               <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
               </svg>
+              <span id="exportCsvBtnText">ส่งออกบัญชี (Excel/CSV)</span>
             </button>
           </div>
         </div>
@@ -726,6 +727,10 @@
               </div>
 
               <span class="text-xs text-slate-500 dark:text-slate-400 font-medium pl-1 hidden sm:inline" id="ledgerCountDisplay">แสดง 0 ออเดอร์</span>
+              <button type="button" onclick="exportOrdersToCSV()" title="ดาวน์โหลดเฉพาะบิลขาย (CSV)" class="px-2.5 py-1.5 rounded-xl bg-slate-700 hover:bg-slate-800 text-white text-xs font-bold transition flex items-center gap-1 shadow-sm">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
+                <span class="hidden sm:inline">โหลดบิลขาย</span>
+              </button>
             </div>
           </div>
           <div class="overflow-x-auto">
@@ -785,6 +790,10 @@
               </div>
 
               <span class="text-xs text-slate-500 dark:text-slate-400 font-medium pl-1 hidden sm:inline" id="expenseCountDisplay">0 รายการ</span>
+              <button type="button" onclick="exportExpensesToCSV()" title="ดาวน์โหลดเฉพาะสมุดรายจ่าย (CSV)" class="px-2.5 py-1.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold transition flex items-center gap-1 shadow-sm">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
+                <span class="hidden sm:inline">โหลดสมุดรายจ่าย</span>
+              </button>
             </div>
           </div>
           <div class="overflow-x-auto">
@@ -2999,6 +3008,122 @@
   </div>
 
   <!-- Load Supabase Cloud & Realtime Integration -->
+  
+
+  <!-- =========================================================================
+       MODAL: EXPORT ACCOUNTING REPORT (ส่งออกรายงานบัญชีรายรับ-รายจ่าย)
+       ========================================================================= -->
+  <div id="exportReportModal" class="fixed inset-0 bg-slate-950/85 backdrop-blur-sm z-[70] flex items-center justify-center p-4 hidden">
+    <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-5 sm:p-7 max-w-lg w-full shadow-2xl space-y-4 fade-in-scale relative overflow-hidden max-h-[92vh] flex flex-col">
+      <!-- Glow effect -->
+      <div class="absolute -top-20 -right-20 w-48 h-48 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none"></div>
+
+      <!-- Header -->
+      <div class="flex items-center justify-between flex-shrink-0">
+        <div class="flex items-center gap-2.5">
+          <div class="w-10 h-10 rounded-2xl bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 flex items-center justify-center text-xl font-bold">
+            📊
+          </div>
+          <div>
+            <h3 class="text-lg font-black text-slate-900 dark:text-white">ส่งออกรายงานบัญชี (Excel/CSV)</h3>
+            <p class="text-xs text-slate-500 dark:text-slate-400" id="exportModalPeriodDisplay">ช่วงเวลาที่เลือก</p>
+          </div>
+        </div>
+        <button type="button" onclick="closeExportReportModal()" class="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 flex items-center justify-center transition">
+          ✕
+        </button>
+      </div>
+
+      <!-- Quick Stats Preview Banner -->
+      <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 p-3 rounded-2xl bg-slate-50 dark:bg-slate-950/60 border border-slate-200 dark:border-slate-800 text-center flex-shrink-0">
+        <div>
+          <div class="text-[10px] text-slate-400 uppercase font-semibold">ยอดขายรวม</div>
+          <div class="text-sm font-black text-slate-900 dark:text-white" id="exportPreviewSales">฿0.00</div>
+        </div>
+        <div>
+          <div class="text-[10px] text-slate-400 uppercase font-semibold">รายจ่ายรวม</div>
+          <div class="text-sm font-black text-rose-600 dark:text-rose-400" id="exportPreviewExpenses">฿0.00</div>
+        </div>
+        <div>
+          <div class="text-[10px] text-slate-400 uppercase font-semibold">กำไรสุทธิ</div>
+          <div class="text-sm font-black text-emerald-600 dark:text-emerald-400" id="exportPreviewProfit">฿0.00</div>
+        </div>
+        <div>
+          <div class="text-[10px] text-slate-400 uppercase font-semibold">เงินสดในเก๊ะ</div>
+          <div class="text-sm font-black text-amber-600 dark:text-amber-400" id="exportPreviewDrawer">฿0.00</div>
+        </div>
+      </div>
+
+      <!-- Export Options List -->
+      <div class="flex-1 overflow-y-auto space-y-3 pr-1 scrollbar-thin">
+        <!-- Option 1: Full Accounting Statement (⭐ แนะนำ) -->
+        <div class="p-4 rounded-2xl border-2 border-emerald-500/40 bg-emerald-50/40 dark:bg-emerald-950/20 hover:border-emerald-500 transition space-y-2.5">
+          <div class="flex items-center justify-between">
+            <span class="text-xs font-bold text-emerald-900 dark:text-emerald-200 flex items-center gap-1.5">
+              <span>⭐ แนะนำที่สุดสำหรับสรุปสิ้นเดือน</span>
+            </span>
+            <span class="text-[10px] font-bold bg-emerald-600 text-white px-2 py-0.5 rounded-full">ครบจบในไฟล์เดียว</span>
+          </div>
+          <h4 class="font-black text-slate-900 dark:text-white text-sm">
+            📊 งบรายรับ-รายจ่าย &amp; กำไรสุทธิเต็มรูปแบบ (Full P&amp;L Statement)
+          </h4>
+          <p class="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
+            รวมครบทั้งสรุปภาพรวมรายรับ-รายจ่าย, สัดส่วนรายจ่ายแยกตามหมวดหมู่, สถานะผ่อนชำระ Shopee, เงินสดในเก๊ะที่ต้องมีจริง พร้อมสมุดรายจ่ายและบิลขายทุกรายการ
+          </p>
+          <div class="flex flex-wrap gap-2 pt-1">
+            <button type="button" onclick="exportFullAccountingStatement('csv')" class="flex-1 py-2 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-sm transition flex items-center justify-center gap-1.5">
+              <span>📥 ดาวน์โหลด Excel (.CSV ภาษาไทย 100%)</span>
+            </button>
+            <button type="button" onclick="exportFullAccountingStatement('xls')" class="py-2 px-3 rounded-xl border border-emerald-400 dark:border-emerald-700 bg-white dark:bg-slate-800 text-emerald-800 dark:text-emerald-300 hover:bg-emerald-50 dark:hover:bg-emerald-900/40 font-bold text-xs transition flex items-center justify-center gap-1">
+              <span>📑 ไฟล์จัดตารางสี (.XLS)</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Option 2: Expense Ledger Only -->
+        <div class="p-3.5 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-800/60 hover:border-rose-400 transition space-y-1.5">
+          <div class="flex items-center justify-between">
+            <h4 class="font-bold text-slate-900 dark:text-white text-xs flex items-center gap-1.5">
+              <span>💸</span>
+              <span>เฉพาะสมุดบันทึกรายจ่าย (Expense Ledger Only)</span>
+            </h4>
+            <span class="text-[10px] text-slate-400" id="exportExpenseCountLabel">0 รายการ</span>
+          </div>
+          <p class="text-[11px] text-slate-500 dark:text-slate-400">
+            ส่งออกเฉพาะรายการรายจ่ายทั้งหมดตามช่วงเวลาที่เลือก (ค่าน้ำแข็ง, นม, แก้ว, ค่าไฟ ฯลฯ)
+          </p>
+          <button type="button" onclick="exportExpensesToCSV()" class="w-full py-1.5 px-3 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs shadow-sm transition flex items-center justify-center gap-1.5">
+            <span>📥 ดาวน์โหลดเฉพาะสมุดรายจ่าย (CSV)</span>
+          </button>
+        </div>
+
+        <!-- Option 3: Sales Orders Only -->
+        <div class="p-3.5 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-800/60 hover:border-slate-400 transition space-y-1.5">
+          <div class="flex items-center justify-between">
+            <h4 class="font-bold text-slate-900 dark:text-white text-xs flex items-center gap-1.5">
+              <span>📋</span>
+              <span>เฉพาะสมุดบิลขาย (Sales Orders Only)</span>
+            </h4>
+            <span class="text-[10px] text-slate-400" id="exportOrderCountLabel">0 บิล</span>
+          </div>
+          <p class="text-[11px] text-slate-500 dark:text-slate-400">
+            ส่งออกเฉพาะประวัติออเดอร์และการขายบิลต่อบิล
+          </p>
+          <button type="button" onclick="exportOrdersToCSV()" class="w-full py-1.5 px-3 rounded-xl bg-slate-700 hover:bg-slate-800 text-white font-bold text-xs shadow-sm transition flex items-center justify-center gap-1.5">
+            <span>📥 ดาวน์โหลดเฉพาะบิลขาย (CSV)</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Footer -->
+      <div class="pt-2 border-t border-slate-100 dark:border-slate-800 flex justify-end flex-shrink-0">
+        <button type="button" onclick="closeExportReportModal()" class="px-4 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-bold text-xs transition">
+          ปิดหน้าต่าง
+        </button>
+      </div>
+    </div>
+  </div>
+
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="supabase-client.js"></script>
 
