@@ -2476,7 +2476,7 @@
               <span>แลกแต้มฟรี (฿0)</span>
             </button>
             <button type="button" onclick="setCustomItemPreset('☕ กาแฟพิเศษ', 'Specialty Coffee', null)" class="px-2 py-0.5 text-[11px] font-medium rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-amber-100 dark:hover:bg-amber-950/60 transition">☕ กาแฟพิเศษ</button>
-            <button type="button" onclick="setCustomItemPreset('✨ เมนูพิเศษตามสั่ง', 'รายการอื่นๆ', null)" class="px-2 py-0.5 text-[11px] font-medium rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-amber-100 dark:hover:bg-amber-950/60 transition">✨ เมนูพิเศษตามสั่ง</button>
+            <button type="button" onclick="setCustomItemPreset('✨ เมนูพิเศษตามสั่ง', '', null)" class="px-2 py-0.5 text-[11px] font-medium rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-amber-100 dark:hover:bg-amber-950/60 transition">✨ เมนูพิเศษตามสั่ง</button>
             <button type="button" onclick="setCustomItemPreset('🥐 ของกินพิเศษ', 'ของกินอื่นๆ', null)" class="px-2 py-0.5 text-[11px] font-medium rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-amber-100 dark:hover:bg-amber-950/60 transition">🥐 ของกินพิเศษ</button>
             <button type="button" onclick="setCustomItemPreset('📦 รายการอื่นๆ', 'รายการอื่นๆ', null)" class="px-2 py-0.5 text-[11px] font-medium rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-amber-100 dark:hover:bg-amber-950/60 transition">📦 รายการอื่นๆ</button>
           </div>
@@ -2510,10 +2510,14 @@
 
         <!-- Category Selector -->
         <div class="space-y-1.5">
-          <label class="block text-xs font-bold text-slate-700 dark:text-slate-300">
-            หมวดหมู่ (สำหรับวิเคราะห์รายงานยอดขาย):
-          </label>
-          <select id="customItemCategory" class="w-full px-3.5 py-2 border border-slate-300 dark:border-slate-700 rounded-xl text-xs font-semibold bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-amber-500 focus:outline-none">
+          <div class="flex justify-between items-center">
+            <label class="block text-xs font-bold text-slate-700 dark:text-slate-300">
+              หมวดหมู่ (สำหรับวิเคราะห์รายงานยอดขาย): <span class="text-rose-500 font-bold">* (บังคับเลือก)</span>
+            </label>
+            <span class="text-[10px] text-amber-600 dark:text-amber-400 font-semibold">⚠️ บังคับเลือกเพื่อรายงานที่ถูกต้อง</span>
+          </div>
+          <select id="customItemCategory" class="w-full px-3.5 py-2.5 border border-slate-300 dark:border-slate-700 rounded-xl text-xs font-bold bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-amber-500 focus:outline-none transition">
+            <option value="" disabled selected>-- ⚠️ กรุณาเลือกหมวดหมู่สินค้า (บังคับ) --</option>
             <!-- Dynamically populated categories -->
           </select>
         </div>

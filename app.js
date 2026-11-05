@@ -4254,18 +4254,23 @@ function openCustomItemModal() {
   const qtyDisplay = document.getElementById('customItemQtyDisplay');
   if (qtyDisplay) qtyDisplay.innerText = '1';
 
-  // Populate categories
+  // Populate categories with blank unselected required default
   const catSelect = document.getElementById('customItemCategory');
   if (catSelect) {
     const existingCats = categories && categories.length > 0 ? [...categories] : [...DEFAULT_CATEGORIES];
+    if (!existingCats.includes('ของกินอื่นๆ')) {
+      existingCats.push('ของกินอื่นๆ');
+    }
     if (!existingCats.includes('รายการอื่นๆ')) {
       existingCats.push('รายการอื่นๆ');
     }
     if (!existingCats.includes('เมนูพิเศษ')) {
       existingCats.push('เมนูพิเศษ');
     }
-    let opts = existingCats.map(c => `<option value="${c}">${c}</option>`).join('');
+    let opts = '<option value="" disabled selected>-- ⚠️ กรุณาเลือกหมวดหมู่สินค้า (บังคับ) --</option>' +
+      existingCats.map(c => `<option value="${c}">${c}</option>`).join('');
     catSelect.innerHTML = opts;
+    catSelect.value = ''; // Force empty unselected state
   }
 
   modal.classList.remove('hidden');
@@ -4287,15 +4292,15 @@ function closeCustomItemModal() {
   modal.classList.add('hidden');
 }
 
-function setCustomItemPreset(name, category = 'รายการอื่นๆ', defaultPrice = 0) {
+function setCustomItemPreset(name, category = '', defaultPrice = 0) {
   const nameInp = document.getElementById('customItemName');
   if (nameInp) {
     nameInp.value = name;
   }
 
-  if (category) {
-    const catSelect = document.getElementById('customItemCategory');
-    if (catSelect) {
+  const catSelect = document.getElementById('customItemCategory');
+  if (catSelect) {
+    if (category) {
       let hasOpt = Array.from(catSelect.options).some(o => o.value === category);
       if (!hasOpt) {
         const newOpt = document.createElement('option');
@@ -4304,6 +4309,8 @@ function setCustomItemPreset(name, category = 'รายการอื่นๆ
         catSelect.appendChild(newOpt);
       }
       catSelect.value = category;
+    } else {
+      catSelect.value = '';
     }
   }
 
@@ -4358,7 +4365,19 @@ function addCustomItemToCart() {
   }
 
   const price = Math.max(0, parseFloat(priceValStr));
-  const category = catSelect ? catSelect.value : 'เมนูพิเศษ';
+  const category = catSelect ? (catSelect.value || '').trim() : '';
+
+  if (!category) {
+    showToast('⚠️ กรุณาเลือกหมวดหมู่สำหรับเมนูพิเศษนี้ก่อนกดลงตะกร้าครับ', 'warning');
+    if (catSelect) {
+      catSelect.focus();
+      catSelect.classList.add('ring-2', 'ring-rose-500', 'border-rose-500');
+      setTimeout(() => {
+        catSelect.classList.remove('ring-2', 'ring-rose-500', 'border-rose-500');
+      }, 3000);
+    }
+    return;
+  }
   const notes = notesInp ? notesInp.value.trim() : '';
   const qty = customItemQty || 1;
 
