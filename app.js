@@ -2625,8 +2625,14 @@ function getOrderFulfillmentStatus(order) {
 }
 
 function getTodayQueueOrders() {
-  const todayDateStr = new Date().toDateString();
-  const now = Date.now();
+  // ตัดรอบวันเป็นวันๆ ไป โดยตัดรอบที่เที่ยงคืน (00:00:00 - 23:59:59 น. ของวันปัจจุบันเท่านั้น)
+  const startOfDay = new Date();
+  startOfDay.setHours(0, 0, 0, 0);
+  const startOfDayMs = startOfDay.getTime();
+
+  const endOfDay = new Date();
+  endOfDay.setHours(23, 59, 59, 999);
+  const endOfDayMs = endOfDay.getTime();
 
   return orders.filter(o => {
     if (o.status === 'voided') return false;
@@ -2637,9 +2643,8 @@ function getTodayQueueOrders() {
     }
     if (!time) return false;
 
-    // Filter to today (calendar day match or within last 20 hours)
-    const isToday = (new Date(time).toDateString() === todayDateStr) || (now - time < 20 * 60 * 60 * 1000);
-    return isToday;
+    // เฉพาะออเดอร์ของวันนี้ตั้งแต่เที่ยงคืนเป็นต้นมาเท่านั้น
+    return time >= startOfDayMs && time <= endOfDayMs;
   });
 }
 
