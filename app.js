@@ -8062,6 +8062,7 @@ function importFullPOSBackup(fileInput) {
 // --------------------------------------------------------------------------
 function renderSVGChart(filteredOrders) {
   const container = document.getElementById('chartContainer');
+  if (!container) return;
   container.innerHTML = '';
 
   const activeOrders = filteredOrders.filter(o => o.status === 'completed');
@@ -8123,27 +8124,29 @@ function renderSVGChart(filteredOrders) {
     }
   }
 
-  const chartWidth = 500;
-  const chartHeight = 220;
-  const padding = 35;
+  // Enhanced wide responsive SVG dimensions
+  const chartWidth = 920;
+  const chartHeight = 240;
+  const paddingX = 45;
+  const paddingY = 35;
 
   const maxVal = Math.max(...dataPoints.map(p => p.val), 100);
   const minVal = 0;
 
   // Calculate coordinates mapping helper
-  const getX = (index) => padding + (index * (chartWidth - (padding * 2)) / (dataPoints.length - 1));
-  const getY = (value) => chartHeight - padding - ((value - minVal) * (chartHeight - (padding * 2)) / (maxVal - minVal));
+  const getX = (index) => paddingX + (index * (chartWidth - (paddingX * 2)) / (dataPoints.length - 1));
+  const getY = (value) => chartHeight - paddingY - ((value - minVal) * (chartHeight - (paddingY * 2)) / (maxVal - minVal));
 
   // Build SVG tags
-  let svg = `<svg viewBox="0 0 ${chartWidth} ${chartHeight}" class="w-full h-full text-slate-400 font-semibold" style="font-size: 8px;">`;
+  let svg = `<svg viewBox="0 0 ${chartWidth} ${chartHeight}" class="w-full h-full text-slate-400 font-semibold" style="font-size: 10px;">`;
 
   // Draw Grid Lines & Y-axis labels
   const gridTicks = 4;
   for (let i = 0; i <= gridTicks; i++) {
     const val = minVal + (i * (maxVal - minVal) / gridTicks);
     const y = getY(val);
-    svg += `<line x1="${padding}" y1="${y}" x2="${chartWidth - padding}" y2="${y}" stroke="${gridStroke}" stroke-width="1" stroke-dasharray="3,3" />`;
-    svg += `<text x="${padding - 5}" y="${y + 3}" text-anchor="end" fill="${axisFill}">฿${Math.round(val)}</text>`;
+    svg += `<line x1="${paddingX}" y1="${y}" x2="${chartWidth - paddingX}" y2="${y}" stroke="${gridStroke}" stroke-width="1" stroke-dasharray="4,4" />`;
+    svg += `<text x="${paddingX - 8}" y="${y + 3.5}" text-anchor="end" font-size="9" fill="${axisFill}">฿${Math.round(val).toLocaleString()}</text>`;
   }
 
   // Build points path line string
@@ -8162,27 +8165,42 @@ function renderSVGChart(filteredOrders) {
   // Fill gradient area below the line chart
   svg += `<path d="${areaStr}" fill="${areaFill}" />`;
   // Draw primary trend line
-  svg += `<path d="${pathStr}" fill="none" stroke="${lineStroke}" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" />`;
+  svg += `<path d="${pathStr}" fill="none" stroke="${lineStroke}" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" />`;
+
+  // Determine label frequency to prevent collision
+  const totalPts = dataPoints.length;
+  const labelStep = totalPts > 20 ? Math.ceil(totalPts / 15) : (totalPts > 12 ? 2 : 1);
 
   // Draw coordinate circles & X labels
   dataPoints.forEach((pt, i) => {
     const x = getX(i);
     const y = getY(pt.val);
     
-    // Draw dots
-    svg += `<circle cx="${x}" cy="${y}" r="4" fill="${dotFill}" stroke="${lineStroke}" stroke-width="2" />`;
+    // Draw dots with tooltip
+    svg += `
+      <circle cx="${x}" cy="${y}" r="4.5" fill="${dotFill}" stroke="${lineStroke}" stroke-width="2.5" class="cursor-pointer hover:r-6 transition-all">
+        <title>${pt.label}: ฿${Math.round(pt.val).toLocaleString()}</title>
+      </circle>
+    `;
     
-    // Display value tag above hover coordinates dot
-    if (pt.val > 0) {
-      svg += `<text x="${x}" y="${y - 8}" text-anchor="middle" font-weight="bold" fill="${valFill}">฿${Math.round(pt.val)}</text>`;
+    // Display value tag above dot:
+    // If dense (> 15 points), only show on peak points or points matching step
+    const isPeak = (pt.val === maxVal);
+    const shouldShowVal = (totalPts <= 15) || isPeak || (i % labelStep === 0 && pt.val > 0);
+
+    if (pt.val > 0 && shouldShowVal) {
+      svg += `<text x="${x}" y="${y - 8}" text-anchor="middle" font-size="9" font-weight="bold" fill="${valFill}">฿${Math.round(pt.val)}</text>`;
     }
     
-    // Date tag label on X-axis line bounds
-    svg += `<text x="${x}" y="${chartHeight - 12}" text-anchor="middle" fill="${axisFill}">${pt.label}</text>`;
+    // Date tag label on X-axis line bounds (Never overlap!)
+    const shouldShowLabel = (i % labelStep === 0) || (i === totalPts - 1);
+    if (shouldShowLabel) {
+      svg += `<text x="${x}" y="${chartHeight - 10}" text-anchor="middle" font-size="9.5" fill="${axisFill}">${pt.label}</text>`;
+    }
   });
 
   // Base X axis baseline
-  svg += `<line x1="${padding}" y1="${chartHeight - padding}" x2="${chartWidth - padding}" y2="${chartHeight - padding}" stroke="${baseStroke}" stroke-width="1.5" />`;
+  svg += `<line x1="${paddingX}" y1="${chartHeight - paddingY}" x2="${chartWidth - paddingX}" y2="${chartHeight - paddingY}" stroke="${baseStroke}" stroke-width="1.5" />`;
 
   svg += '</svg>';
   container.innerHTML = svg;
