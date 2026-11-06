@@ -158,16 +158,24 @@ function initDbChangeListener() {
             cashierName: payload.new.cashier_name,
             shiftId: payload.new.shift_id,
             notes: payload.new.notes,
-            status: payload.new.status || 'completed'
+            status: payload.new.status || 'completed',
+            fulfillmentStatus: 'waiting'
           };
           if (window.orders && !window.orders.some(o => o.id === newOrd.id)) {
             window.orders.unshift(newOrd);
             try {
               localStorage.setItem('coffeeshop_orders', JSON.stringify(window.orders));
             } catch (e) {}
+            if (typeof window.setOrderQueueFulfillment === 'function') {
+              window.setOrderQueueFulfillment(newOrd.id, 'waiting');
+            }
             if (typeof window.renderRecentOrders === 'function') window.renderRecentOrders();
             if (typeof window.calculateReportStats === 'function') window.calculateReportStats();
             if (typeof window.updateDashboardStats === 'function') window.updateDashboardStats();
+            if (typeof window.updateQueueBadgeCount === 'function') window.updateQueueBadgeCount();
+            if (typeof window.currentActiveTab !== 'undefined' && window.currentActiveTab === 'queue' && typeof window.renderBarQueue === 'function') {
+              window.renderBarQueue();
+            }
           }
         }
       })
@@ -481,7 +489,8 @@ async function fetchOrdersFromCloud() {
         cashierName: row.cashier_name,
         shiftId: row.shift_id,
         notes: row.notes,
-        status: row.status
+        status: row.status,
+        fulfillmentStatus: 'waiting'
       }));
 
       // Merge กับ Local

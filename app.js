@@ -2632,15 +2632,16 @@ function setOrderQueueFulfillment(orderId, status, servedAt = null) {
 }
 
 function getOrderFulfillmentStatus(order) {
-  if (!order) return 'served';
+  if (!order) return 'waiting';
   const map = getQueueFulfillmentMap();
-  if (map[order.id]) {
+  if (map && map[order.id] && map[order.id].status) {
     return map[order.id].status;
   }
   if (order.fulfillmentStatus) {
     return order.fulfillmentStatus;
   }
-  return 'served';
+  // ออเดอร์ที่ยังไม่เคยถูกกดส่งมอบ ค่าเริ่มต้นต้องเป็น 'waiting' (รอชง / รอส่ง) เสมอ
+  return 'waiting';
 }
 
 function getTodayQueueOrders() {
