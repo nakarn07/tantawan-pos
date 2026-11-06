@@ -6653,6 +6653,12 @@ function calculateReportStats() {
   if (elTotalExp) elTotalExp.innerText = `฿${totalExpenses.toFixed(2)}`;
   const elBadgeExpCount = document.getElementById('badgeExpenseCount');
   if (elBadgeExpCount) elBadgeExpCount.innerText = `${filteredExp.length} รายการ`;
+
+  // Update SubTab Badges according to selected date range
+  const subTabExpBadge = document.getElementById('subTabExpenseCountBadge');
+  if (subTabExpBadge) subTabExpBadge.innerText = String(filteredExp.length);
+  const subTabOrdBadge = document.getElementById('subTabOrderCountBadge');
+  if (subTabOrdBadge) subTabOrdBadge.innerText = String(filtered.length);
   const elMetricExpSplit = document.getElementById('metricExpenseSplit');
   if (elMetricExpSplit) elMetricExpSplit.innerText = `หักเก๊ะ ฿${cashExpenses.toFixed(2)} | โอน ฿${transferExpenses.toFixed(2)}`;
 
@@ -11303,6 +11309,12 @@ function getFilteredExpenses() {
   const endTS = new Date(endStr + 'T23:59:59').getTime();
 
   return expenses.filter(e => {
+    // 1. Direct date string check (YYYY-MM-DD)
+    if (e.date && e.date.length === 10) {
+      if (e.date >= startStr && e.date <= endStr) return true;
+    }
+
+    // 2. Timestamp check
     const ts = e.timestamp || (e.date ? new Date(e.date + 'T12:00:00').getTime() : (e.createdAt ? new Date(e.createdAt).getTime() : 0));
     return ts >= startTS && ts <= endTS;
   });
@@ -11399,6 +11411,10 @@ function renderExpenseTable() {
   if (countCash) countCash.innerText = String(cashCount);
   if (countTransfer) countTransfer.innerText = String(transferCount);
   if (countDisplay) countDisplay.innerText = `${totalCount} รายการ`;
+
+  // Sync subTabExpenseCountBadge with current filtered expenses
+  const subTabExpBadge = document.getElementById('subTabExpenseCountBadge');
+  if (subTabExpBadge) subTabExpBadge.innerText = String(totalCount);
 
   // Populate category filter dropdown
   const catSelect = document.getElementById('selectExpenseCategoryFilter');
