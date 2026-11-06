@@ -986,6 +986,14 @@ async function fetchQueueFulfillmentFromCloud() {
       const merged = { ...localMap, ...row.value };
       localStorage.setItem('coffeeshop_queue_fulfillment', JSON.stringify(merged));
       console.log('☁️ Queue fulfillment loaded from Supabase');
+
+      // Refresh UI instantly on any device
+      if (typeof window !== 'undefined') {
+        if (typeof window.updateQueueBadgeCount === 'function') window.updateQueueBadgeCount();
+        if (window.currentActiveTab === 'queue' && typeof window.renderBarQueue === 'function') {
+          window.renderBarQueue();
+        }
+      }
       return merged;
     }
   } catch(e) {

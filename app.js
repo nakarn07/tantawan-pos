@@ -2634,13 +2634,23 @@ function setOrderQueueFulfillment(orderId, status, servedAt = null) {
 function getOrderFulfillmentStatus(order) {
   if (!order) return 'waiting';
   const map = getQueueFulfillmentMap();
-  if (map && map[order.id] && map[order.id].status) {
-    return map[order.id].status;
+  const id = String(order.id || '');
+  const num = String(order.orderNumber || '');
+  const cleanId = id.replace(/^ORD-/, '');
+  const cleanNum = num.replace(/^ORD-/, '');
+
+  if (map) {
+    if (map[id] && map[id].status) return map[id].status;
+    if (map[num] && map[num].status) return map[num].status;
+    if (map[cleanId] && map[cleanId].status) return map[cleanId].status;
+    if (map[cleanNum] && map[cleanNum].status) return map[cleanNum].status;
+    if (map['ORD-' + cleanId] && map['ORD-' + cleanId].status) return map['ORD-' + cleanId].status;
+    if (map['ORD-' + cleanNum] && map['ORD-' + cleanNum].status) return map['ORD-' + cleanNum].status;
   }
+
   if (order.fulfillmentStatus) {
     return order.fulfillmentStatus;
   }
-  // ออเดอร์ที่ยังไม่เคยถูกกดส่งมอบ ค่าเริ่มต้นต้องเป็น 'waiting' (รอชง / รอส่ง) เสมอ
   return 'waiting';
 }
 
