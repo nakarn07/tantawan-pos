@@ -2121,6 +2121,20 @@ function loadFromLocalStorage() {
       }).catch(() => {});
     }
 
+    // Sync queue fulfillment & cup progress from Supabase on startup
+    if (typeof fetchQueueFulfillmentFromCloud === 'function') {
+      fetchQueueFulfillmentFromCloud().then(() => {
+        if (typeof fetchQueueCupProgressFromCloud === 'function') {
+          fetchQueueCupProgressFromCloud().then(() => {
+            if (typeof updateQueueBadgeCount === 'function') updateQueueBadgeCount();
+            if (typeof currentActiveTab !== 'undefined' && currentActiveTab === 'queue' && typeof renderBarQueue === 'function') {
+              renderBarQueue();
+            }
+          });
+        }
+      }).catch(() => {});
+    }
+
     // Sync remote products from Supabase on startup
     if (typeof fetchProductsFromCloud === 'function') {
       fetchProductsFromCloud().then(cloudProds => {
@@ -2610,6 +2624,11 @@ function setOrderQueueFulfillment(orderId, status, servedAt = null) {
     order.fulfillmentStatus = status;
     if (servedAt) order.servedAt = servedAt;
   }
+
+  // Sync to Cloud so tablets and other devices receive status
+  if (typeof syncQueueFulfillmentToCloud === 'function') {
+    syncQueueFulfillmentToCloud(map);
+  }
 }
 
 function getOrderFulfillmentStatus(order) {
@@ -2834,10 +2853,11 @@ function renderBarQueue() {
 
     const totalCups = cupsList.length;
     const progressForOrder = barQueueCupProgress[order.id] || {};
+    const isOrderServed = (getOrderFulfillmentStatus(order) === 'served');
     let doneCupsCount = 0;
 
     cupsList.forEach(cup => {
-      const isDone = !!progressForOrder[cup.cupKey] || (cup.totalInGroup === 1 && !!progressForOrder[cup.itemIdx]);
+      const isDone = isOrderServed || !!progressForOrder[cup.cupKey] || (cup.totalInGroup === 1 && !!progressForOrder[cup.itemIdx]);
       if (isDone) doneCupsCount++;
     });
 
@@ -2845,7 +2865,7 @@ function renderBarQueue() {
     const progressPercent = totalCups > 0 ? Math.round((doneCupsCount / totalCups) * 100) : 0;
 
     const itemsHtml = cupsList.map((cup, cupIdx) => {
-      const isCupDone = !!progressForOrder[cup.cupKey] || (cup.totalInGroup === 1 && !!progressForOrder[cup.itemIdx]);
+      const isCupDone = isOrderServed || !!progressForOrder[cup.cupKey] || (cup.totalInGroup === 1 && !!progressForOrder[cup.itemIdx]);
       const modsBadgeHtml = getItemModifiersBadgesHtml(cup.item, { isCompact: true });
       const customNoteHtml = (cup.item.customPriceNote || cup.item.customNotes)
         ? `<div class="text-[11px] text-amber-700 dark:text-amber-400 font-semibold italic mt-0.5">📝 ${cup.item.customPriceNote || cup.item.customNotes}</div>`
@@ -2979,6 +2999,25 @@ function filterBarQueue() {
 
 function markOrderAsServed(orderId) {
   setOrderQueueFulfillment(orderId, 'served', Date.now());
+
+  // Also mark all individual cups as done so progress map is complete
+  const order = orders.find(o => o.id === orderId);
+  if (order && Array.isArray(order.items)) {
+    if (!barQueueCupProgress[orderId]) barQueueCupProgress[orderId] = {};
+    order.items.forEach((item, itemIdx) => {
+      const qty = Number(item.qty) || 1;
+      for (let q = 1; q <= qty; q++) {
+        barQueueCupProgress[orderId][`${itemIdx}_${q}`] = true;
+      }
+    });
+    try {
+      localStorage.setItem('coffeeshop_queue_cup_progress', JSON.stringify(barQueueCupProgress));
+    } catch(e) {}
+    if (typeof syncQueueCupProgressToCloud === 'function') {
+      syncQueueCupProgressToCloud(barQueueCupProgress);
+    }
+  }
+
   saveToStorage('coffeeshop_orders', orders);
 
   if (typeof broadcastStaffCart === 'function') {
@@ -3026,6 +3065,10 @@ function toggleCupProgress(orderId, cupKey, event = null) {
   try {
     localStorage.setItem('coffeeshop_queue_cup_progress', JSON.stringify(barQueueCupProgress));
   } catch(e) {}
+
+  if (typeof syncQueueCupProgressToCloud === 'function') {
+    syncQueueCupProgressToCloud(barQueueCupProgress);
+  }
 
   if (typeof broadcastStaffCart === 'function') {
     broadcastStaffCart({

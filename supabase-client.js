@@ -50,7 +50,7 @@ function initSupabase() {
         dbClient.from('categories').delete().in('name', ['กาแฟ', 'ชา', 'เบเกอรี่']).then(() => {}).catch(() => {});
       } catch (e) {}
 
-      // Auto fetch sold out products
+      // Auto fetch sold out products & queue status
       setTimeout(() => {
         if (typeof fetchSoldOutProductsFromCloud === 'function') {
           fetchSoldOutProductsFromCloud().then(ids => {
@@ -59,6 +59,18 @@ function initSupabase() {
               if (typeof window !== 'undefined') window.soldOutProductIds = ids;
               if (typeof renderProductsGrid === 'function') renderProductsGrid();
               if (typeof renderMenuConfigTable === 'function') renderMenuConfigTable();
+            }
+          });
+        }
+        if (typeof fetchQueueFulfillmentFromCloud === 'function') {
+          fetchQueueFulfillmentFromCloud().then(() => {
+            if (typeof fetchQueueCupProgressFromCloud === 'function') {
+              fetchQueueCupProgressFromCloud().then(() => {
+                if (typeof updateQueueBadgeCount === 'function') updateQueueBadgeCount();
+                if (typeof currentActiveTab !== 'undefined' && currentActiveTab === 'queue' && typeof renderBarQueue === 'function') {
+                  renderBarQueue();
+                }
+              });
             }
           });
         }
@@ -240,6 +252,24 @@ function initDbChangeListener() {
             Object.assign(window.settings, newSettings);
           }
           console.log('📡 Realtime General Settings synced from Cloud (PromptPay/MaeManee:', newSettings.promptPayType, ')');
+        } else if (payload.new && payload.new.key === 'queue_fulfillment' && payload.new.value) {
+          const newMap = payload.new.value;
+          localStorage.setItem('coffeeshop_queue_fulfillment', JSON.stringify(newMap));
+          if (typeof updateQueueBadgeCount === 'function') updateQueueBadgeCount();
+          if (typeof currentActiveTab !== 'undefined' && currentActiveTab === 'queue' && typeof renderBarQueue === 'function') {
+            renderBarQueue();
+          }
+          console.log('📡 Realtime Queue Fulfillment updated from Cloud');
+        } else if (payload.new && payload.new.key === 'queue_cup_progress' && payload.new.value) {
+          const newProgress = payload.new.value;
+          localStorage.setItem('coffeeshop_queue_cup_progress', JSON.stringify(newProgress));
+          if (typeof barQueueCupProgress !== 'undefined') {
+            Object.assign(barQueueCupProgress, newProgress);
+          }
+          if (typeof currentActiveTab !== 'undefined' && currentActiveTab === 'queue' && typeof renderBarQueue === 'function') {
+            renderBarQueue();
+          }
+          console.log('📡 Realtime Queue Cup Progress updated from Cloud');
         }
       })
       .subscribe();
@@ -910,6 +940,91 @@ async function fetchExpenseCategoriesFromCloud() {
       return row.value;
     }
   } catch (e) {}
+  return null;
+}
+
+
+// 8.7 SYNC & FETCH QUEUE FULFILLMENT & CUP PROGRESS (ซิงค์สถานะคิวชงกาแฟข้ามเครื่องผ่าน Cloud)
+let queueFulfillmentSyncTimer = null;
+function syncQueueFulfillmentToCloud(fulfillmentMap) {
+  if (!dbClient || !isCloudConnected || !fulfillmentMap) return;
+  if (queueFulfillmentSyncTimer) clearTimeout(queueFulfillmentSyncTimer);
+  queueFulfillmentSyncTimer = setTimeout(async () => {
+    try {
+      await dbClient.from('shop_settings').upsert({
+        key: 'queue_fulfillment',
+        value: fulfillmentMap,
+        updated_at: new Date().toISOString()
+      });
+      console.log('☁️ Queue fulfillment synced to Cloud');
+    } catch(e) {
+      console.warn('syncQueueFulfillmentToCloud error:', e);
+    }
+  }, 300);
+}
+
+async function fetchQueueFulfillmentFromCloud() {
+  if (!dbClient || !isCloudConnected) return null;
+  try {
+    const { data: row, error } = await dbClient
+      .from('shop_settings')
+      .select('value')
+      .eq('key', 'queue_fulfillment')
+      .maybeSingle();
+
+    if (!error && row && row.value && typeof row.value === 'object') {
+      const localMap = JSON.parse(localStorage.getItem('coffeeshop_queue_fulfillment') || '{}');
+      const merged = { ...localMap, ...row.value };
+      localStorage.setItem('coffeeshop_queue_fulfillment', JSON.stringify(merged));
+      console.log('☁️ Queue fulfillment loaded from Supabase');
+      return merged;
+    }
+  } catch(e) {
+    console.warn('fetchQueueFulfillmentFromCloud error:', e);
+  }
+  return null;
+}
+
+let queueCupProgressSyncTimer = null;
+function syncQueueCupProgressToCloud(cupProgressMap) {
+  if (!dbClient || !isCloudConnected || !cupProgressMap) return;
+  if (queueCupProgressSyncTimer) clearTimeout(queueCupProgressSyncTimer);
+  queueCupProgressSyncTimer = setTimeout(async () => {
+    try {
+      await dbClient.from('shop_settings').upsert({
+        key: 'queue_cup_progress',
+        value: cupProgressMap,
+        updated_at: new Date().toISOString()
+      });
+      console.log('☁️ Queue cup progress synced to Cloud');
+    } catch(e) {
+      console.warn('syncQueueCupProgressToCloud error:', e);
+    }
+  }, 300);
+}
+
+async function fetchQueueCupProgressFromCloud() {
+  if (!dbClient || !isCloudConnected) return null;
+  try {
+    const { data: row, error } = await dbClient
+      .from('shop_settings')
+      .select('value')
+      .eq('key', 'queue_cup_progress')
+      .maybeSingle();
+
+    if (!error && row && row.value && typeof row.value === 'object') {
+      const localProg = JSON.parse(localStorage.getItem('coffeeshop_queue_cup_progress') || '{}');
+      const merged = { ...localProg, ...row.value };
+      localStorage.setItem('coffeeshop_queue_cup_progress', JSON.stringify(merged));
+      if (typeof barQueueCupProgress !== 'undefined') {
+        Object.assign(barQueueCupProgress, merged);
+      }
+      console.log('☁️ Queue cup progress loaded from Supabase');
+      return merged;
+    }
+  } catch(e) {
+    console.warn('fetchQueueCupProgressFromCloud error:', e);
+  }
   return null;
 }
 
