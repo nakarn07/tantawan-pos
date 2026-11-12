@@ -1901,7 +1901,8 @@ function init() {
   renderStaffList();
   
   // Set default view tab
-  switchTab(currentActiveTab);
+  switchTab(currentActiveTab, true);
+  initAppHistoryNavigation();
 
   // Initialize Held Bills queue & badge
   updateHeldBillsBadge();
@@ -2377,22 +2378,30 @@ function saveToStorage(key, data) {
 }
 
 // --------------------------------------------------------------------------
-// TAB VIEW SWITCHING
+// TAB VIEW SWITCHING & MOBILE/PWA HISTORY BACK NAVIGATION
 // --------------------------------------------------------------------------
-function switchTab(tabId) {
+function switchTab(tabId, isFromHistory = false) {
   // Permission guard for staff
   if (currentUser && currentUser.role !== 'owner') {
     if (['menu', 'promotions', 'settings'].includes(tabId)) {
       showToast('⚠️ สิทธิ์เข้าถึงถูกจำกัด: ส่วนนี้สำหรับเจ้าของร้าน (Owner) เท่านั้น', 'warning');
       promptOwnerPinOverride(() => {
-        switchTab(tabId);
+        switchTab(tabId, isFromHistory);
       }, 'กรุณาป้อนรหัส PIN ของเจ้าของร้าน (Owner) เพื่อเข้าถึงส่วนนี้');
       return;
     }
   }
 
+  const prevTab = currentActiveTab;
   currentActiveTab = tabId;
-  
+
+  // Manage browser history so Android / iPhone Back button retraces tabs seamlessly
+  if (!isFromHistory && prevTab !== tabId && typeof window !== 'undefined' && window.history && window.history.pushState) {
+    try {
+      window.history.pushState({ tab: tabId }, '', '#' + tabId);
+    } catch (e) {}
+  }
+
   // Update Tab buttons styling
   document.querySelectorAll('.tab-btn').forEach(btn => {
     btn.classList.remove('active');
@@ -2445,6 +2454,85 @@ function switchTab(tabId) {
     renderStaffList();
   } else if (tabId === 'queue') {
     renderBarQueue();
+  }
+}
+
+/**
+ * Initialize HTML5 History API for Mobile & PWA Back Navigation
+ * Allows Android/iOS physical back button / swipe back gesture to navigate tabs:
+ * e.g. Reports (3) -> Queue (2) -> Cashier (1) -> Exit
+ */
+function initAppHistoryNavigation() {
+  if (typeof window === 'undefined' || !window.history) return;
+
+  const validTabs = ['cashier', 'queue', 'reports', 'menu', 'promotions', 'settings'];
+  const hash = (window.location.hash || '').replace('#', '').trim();
+  const startTab = validTabs.includes(hash) ? hash : (currentActiveTab || 'cashier');
+  currentActiveTab = startTab;
+
+  try {
+    window.history.replaceState({ tab: startTab }, '', '#' + startTab);
+  } catch (e) {}
+
+  window.addEventListener('popstate', (e) => {
+    // 1. If user dropdown menu is open, close it first
+    const userDropdown = document.getElementById('userQuickDropdown');
+    if (userDropdown && !userDropdown.classList.contains('hidden')) {
+      userDropdown.classList.add('hidden');
+      return;
+    }
+
+    // 2. If any modal is currently open, close the modal first instead of switching tabs or leaving app
+    const openModals = Array.from(document.querySelectorAll('div[id$="Modal"]:not(.hidden), div#customizationModal:not(.hidden), div#editCartItemModal:not(.hidden)'));
+    if (openModals.length > 0) {
+      const topModal = openModals[openModals.length - 1];
+      closeModalById(topModal.id);
+      return;
+    }
+
+    // 3. Navigate back to previous tab
+    const targetTab = (e.state && e.state.tab) || (window.location.hash || '').replace('#', '').trim() || 'cashier';
+    if (validTabs.includes(targetTab)) {
+      switchTab(targetTab, true);
+    } else {
+      switchTab('cashier', true);
+    }
+  });
+}
+
+/**
+ * Safely close any active modal by ID
+ */
+function closeModalById(modalId) {
+  if (!modalId) return;
+  const modal = document.getElementById(modalId);
+  if (!modal) return;
+  
+  try {
+    if (modalId === 'checkoutModal' && typeof closeCheckoutModal === 'function') closeCheckoutModal();
+    else if (modalId === 'customizationModal' && typeof closeCustomizationModal === 'function') closeCustomizationModal();
+    else if (modalId === 'customItemModal' && typeof closeCustomItemModal === 'function') closeCustomItemModal();
+    else if (modalId === 'expenseModal' && typeof closeExpenseModal === 'function') closeExpenseModal();
+    else if (modalId === 'heldBillsModal' && typeof closeHeldBillsModal === 'function') closeHeldBillsModal();
+    else if (modalId === 'pinLoginModal' && typeof closePinLoginModal === 'function') closePinLoginModal();
+    else if (modalId === 'staffModal' && typeof closeStaffModal === 'function') closeStaffModal();
+    else if (modalId === 'quickDiscountModal' && typeof closeQuickDiscountModal === 'function') closeQuickDiscountModal();
+    else if (modalId === 'exportReportModal' && typeof closeExportReportModal === 'function') closeExportReportModal();
+    else if (modalId === 'editCartItemModal' && typeof closeEditCartItemModal === 'function') closeEditCartItemModal();
+    else if (modalId === 'productConfigModal' && typeof closeProductConfigModal === 'function') closeProductConfigModal();
+    else if (modalId === 'promotionConfigModal' && typeof closePromotionConfigModal === 'function') closePromotionConfigModal();
+    else if (modalId === 'receiptPreviewModal' && typeof closeReceiptPreviewModal === 'function') closeReceiptPreviewModal();
+    else if (modalId === 'holdBillModal' && typeof closeHoldBillPromptModal === 'function') closeHoldBillPromptModal();
+    else if (modalId === 'restoreConflictModal' && typeof cancelRestoreConflict === 'function') cancelRestoreConflict();
+    else if (modalId === 'reassignCashierModal' && typeof closeReassignCashierModal === 'function') closeReassignCashierModal();
+    else if (modalId === 'installmentModal' && typeof closeInstallmentModal === 'function') closeInstallmentModal();
+    else if (modalId === 'expenseCategoryManagerModal' && typeof closeExpenseCategoryManagerModal === 'function') closeExpenseCategoryManagerModal();
+    else if (modalId === 'categoriesManagerModal' && typeof closeCategoriesManagerModal === 'function') closeCategoriesManagerModal();
+    else if (modalId === 'optionGroupsManagerModal' && typeof closeOptionGroupsManagerModal === 'function') closeOptionGroupsManagerModal();
+    else if (modalId === 'optionGroupEditModal' && typeof closeOptionGroupEditModal === 'function') closeOptionGroupEditModal();
+    else modal.classList.add('hidden');
+  } catch (err) {
+    modal.classList.add('hidden');
   }
 }
 
