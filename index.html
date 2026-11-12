@@ -2661,6 +2661,72 @@
     </div>
   </div>
 
+  <!-- ==========================================
+       MODAL 18: VOID / RESTORE ORDER CONFIRMATION MODAL
+       ========================================== -->
+  <div id="voidOrderModal" class="fixed inset-0 bg-slate-950/70 backdrop-blur-sm z-50 flex items-center justify-center hidden p-4">
+    <div class="bg-white dark:bg-slate-900 rounded-3xl shadow-2xl max-w-md w-full overflow-hidden flex flex-col border border-slate-200 dark:border-slate-800 animate-scale-up">
+      <!-- Modal Header -->
+      <div id="voidModalHeader" class="p-5 border-b border-slate-200 dark:border-slate-800 flex justify-between items-center bg-red-50/60 dark:bg-red-950/40">
+        <div class="flex items-center space-x-3">
+          <div id="voidModalIcon" class="w-10 h-10 rounded-2xl bg-red-500/20 text-red-600 dark:text-red-400 flex items-center justify-center text-xl font-bold border border-red-500/30">
+            ⚠️
+          </div>
+          <div>
+            <h3 id="voidModalTitle" class="font-bold text-red-700 dark:text-red-300 text-base">ยกเลิกออเดอร์ (Void Order)</h3>
+            <p id="voidModalSubtitle" class="text-xs text-red-600/80 dark:text-red-400/80">หักยอดขายและบันทึกการยกเลิก</p>
+          </div>
+        </div>
+        <button type="button" onclick="closeVoidOrderModal()" class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-1.5 rounded-lg transition">
+          <svg class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd" /></svg>
+        </button>
+      </div>
+
+      <!-- Modal Body -->
+      <div class="p-5 space-y-4">
+        <!-- Order Summary Card -->
+        <div class="p-4 bg-slate-50 dark:bg-slate-800/60 rounded-2xl border border-slate-200 dark:border-slate-700/80 space-y-2">
+          <div class="flex justify-between items-center">
+            <span class="text-xs text-slate-500 dark:text-slate-400 font-medium">เลขที่ออเดอร์:</span>
+            <span id="voidModalOrderId" class="font-bold text-slate-900 dark:text-white text-sm font-mono">-</span>
+          </div>
+          <div class="flex justify-between items-center">
+            <span class="text-xs text-slate-500 dark:text-slate-400 font-medium">วัน-เวลา / ผู้ขาย:</span>
+            <span id="voidModalMeta" class="text-xs text-slate-700 dark:text-slate-300">-</span>
+          </div>
+          <div class="flex justify-between items-center pt-2 border-t border-slate-200 dark:border-slate-700">
+            <span class="text-xs font-bold text-slate-700 dark:text-slate-300">ยอดเงินสุทธิ:</span>
+            <span id="voidModalTotal" class="text-lg font-black text-slate-900 dark:text-white">฿0.00</span>
+          </div>
+        </div>
+
+        <!-- Items preview list -->
+        <div class="space-y-1.5">
+          <label class="block text-xs font-bold text-slate-700 dark:text-slate-300">รายการในบิล:</label>
+          <div id="voidModalItemsList" class="max-h-36 overflow-y-auto space-y-1 p-2 bg-slate-50 dark:bg-slate-800/40 rounded-xl border border-slate-200 dark:border-slate-700 text-xs">
+            <!-- Render items -->
+          </div>
+        </div>
+
+        <!-- Warning / Explanation Box -->
+        <div id="voidModalNotice" class="p-3 rounded-xl text-xs bg-amber-50 dark:bg-amber-950/40 border border-amber-300 dark:border-amber-700/60 text-amber-800 dark:text-amber-300 flex items-start gap-2">
+          <span class="text-base leading-none">💡</span>
+          <span id="voidModalNoticeText">ยอดขายนี้จะถูกหักออกจากรายงานสรุปประจำวัน และเปลี่ยนสถานะเป็นยกเลิก (Void)</span>
+        </div>
+      </div>
+
+      <!-- Modal Footer -->
+      <div class="p-4 border-t border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/80 flex justify-end space-x-2">
+        <button type="button" onclick="closeVoidOrderModal()" class="px-4 py-2 text-xs font-bold text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-xl transition">
+          ปิด / ละเว้น
+        </button>
+        <button type="button" id="btnConfirmVoidAction" onclick="confirmExecuteVoidOrder()" class="px-5 py-2 text-xs font-bold text-white bg-red-600 hover:bg-red-700 dark:bg-red-600 dark:hover:bg-red-700 rounded-xl shadow transition flex items-center gap-1.5">
+          <span id="btnConfirmVoidText">ยืนยันยกเลิกออเดอร์นี้</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
   <!-- TOAST NOTIFICATION CONTAINER -->
   <div id="toastContainer" class="fixed top-5 left-1/2 -translate-x-1/2 z-[9999] flex flex-col items-center space-y-2 pointer-events-none max-w-[92vw]">
     <!-- Dynamic toasts -->

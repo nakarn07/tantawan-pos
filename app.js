@@ -2530,6 +2530,7 @@ function closeModalById(modalId) {
     else if (modalId === 'categoriesManagerModal' && typeof closeCategoriesManagerModal === 'function') closeCategoriesManagerModal();
     else if (modalId === 'optionGroupsManagerModal' && typeof closeOptionGroupsManagerModal === 'function') closeOptionGroupsManagerModal();
     else if (modalId === 'optionGroupEditModal' && typeof closeOptionGroupEditModal === 'function') closeOptionGroupEditModal();
+    else if (modalId === 'voidOrderModal' && typeof closeVoidOrderModal === 'function') closeVoidOrderModal();
     else modal.classList.add('hidden');
   } catch (err) {
     modal.classList.add('hidden');
@@ -4960,6 +4961,19 @@ window.handleStaffCartSync = function(payload) {
       updateQueueBadgeCount();
       if (currentActiveTab === 'queue') {
         renderBarQueue();
+      }
+    }
+  } else if (payload.type === 'ORDER_VOID_STATUS_CHANGED') {
+    if (payload.orderId && payload.status) {
+      const ord = orders.find(o => String(o.id) === String(payload.orderId) || String(o.orderNumber) === String(payload.orderId));
+      if (ord) {
+        ord.status = payload.status;
+        saveToStorage('coffeeshop_orders', orders);
+        if (typeof calculateReportStats === 'function') calculateReportStats();
+        if (typeof renderRecentOrders === 'function') renderRecentOrders();
+        if (typeof updateDashboardStats === 'function') updateDashboardStats();
+        const label = (payload.status === 'voided') ? 'ยกเลิก (Void)' : 'สำเร็จ';
+        showToast(`📢 ออเดอร์ #${ord.orderNumber || ord.id} ปรับสถานะเป็น "${label}" จากอีกเครื่อง`, 'info');
       }
     }
   } else if (payload.type === 'QUEUE_CUP_PROGRESS') {
@@ -7477,36 +7491,159 @@ function renderLedgerTable(filteredOrders) {
   });
 }
 
+let currentVoidTargetOrderId = null;
+
 function toggleVoidOrder(orderId) {
-  const o = orders.find(ord => ord.id === orderId);
-  if (!o) return;
+  const o = orders.find(ord => String(ord.id) === String(orderId) || String(ord.orderNumber) === String(orderId));
+  if (!o) {
+    showToast('ไม่พบข้อมูลออเดอร์', 'warning');
+    return;
+  }
   
   if (currentUser && currentUser.role !== 'owner') {
     promptOwnerPinOverride(() => {
-      executeToggleVoid(orderId);
+      openVoidOrderModal(orderId);
     }, 'การยกเลิก/กู้คืนออเดอร์ต้องได้รับการอนุมัติด้วยรหัส PIN เจ้าของร้าน (Owner)');
     return;
   }
-  executeToggleVoid(orderId);
+  openVoidOrderModal(orderId);
+}
+
+function openVoidOrderModal(orderId) {
+  const o = orders.find(ord => String(ord.id) === String(orderId) || String(ord.orderNumber) === String(orderId));
+  if (!o) {
+    showToast('ไม่พบข้อมูลออเดอร์', 'warning');
+    return;
+  }
+
+  currentVoidTargetOrderId = o.id;
+
+  const modal = document.getElementById('voidOrderModal');
+  if (!modal) return;
+
+  const isVoided = (o.status === 'voided');
+  
+  // Header styling & texts
+  const header = document.getElementById('voidModalHeader');
+  const icon = document.getElementById('voidModalIcon');
+  const title = document.getElementById('voidModalTitle');
+  const subtitle = document.getElementById('voidModalSubtitle');
+  const noticeBox = document.getElementById('voidModalNotice');
+  const noticeText = document.getElementById('voidModalNoticeText');
+  const btnAction = document.getElementById('btnConfirmVoidAction');
+  const btnText = document.getElementById('btnConfirmVoidText');
+
+  if (isVoided) {
+    // Mode: Restore Order
+    header.className = 'p-5 border-b border-slate-200 dark:border-slate-800 flex justify-between items-center bg-blue-50/60 dark:bg-blue-950/40';
+    icon.className = 'w-10 h-10 rounded-2xl bg-blue-500/20 text-blue-600 dark:text-blue-400 flex items-center justify-center text-xl font-bold border border-blue-500/30';
+    icon.innerHTML = '🔄';
+    title.className = 'font-bold text-blue-700 dark:text-blue-300 text-base';
+    title.innerText = 'กู้คืนออเดอร์ (Restore Order)';
+    subtitle.className = 'text-xs text-blue-600/80 dark:text-blue-400/80';
+    subtitle.innerText = 'นำยอดขายกลับมารวมในสถิติและรายงานยอดขาย';
+
+    noticeBox.className = 'p-3 rounded-xl text-xs bg-blue-50 dark:bg-blue-950/40 border border-blue-300 dark:border-blue-700/60 text-blue-800 dark:text-blue-300 flex items-start gap-2';
+    noticeText.innerText = `ยอดขาย ฿${o.total.toFixed(2)} จะถูกนำกลับมารวมในสถิติและรายงานยอดขายตามปกติ`;
+
+    btnAction.className = 'px-5 py-2 text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 dark:bg-blue-600 dark:hover:bg-blue-700 rounded-xl shadow transition flex items-center gap-1.5';
+    btnText.innerText = 'ยืนยันกู้คืนออเดอร์นี้';
+  } else {
+    // Mode: Void Order
+    header.className = 'p-5 border-b border-slate-200 dark:border-slate-800 flex justify-between items-center bg-red-50/60 dark:bg-red-950/40';
+    icon.className = 'w-10 h-10 rounded-2xl bg-red-500/20 text-red-600 dark:text-red-400 flex items-center justify-center text-xl font-bold border border-red-500/30';
+    icon.innerHTML = '⚠️';
+    title.className = 'font-bold text-red-700 dark:text-red-300 text-base';
+    title.innerText = 'ยกเลิกออเดอร์ (Void Order)';
+    subtitle.className = 'text-xs text-red-600/80 dark:text-red-400/80';
+    subtitle.innerText = 'หักยอดขายออกและเปลี่ยนสถานะเป็นยกเลิก';
+
+    noticeBox.className = 'p-3 rounded-xl text-xs bg-red-50 dark:bg-red-950/40 border border-red-300 dark:border-red-700/60 text-red-800 dark:text-red-300 flex items-start gap-2';
+    noticeText.innerText = `ยอดขาย ฿${o.total.toFixed(2)} จะถูกหักออกจากรายงานสรุปประจำวัน และบันทึกเป็นบิลยกเลิก (Void)`;
+
+    btnAction.className = 'px-5 py-2 text-xs font-bold text-white bg-red-600 hover:bg-red-700 dark:bg-red-600 dark:hover:bg-red-700 rounded-xl shadow transition flex items-center gap-1.5';
+    btnText.innerText = 'ยืนยันยกเลิกออเดอร์นี้';
+  }
+
+  // Populate Order Details
+  document.getElementById('voidModalOrderId').innerText = `#${o.orderNumber || o.id}`;
+  document.getElementById('voidModalMeta').innerText = `${o.dateStr || o.date || ''} ${o.timeStr || o.time || ''} | ${o.cashierName || 'เจ้าของร้าน'}`;
+  document.getElementById('voidModalTotal').innerText = `฿${o.total.toFixed(2)}`;
+
+  // Populate Items List
+  const itemsContainer = document.getElementById('voidModalItemsList');
+  itemsContainer.innerHTML = '';
+  if (Array.isArray(o.items) && o.items.length > 0) {
+    o.items.forEach(item => {
+      const itemRow = document.createElement('div');
+      itemRow.className = 'flex justify-between items-center py-0.5 text-slate-800 dark:text-slate-200';
+      const name = item.name || 'สินค้า';
+      const qty = item.qty || 1;
+      const price = Number(item.totalPrice !== undefined ? item.totalPrice : (item.price * qty)) || 0;
+      itemRow.innerHTML = `
+        <span class="truncate max-w-[220px] font-medium">${name} x${qty}</span>
+        <span class="font-bold text-slate-700 dark:text-slate-300">฿${price.toFixed(2)}</span>
+      `;
+      itemsContainer.appendChild(itemRow);
+    });
+  } else {
+    itemsContainer.innerHTML = '<span class="text-slate-400">ไม่มีข้อมูลรายการสินค้า</span>';
+  }
+
+  modal.classList.remove('hidden');
+}
+
+function closeVoidOrderModal() {
+  const modal = document.getElementById('voidOrderModal');
+  if (modal) modal.classList.add('hidden');
+  currentVoidTargetOrderId = null;
+}
+
+function confirmExecuteVoidOrder() {
+  if (!currentVoidTargetOrderId) return;
+  const orderId = currentVoidTargetOrderId;
+  const o = orders.find(ord => ord.id === orderId || ord.orderNumber === orderId);
+  if (!o) {
+    closeVoidOrderModal();
+    return;
+  }
+
+  // Toggle status
+  const prevStatus = o.status;
+  const newStatus = (prevStatus === 'completed') ? 'voided' : 'completed';
+  o.status = newStatus;
+
+  // Save to local storage
+  saveToStorage('coffeeshop_orders', orders);
+
+  // Sync to Cloud Supabase
+  if (typeof syncOrderToCloud === 'function') {
+    syncOrderToCloud(o);
+  }
+
+  // Broadcast to other devices in real-time
+  if (typeof broadcastStaffCart === 'function') {
+    broadcastStaffCart({
+      type: 'ORDER_VOID_STATUS_CHANGED',
+      orderId: o.id,
+      orderNumber: o.orderNumber || o.id,
+      status: o.status
+    });
+  }
+
+  // Refresh UI
+  calculateReportStats();
+  if (typeof updateDashboardStats === 'function') updateDashboardStats();
+  if (typeof renderRecentOrders === 'function') renderRecentOrders();
+
+  closeVoidOrderModal();
+
+  const statusLabel = (newStatus === 'voided') ? 'ยกเลิก (Void)' : 'สำเร็จ';
+  showToast(`อัปเดตสถานะออเดอร์ #${o.orderNumber || o.id} เป็น "${statusLabel}" เรียบร้อยแล้ว`, 'success');
 }
 
 function executeToggleVoid(orderId) {
-  const o = orders.find(ord => ord.id === orderId);
-  if (!o) return;
-
-  const textConfirm = o.status === 'completed'
-    ? 'คุณต้องการยกเลิกออเดอร์นี้และหักยอดขายออกหรือไม่?'
-    : 'คุณต้องการกู้คืนออเดอร์นี้กลับมาเป็นยอดขายปกติหรือไม่?';
-    
-  if (confirm(textConfirm)) {
-    o.status = o.status === 'completed' ? 'voided' : 'completed';
-    saveToStorage('coffeeshop_orders', orders);
-    if (typeof syncOrderToCloud === 'function') {
-      syncOrderToCloud(o);
-    }
-    calculateReportStats();
-    showToast(`อัปเดตสถานะออเดอร์ ${orderId} เรียบร้อยแล้ว`);
-  }
+  openVoidOrderModal(orderId);
 }
 
 function reprintPastOrder(orderId) {

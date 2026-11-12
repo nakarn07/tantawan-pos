@@ -177,6 +177,20 @@ function initDbChangeListener() {
               window.renderBarQueue();
             }
           }
+        } else if ((payload.eventType === 'UPDATE' || payload.eventType === '*') && payload.new) {
+          const ordId = String(payload.new.id);
+          if (window.orders) {
+            const existing = window.orders.find(o => String(o.id) === ordId || String(o.orderNumber) === ordId);
+            if (existing) {
+              existing.status = payload.new.status || existing.status;
+              try {
+                localStorage.setItem('coffeeshop_orders', JSON.stringify(window.orders));
+              } catch (e) {}
+              if (typeof window.calculateReportStats === 'function') window.calculateReportStats();
+              if (typeof window.renderRecentOrders === 'function') window.renderRecentOrders();
+              if (typeof window.updateDashboardStats === 'function') window.updateDashboardStats();
+            }
+          }
         }
       })
       .subscribe();

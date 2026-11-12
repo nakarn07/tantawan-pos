@@ -3355,11 +3355,24 @@
           break;
 
         case 'CART_UPDATE':
-          hideCustomerPayment();
-          if (activeCustomerCustomization) {
-            completeCustomerCustomizing();
-          }
+          // Render underlying cart items and total calculation
           renderCustomerOrder(eventData);
+
+          // DO NOT dismiss active QR code or Cash payment screen on background cart syncs!
+          // Payment screen must stay visible until explicitly dismissed by HIDE_PAYMENT, HIDE_QR, or PAYMENT_SUCCESS.
+          {
+            const qrModalEl = document.getElementById('customerQrModal');
+            const isQrActive = qrModalEl && !qrModalEl.classList.contains('hidden');
+            const cashModalEl = document.getElementById('customerCashModal');
+            const isCashActive = cashModalEl && !cashModalEl.classList.contains('hidden');
+
+            if (!isQrActive && !isCashActive) {
+              hideCustomerPayment();
+              if (activeCustomerCustomization) {
+                completeCustomerCustomizing();
+              }
+            }
+          }
           break;
 
         case 'SHOW_QR':
