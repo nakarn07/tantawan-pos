@@ -2002,8 +2002,8 @@ function loadFromLocalStorage() {
     window.installments = installments;
     window.expenseCategories = expenseCategories;
     settings = JSON.parse(localStorage.getItem('coffeeshop_settings')) || DEFAULT_SETTINGS;
-    if (settings.shopName && settings.shopName.includes('(TANTAWAN COFFEE & CAFÉ)')) {
-      settings.shopName = 'ร้านทานตะวัน';
+    if (settings.shopName && /TANTAWAN\s*COFFEE/i.test(settings.shopName)) {
+      settings.shopName = settings.shopName.replace(/\(?\s*TANTAWAN\s*COFFEE\s*(&|&amp;)?\s*CAF[EÉ]\s*\)?/gi, '').trim() || 'ร้านทานตะวัน';
       settings.shopSubtitle = 'TANTAWAN COFFEE & CAFÉ';
       saveToStorage('coffeeshop_settings', settings);
     }
@@ -2189,8 +2189,13 @@ function loadFromLocalStorage() {
       fetchSettingsFromCloud().then(cloudSettings => {
         if (cloudSettings && typeof cloudSettings === 'object') {
           settings = Object.assign({}, DEFAULT_SETTINGS, cloudSettings);
+          if (settings.shopName && /TANTAWAN\s*COFFEE/i.test(settings.shopName)) {
+            settings.shopName = settings.shopName.replace(/\(?\s*TANTAWAN\s*COFFEE\s*(&|&amp;)?\s*CAF[EÉ]\s*\)?/gi, '').trim() || 'ร้านทานตะวัน';
+            settings.shopSubtitle = 'TANTAWAN COFFEE & CAFÉ';
+          }
           window.settings = settings;
           localStorage.setItem('coffeeshop_settings', JSON.stringify(settings));
+          updateHeaderShopBranding(settings.shopName);
           console.log('☁️ Applied shop settings from Cloud (PromptPay/MaeManee:', settings.promptPayType, ')');
         }
       }).catch(() => {});
@@ -3237,7 +3242,7 @@ function renderCategoryFilters() {
 
   // "ทั้งหมด" (All) button
   const allBtn = document.createElement('button');
-  allBtn.className = `px-4 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-colors ${selectedCategory === 'all' ? 'bg-amber-600 text-white shadow-sm' : 'bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-300 dark:hover:bg-slate-700'}`;
+  allBtn.className = `px-3 sm:px-4 py-1 sm:py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-colors ${selectedCategory === 'all' ? 'bg-amber-600 text-white shadow-sm' : 'bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-300 dark:hover:bg-slate-700'}`;
   allBtn.innerText = 'ทั้งหมด';
   allBtn.onclick = () => selectCategory('all');
   container.appendChild(allBtn);
@@ -3245,7 +3250,7 @@ function renderCategoryFilters() {
   // Dynamic category pills
   categories.forEach(cat => {
     const btn = document.createElement('button');
-    btn.className = `px-4 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-colors ${selectedCategory === cat ? 'bg-amber-600 text-white shadow-sm' : 'bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-300 dark:hover:bg-slate-700'}`;
+    btn.className = `px-3 sm:px-4 py-1 sm:py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-colors ${selectedCategory === cat ? 'bg-amber-600 text-white shadow-sm' : 'bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-300 dark:hover:bg-slate-700'}`;
     btn.innerText = cat;
     btn.onclick = () => selectCategory(cat);
     container.appendChild(btn);
@@ -10073,24 +10078,31 @@ function updateHeaderShopBranding(fullShopName) {
   const subEl = document.getElementById('headerShopSubtitle');
   if (!nameEl) return;
 
-  const raw = (fullShopName || '').trim() || 'ร้านทานตะวัน';
+  let raw = (fullShopName || '').trim() || 'ร้านทานตะวัน';
   const match = raw.match(/^(.*?)\s*\((.*?)\)$/);
   if (match) {
-    nameEl.innerText = match[1].trim();
+    let thaiPart = match[1].replace(/\(?\s*TANTAWAN\s*COFFEE\s*(&|&amp;)?\s*CAF[EÉ]\s*\)?/gi, '').trim() || 'ร้านทานตะวัน';
+    nameEl.innerText = thaiPart;
     if (subEl) {
       subEl.innerText = match[2].trim();
       subEl.style.display = '';
     }
   } else {
-    nameEl.innerText = raw;
+    // If raw contains TANTAWAN COFFEE & CAFÉ, strip it from nameEl to avoid duplicate title in white text
+    let cleanThai = raw.replace(/\(?\s*TANTAWAN\s*COFFEE\s*(&|&amp;)?\s*CAF[EÉ]\s*\)?/gi, '').trim() || 'ร้านทานตะวัน';
+    nameEl.innerText = cleanThai;
     if (subEl) {
-      subEl.innerText = settings.shopSubtitle || 'TANTAWAN COFFEE & CAFÉ';
+      subEl.innerText = (settings && settings.shopSubtitle) ? settings.shopSubtitle : 'TANTAWAN COFFEE & CAFÉ';
       subEl.style.display = '';
     }
   }
 }
 
 function loadSettingsInputs() {
+  if (settings.shopName && /TANTAWAN\s*COFFEE/i.test(settings.shopName)) {
+    settings.shopName = settings.shopName.replace(/\(?\s*TANTAWAN\s*COFFEE\s*(&|&amp;)?\s*CAF[EÉ]\s*\)?/gi, '').trim() || 'ร้านทานตะวัน';
+    settings.shopSubtitle = 'TANTAWAN COFFEE & CAFÉ';
+  }
   updateHeaderShopBranding(settings.shopName);
   document.getElementById('settingsShopName').value = settings.shopName || '';
   document.getElementById('settingsShopPhone').value = settings.shopPhone || '';
@@ -10198,9 +10210,13 @@ function saveSystemSettings() {
   const themeMode = document.getElementById('settingsThemeMode') ? document.getElementById('settingsThemeMode').value : currentTheme;
   applyTheme(themeMode);
 
+  let cleanShopName = shopName.replace(/\(?\s*TANTAWAN\s*COFFEE\s*(&|&amp;)?\s*CAF[EÉ]\s*\)?/gi, '').trim();
+  if (!cleanShopName) cleanShopName = 'ร้านทานตะวัน';
+
   settings = {
     ...settings,
-    shopName,
+    shopName: cleanShopName,
+    shopSubtitle: 'TANTAWAN COFFEE & CAFÉ',
     shopPhone,
     shopAddress,
     receiptFooter,
@@ -10220,7 +10236,7 @@ function saveSystemSettings() {
   };
 
   saveToStorage('coffeeshop_settings', settings);
-  updateHeaderShopBranding(shopName);
+  updateHeaderShopBranding(cleanShopName);
   showToast('บันทึกการตั้งค่าระบบเรียบร้อยแล้ว', 'success');
 }
 

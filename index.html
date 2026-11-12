@@ -52,13 +52,13 @@
        MAIN APP HEADER & NAVIGATION
        ========================================== -->
   <header class="bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 flex-shrink-0 shadow-sm print:hidden transition-colors">
-    <div class="w-full px-3 sm:px-6 lg:px-8">
-      <div class="flex justify-between h-16 items-center gap-2">
-        <div class="flex items-center space-x-2.5 sm:space-x-3 flex-shrink-0">
-          <img src="logo.png" alt="โลโก้ร้านทานตะวัน" class="w-10 h-10 sm:w-11 sm:h-11 object-contain rounded-2xl shadow-sm bg-white dark:bg-slate-800 p-1 border border-amber-200 dark:border-amber-900/50 flex-shrink-0">
+    <div class="w-full px-2.5 sm:px-4 lg:px-8">
+      <div class="flex justify-between h-12 sm:h-14 lg:h-16 items-center gap-1.5 sm:gap-2">
+        <div class="flex items-center space-x-2 sm:space-x-2.5 flex-shrink-0">
+          <img src="logo.png" alt="โลโก้ร้านทานตะวัน" class="w-8 h-8 sm:w-9 sm:h-9 lg:w-10 lg:h-10 object-contain rounded-xl sm:rounded-2xl shadow-sm bg-white dark:bg-slate-800 p-0.5 sm:p-1 border border-amber-200 dark:border-amber-900/50 flex-shrink-0">
           <div class="flex flex-col justify-center flex-shrink-0 min-w-0">
-            <h1 class="text-sm sm:text-base font-bold text-slate-900 dark:text-white leading-tight whitespace-nowrap" id="headerShopName">ร้านทานตะวัน</h1>
-            <p class="text-[10px] sm:text-xs text-amber-700 dark:text-amber-400 font-semibold tracking-wide whitespace-nowrap" id="headerShopSubtitle">TANTAWAN COFFEE &amp; CAFÉ</p>
+            <h1 class="text-xs sm:text-sm lg:text-base font-bold text-slate-900 dark:text-white leading-tight whitespace-nowrap" id="headerShopName">ร้านทานตะวัน</h1>
+            <p class="text-[9.5px] sm:text-[11px] lg:text-xs text-amber-600 dark:text-amber-400 font-semibold tracking-wider uppercase whitespace-nowrap" id="headerShopSubtitle">TANTAWAN COFFEE &amp; CAFÉ</p>
           </div>
         </div>
 
@@ -200,25 +200,25 @@
     <!-- TAB 1: CASHIER SCREEN (ORDERING) -->
     <div id="content-cashier" class="h-full flex flex-col md:flex-row overflow-y-auto md:overflow-hidden">
       <!-- Left side: Products Grid and Categories -->
-      <div class="flex-1 flex flex-col min-h-[58vh] md:min-h-0 md:h-full bg-slate-50 dark:bg-slate-950 border-r border-slate-200 dark:border-slate-800 overflow-hidden">
+      <div class="flex-1 flex flex-col min-h-[68vh] sm:min-h-[65vh] md:min-h-0 md:h-full bg-slate-50 dark:bg-slate-950 border-r border-slate-200 dark:border-slate-800 overflow-hidden">
         <!-- Search and Category Filters -->
-        <div class="p-2.5 sm:p-3.5 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 space-y-2 sm:space-y-2.5 flex-shrink-0">
+        <div class="p-2 sm:p-2.5 md:p-3 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 space-y-1.5 sm:space-y-2 flex-shrink-0">
           <div class="flex flex-wrap sm:flex-nowrap gap-1.5 sm:gap-2 items-center">
-            <div class="relative flex-1 min-w-[120px]">
-              <input type="text" id="searchProducts" placeholder="ค้นหาเมนู..." oninput="filterProducts()" class="w-full pl-8 sm:pl-9 pr-3 py-1.5 sm:py-2 border border-slate-300 dark:border-slate-700 rounded-lg text-xs sm:text-sm bg-white dark:bg-slate-800 text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-coffee-500 focus:border-coffee-500">
-              <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 absolute left-2.5 top-2 sm:top-2.5 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <div class="relative flex-1 min-w-[110px]">
+              <input type="text" id="searchProducts" placeholder="ค้นหาเมนู..." oninput="filterProducts()" class="w-full pl-7 sm:pl-8 pr-2.5 py-1 sm:py-1.5 border border-slate-300 dark:border-slate-700 rounded-lg text-xs sm:text-sm bg-white dark:bg-slate-800 text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-coffee-500 focus:border-coffee-500">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5 absolute left-2 top-2 sm:top-2 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
               </svg>
             </div>
 
             <!-- Grid Density / Card Size Selector (ขนาดการ์ดเมนู) -->
-            <select id="gridDensityMode" onchange="setGridDensity(this.value)" class="border border-slate-300 dark:border-slate-700 rounded-lg px-2 py-1.5 sm:py-2 text-[11px] sm:text-xs font-semibold bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-coffee-500 flex-shrink-0 cursor-pointer shadow-xs" title="ปรับขนาดการ์ดเมนูให้เหมาะกับหน้าจอ">
-              <option value="compact">📱 กะทัดรัด (พอดีจอแท็บเล็ต)</option>
+            <select id="gridDensityMode" onchange="setGridDensity(this.value)" class="border border-slate-300 dark:border-slate-700 rounded-lg px-2 py-1 sm:py-1.5 text-[11px] sm:text-xs font-semibold bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-coffee-500 flex-shrink-0 cursor-pointer shadow-xs" title="ปรับขนาดการ์ดเมนูให้เหมาะกับหน้าจอ">
+              <option value="compact">📱 กะทัดรัด (พอดีจอ)</option>
               <option value="normal">🍱 ปกติ (การ์ดใหญ่)</option>
               <option value="mini">⚡ เล็กพิเศษ (เห็นเมนูมากสุด)</option>
             </select>
 
-            <select id="productSortMode" onchange="filterProducts()" class="border border-slate-300 dark:border-slate-700 rounded-lg px-2 py-1.5 sm:py-2 text-[11px] sm:text-xs font-semibold bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-coffee-500 flex-shrink-0 cursor-pointer shadow-xs" title="จัดเรียงลำดับเมนู">
+            <select id="productSortMode" onchange="filterProducts()" class="border border-slate-300 dark:border-slate-700 rounded-lg px-2 py-1 sm:py-1.5 text-[11px] sm:text-xs font-semibold bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-coffee-500 flex-shrink-0 cursor-pointer shadow-xs" title="จัดเรียงลำดับเมนู">
               <option value="custom">📌 ตามลำดับที่จัดไว้</option>
               <option value="best-seller">🔥 เมนูขายดี</option>
               <option value="price-asc">💰 ราคา: ต่ำ-สูง</option>
@@ -226,19 +226,19 @@
               <option value="name-asc">🔤 ชื่อ: ก-ฮ</option>
             </select>
 
-            <button type="button" onclick="openCustomItemModal()" class="px-2.5 sm:px-3 py-1.5 sm:py-2 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white rounded-lg text-xs font-bold shadow-sm transition flex items-center gap-1.5 flex-shrink-0 whitespace-nowrap active:scale-95" title="คีย์เมนูพิเศษ / สินค้าตามสั่ง / คีย์ราคาเองตั้งแต่ ฿0">
+            <button type="button" onclick="openCustomItemModal()" class="px-2 sm:px-2.5 py-1 sm:py-1.5 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white rounded-lg text-xs font-bold shadow-sm transition flex items-center gap-1 flex-shrink-0 whitespace-nowrap active:scale-95" title="คีย์เมนูพิเศษ / สินค้าตามสั่ง / คีย์ราคาเองตั้งแต่ ฿0">
               <span>✨</span>
               <span class="hidden sm:inline">+ เมนูพิเศษ</span>
             </button>
           </div>
           <!-- Category Pills -->
-          <div class="flex space-x-1.5 sm:space-x-2 overflow-x-auto pb-1 no-scrollbar" id="categoryContainer">
+          <div class="flex space-x-1 sm:space-x-1.5 overflow-x-auto pb-0.5 no-scrollbar" id="categoryContainer">
             <!-- Dynamic categories -->
           </div>
         </div>
 
         <!-- Products Scrollable Grid -->
-        <div class="flex-1 overflow-y-auto p-2 sm:p-3 bg-slate-50 dark:bg-slate-950">
+        <div class="flex-1 overflow-y-auto p-1.5 sm:p-2.5 md:p-3 bg-slate-50 dark:bg-slate-950">
           <div id="productGrid" class="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-8 gap-1.5 sm:gap-2">
             <!-- Dynamic products -->
           </div>
@@ -246,11 +246,13 @@
       </div>
 
       <!-- Right side: Shopping Cart -->
-      <div class="w-full md:w-72 lg:w-80 xl:w-96 bg-white dark:bg-slate-900 flex flex-col min-h-[42vh] md:min-h-0 md:h-full shadow-lg relative flex-shrink-0 border-t md:border-t-0 md:border-l border-slate-200 dark:border-slate-800">
+      <div class="w-full md:w-72 lg:w-80 xl:w-96 bg-white dark:bg-slate-900 flex flex-col min-h-0 md:h-full shadow-lg relative flex-shrink-0 border-t md:border-t-0 md:border-l border-slate-200 dark:border-slate-800">
         <!-- Cart Header -->
-        <div class="p-4 border-b border-slate-200 dark:border-slate-800 flex justify-between items-center bg-slate-50 dark:bg-slate-900/80">
+        <div class="p-2.5 sm:p-3 md:p-4 border-b border-slate-200 dark:border-slate-800 flex justify-between items-center bg-slate-50 dark:bg-slate-900/80">
           <div class="flex items-center space-x-1.5 flex-shrink-0">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-coffee-600 dark:text-amber-400 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 sm:h-5 w-4 sm:w-5 text-coffee-600 dark:text-amber-400 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
+            </svg>
               <path stroke-linecap="round" stroke-linejoin="round" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
             </svg>
             <div class="leading-tight font-bold text-slate-900 dark:text-white text-xs whitespace-nowrap">
@@ -289,7 +291,7 @@
         </div>
 
         <!-- Cart Summary & Actions -->
-        <div class="p-4 border-t border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/90 space-y-4">
+        <div class="p-3 sm:p-4 border-t border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/90 space-y-2.5 sm:space-y-3.5">
           <div class="space-y-1.5 text-sm">
             <div class="flex justify-between text-slate-600 dark:text-slate-400">
               <span>ราคารวม</span>
